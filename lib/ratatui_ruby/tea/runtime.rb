@@ -90,6 +90,9 @@ module RatatuiRuby
                   pending_threads.each(&:join)
                   pending_threads.clear
 
+                  # Yield to ensure any final queue writes are visible
+                  Thread.pass
+
                   # Process all pending queue items
                   until queue.empty?
                     begin
@@ -223,15 +226,6 @@ module RatatuiRuby
       # See Command.system for message formats.
       private_class_method def self.dispatch(command, queue, active_commands = {})
         case command
-        when Command::Mapped
-          inner_queue = Queue.new
-          inner_thread = dispatch(command.inner_command, inner_queue)
-          Thread.new do
-            inner_thread&.join
-            inner_message = inner_queue.pop
-            transformed = command.mapper.call(inner_message)
-            queue << Ractor.make_shareable(transformed)
-          end
         when Command::Cancel
           entry = active_commands[command.handle]
           if entry && entry[:thread].alive?

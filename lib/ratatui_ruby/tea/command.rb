@@ -269,12 +269,46 @@ module RatatuiRuby
         System.new(command:, tag:, stream:)
       end
 
-      # Command that wraps another command's result with a transformation.
+      # Wraps another command's result with a transformation.
       #
-      # Fractal Architecture requires composition. Child bags produce commands.
-      # Parent bags route child results back to themselves. +Mapped+ wraps a
-      # child bag's command and transforms its result message into a parent message.
-      Mapped = Data.define(:inner_command, :mapper)
+      # Fractal Architecture requires composition. Child bags produce commands
+      # with their own tags. Parent bags need those results routed back with
+      # a parent prefix. Without transformation, update functions become
+      # monolithic "God Reducers" that know about every child's internals.
+      #
+      # This command wraps an inner command and transforms its result message.
+      # The parent bag delegates to the child, then intercepts the result and
+      # adds its routing prefix. Clean separation. No coupling.
+      #
+      # Use it to compose child bags that return their own commands.
+      Mapped = Data.define(:inner_command, :mapper) do
+        # Command identification for runtime dispatch.
+        def tea_command? = true
+
+        # Grace period delegates to inner command.
+        def tea_cancellation_grace_period
+          inner_command.respond_to?(:tea_cancellation_grace_period) ?
+            inner_command.tea_cancellation_grace_period : 0.1
+        end
+
+        # Executes the inner command, waits for result, and transforms it.
+        def call(out, token)
+          inner_queue = Queue.new
+          inner_outlet = Outlet.new(inner_queue)
+
+          # Dispatch inner command
+          if inner_command.respond_to?(:call)
+            inner_command.call(inner_outlet, token)
+          else
+            raise ArgumentError, "Inner command must respond to #call"
+          end
+
+          # Transform result and send
+          inner_message = inner_queue.pop
+          transformed = mapper.call(inner_message)
+          out.put(*transformed)
+        end
+      end
 
       # Creates a mapped command for Fractal Architecture composition.
       #

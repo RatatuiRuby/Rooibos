@@ -52,6 +52,15 @@ module RatatuiRuby
         attr_reader inner_command: execution
         attr_reader mapper: ^(Array[untyped]) -> Array[untyped]
 
+        # Command identification for runtime dispatch.
+        def tea_command?: () -> true
+
+        # Grace period delegates to inner command.
+        def tea_cancellation_grace_period: () -> Float
+
+        # Executes the inner command and transforms the result.
+        def call: (Outlet out, CancellationToken token) -> void
+
         def self.new: (inner_command: execution, mapper: ^(Array[untyped]) -> Array[untyped]) -> instance
       end
 
