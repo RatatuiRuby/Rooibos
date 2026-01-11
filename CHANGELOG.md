@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Automatic Error Propagation**: Custom commands that raise unhandled exceptions now produce a `Command::Error` message instead of corrupting the TUI display. The runtime catches exceptions and pushes `Command::Error.new(command:, exception:)` to the queue. Pattern match on `Command::Error` in your update function to handle failures uniformly. Factory method `Command.error(command, exception)` is available for testing.
 
+- **Command::System Cancellation**: Streaming shell commands now respect cooperative cancellation. When cancelled, sends `SIGTERM` for graceful shutdown, then `SIGKILL` if the child process doesn't exit. Prevents orphaned child processes from lingering after app exit.
+
 ### Changed
 
 ### Fixed

@@ -116,12 +116,24 @@ module RatatuiRuby
         Error.new(command:, exception:)
       end
 
-      # Command to run a shell command via Open3.
+      # Runs a shell command and routes its output back as messages.
       #
-      # The runtime executes the command and produces messages. In batch mode
-      # (default), a single message arrives: <tt>[tag, {stdout:, stderr:, status:}]</tt>.
+      # Apps run external tools: linters, compilers, scripts, system utilities.
+      # The runtime dispatches the command in a thread, so the UI stays responsive.
+      # Batch mode (default) waits for completion; streaming mode shows output live.
+      # Orphaned child processes linger and waste resources, so cancellation sends
+      # <tt>SIGTERM</tt> for graceful shutdown, then <tt>SIGKILL</tt> to prevent orphans.
       #
-      # In streaming mode, messages arrive incrementally:
+      # Use it to run builds, lint files, execute scripts, or invoke any CLI tool.
+      #
+      # === Batch Mode (default)
+      #
+      # A single message arrives when the command finishes:
+      # <tt>[tag, {stdout:, stderr:, status:}]</tt>
+      #
+      # === Streaming Mode
+      #
+      # Messages arrive incrementally:
       # - <tt>[tag, :stdout, line]</tt> for each stdout line
       # - <tt>[tag, :stderr, line]</tt> for each stderr line
       # - <tt>[tag, :complete, {status:}]</tt> when the command finishes
@@ -129,11 +141,86 @@ module RatatuiRuby
       #
       # The <tt>status</tt> is the integer exit code (0 = success).
       System = Data.define(:command, :tag, :stream) do
-        include Custom
+        # Command identification — runtime uses this to dispatch as a command.
+        def tea_command?
+          true
+        end
+
+        # Grace period for cleanup after cancellation.
+        def tea_cancellation_grace_period
+          0.1
+        end
 
         # Returns true if streaming mode is enabled.
         def stream?
           stream
+        end
+
+        # Executes the shell command and sends results via outlet.
+        #
+        # In batch mode, sends a single message with all output.
+        # In streaming mode, sends incremental messages as output arrives.
+        # Respects cancellation token by sending SIGTERM (then SIGKILL) to child.
+        def call(out, token)
+          require "open3"
+
+          if stream?
+            stream_execution(out, token)
+          else
+            batch_execution(out)
+          end
+        end
+
+        private def batch_execution(out)
+          stdout, stderr, status = Open3.capture3(command)
+          out.put(tag, Ractor.make_shareable({ stdout:, stderr:, status: status.exitstatus }))
+        end
+
+        private def stream_execution(out, token)
+          Open3.popen3(command) do |stdin, stdout, stderr, wait_thr|
+            stdin.close
+            pid = wait_thr.pid
+
+            stdout_thread = Thread.new do
+              stdout.each_line { |line| out.put(tag, :stdout, line.freeze) }
+            rescue IOError
+              # Stream closed - SIGKILL the child if still alive (forcible cleanup)
+              begin
+                Process.kill("KILL", pid) if wait_thr.alive?
+              rescue Errno::ESRCH
+                # Already dead
+              end
+            end
+            stderr_thread = Thread.new do
+              stderr.each_line { |line| out.put(tag, :stderr, line.freeze) }
+            rescue IOError
+              # Stream closed
+            end
+
+            # Cooperative cancellation: SIGTERM when token is cancelled
+            cancellation_watcher = Thread.new do
+              sleep 0.01 until token.cancelled? || !wait_thr.alive?
+              if token.cancelled? && wait_thr.alive?
+                begin
+                  Process.kill("TERM", pid)
+                rescue Errno::ESRCH
+                  # Already dead
+                end
+              end
+            end
+
+            wait_thr.join
+
+            # Child exited; clean up threads
+            stdout_thread.kill
+            stderr_thread.kill
+            cancellation_watcher.kill
+
+            status = wait_thr.value.exitstatus
+            out.put(tag, :complete, Ractor.make_shareable({ status: }))
+          end
+        rescue Errno::ENOENT, Errno::EACCES => e
+          out.put(tag, :error, Ractor.make_shareable({ message: e.message }))
         end
       end
 

@@ -133,4 +133,106 @@ class TestStreamingCommand < Minitest::Test
     error_or_complete = messages.find { |m| m[1] == :error || m[1] == :complete }
     assert error_or_complete, "Should receive :error or :complete message"
   end
+
+  # Baseline test: streaming command can be force-killed.
+  # This confirms the existing cancellation mechanism works.
+  def test_streaming_command_can_be_force_killed
+    events = []
+    model = Ractor.make_shareable({ cmd: nil, cancelled: false })
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s"
+          cmd = RatatuiRuby::Tea::Command.system(
+            "echo started && sleep 0.5", # Short sleep so force-kill completes quickly
+            :output,
+            stream: true
+          )
+          [Ractor.make_shareable({ cmd:, cancelled: false }), cmd]
+        else
+          [m, nil]
+        end
+      when Array
+        tag, event_type, = msg
+        events << event_type
+        if tag == :output && event_type == :stdout && !m[:cancelled]
+          new_model = Ractor.make_shareable({ cmd: m[:cmd], cancelled: true })
+          [new_model, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+        elsif tag == :output && event_type == :complete
+          [m, RatatuiRuby::Tea::Command.exit]
+        else
+          [m, nil]
+        end
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    # Command should complete (either via cancel or natural completion)
+    assert events.include?(:stdout), "Should receive stdout"
+    assert events.include?(:complete), "Should receive complete"
+  end
+
+  # TDD: streaming command should use cooperative cancellation (SIGTERM).
+  # Cooperative cancellation should be faster than the grace period.
+  # This test FAILS until we implement token-based SIGTERM.
+  def test_streaming_command_cancels_cooperatively
+    events = []
+    model = Ractor.make_shareable({ cmd: nil, cancelled: false })
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s"
+          # Shell: output immediately, responds to SIGTERM quickly (1ms loop)
+          cmd = RatatuiRuby::Tea::Command.system(
+            "printf 'started\n' && trap 'exit 0' TERM && while true; do sleep 0.001; done",
+            :output,
+            stream: true
+          )
+          [Ractor.make_shareable({ cmd:, cancelled: false }), cmd]
+        else
+          [m, nil]
+        end
+      when Array
+        tag, event_type, = msg
+        events << event_type
+        if tag == :output && event_type == :stdout && !m[:cancelled]
+          new_model = Ractor.make_shareable({ cmd: m[:cmd], cancelled: true })
+          [new_model, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+        elsif tag == :output && event_type == :complete
+          [m, RatatuiRuby::Tea::Command.exit]
+        else
+          [m, nil]
+        end
+      else
+        [m, nil]
+      end
+    end
+
+    start_time = Time.now
+
+    with_test_terminal do
+      inject_key("s")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    elapsed = Time.now - start_time
+
+    # Cooperative cancellation should complete quickly after receiving output.
+    # The threshold accounts for Ruby fork/exec overhead (~0.5s) but ensures
+    # we don't wait for the shell's full 1-minute loop if SIGTERM didn't work.
+    assert events.include?(:stdout), "Should receive stdout before cancel"
+    assert_operator elapsed, :<, 1.0, "Should cancel cooperatively (< 1.0s), not wait indefinitely"
+  end
 end

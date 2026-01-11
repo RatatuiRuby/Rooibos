@@ -26,16 +26,23 @@ module RatatuiRuby
         def self.new: () -> instance
       end
 
-      # Command to run a shell command via Open3.
+      # Runs a shell command and routes its output back as messages.
       class System < Data
-        include Custom
-
         attr_reader command: String
         attr_reader tag: Symbol | Class
         attr_reader stream: bool
 
+        # Command identification for runtime dispatch.
+        def tea_command?: () -> true
+
+        # Grace period for cleanup after cancellation.
+        def tea_cancellation_grace_period: () -> Float
+
         # Returns true if streaming mode is enabled.
         def stream?: () -> bool
+
+        # Executes the shell command and sends results via outlet.
+        def call: (Outlet out, CancellationToken token) -> void
 
         def self.new: (command: String, tag: (Symbol | Class), stream: bool) -> instance
       end

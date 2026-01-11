@@ -223,37 +223,6 @@ module RatatuiRuby
       # See Command.system for message formats.
       private_class_method def self.dispatch(command, queue, active_commands = {})
         case command
-        when Command::System
-          Thread.new do
-            require "open3"
-            if command.stream?
-              begin
-                Open3.popen3(command.command) do |stdin, stdout, stderr, wait_thr|
-                  stdin.close
-                  stdout_thread = Thread.new do
-                    stdout.each_line do |line|
-                      queue << Ractor.make_shareable([command.tag, :stdout, line])
-                    end
-                  end
-                  stderr_thread = Thread.new do
-                    stderr.each_line do |line|
-                      queue << Ractor.make_shareable([command.tag, :stderr, line])
-                    end
-                  end
-                  stdout_thread.join
-                  stderr_thread.join
-                  status = wait_thr.value.exitstatus
-                  queue << Ractor.make_shareable([command.tag, :complete, { status: }])
-                end
-              rescue Errno::ENOENT, Errno::EACCES => e
-                queue << Ractor.make_shareable([command.tag, :error, { message: e.message }])
-              end
-            else
-              stdout, stderr, status = Open3.capture3(command.command)
-              message = [command.tag, { stdout:, stderr:, status: status.exitstatus }]
-              queue << Ractor.make_shareable(message)
-            end
-          end
         when Command::Mapped
           inner_queue = Queue.new
           inner_thread = dispatch(command.inner_command, inner_queue)
