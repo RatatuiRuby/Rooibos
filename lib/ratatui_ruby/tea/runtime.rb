@@ -126,6 +126,20 @@ module RatatuiRuby
           end
         end
 
+        # Shutdown: wait for active commands to finish
+        pending_threads.each(&:join)
+
+        # Process any final messages from completed commands
+        until queue.empty?
+          begin
+            background_message = queue.pop(true)
+            result = update.call(background_message, model)
+            model, = normalize_update_result(result, model)
+          rescue ThreadError
+            break
+          end
+        end
+
         model
       end
 
@@ -220,17 +234,30 @@ module RatatuiRuby
             transformed = command.mapper.call(inner_message)
             queue << Ractor.make_shareable(transformed)
           end
+        when Command::Cancel
+          active_commands[command.handle]&.[](:token)&.cancel!
+          nil
         else
           # Custom command (responds to tea_command?)
           if command.respond_to?(:tea_command?) && command.tea_command?
             token = Command::CancellationToken.new
             outlet = Command::Outlet.new(queue)
 
-            Thread.new do
+            thread = Thread.new do
               command.call(outlet, token)
             end
+
+            active_commands[command] = { thread:, token: }
+            thread
           end
         end
+      end
+
+      # Registry of active custom commands for cancellation tracking. :nodoc:
+      #
+      # Maps command objects to {thread:, token:} hashes.
+      private_class_method def self.active_commands
+        @active_commands ||= {}
       end
     end
   end

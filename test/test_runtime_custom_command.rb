@@ -83,4 +83,96 @@ class TestRuntimeCustomCommand < Minitest::Test
     refute_nil message, "Queue should have received a message"
     assert_equal [:test_message, :payload], message
   end
+
+  # Command that runs briefly then finishes
+  BriefCommand = Data.define do
+    include RatatuiRuby::Tea::Command::Custom
+
+    def call(out, _token)
+      sleep 0.05 # Brief work
+      out.put(:brief_done)
+    end
+  end
+
+  def test_runtime_waits_for_active_commands_on_exit
+    events = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s" then [m, BriefCommand.new]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      when Array
+        events << msg[0]
+        [m, nil]
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")  # Start brief command
+      inject_key("q")  # Quit immediately
+
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    # The brief command should have finished BEFORE runtime exited
+    assert_includes events, :brief_done, "Runtime should wait for active commands before exiting"
+  end
+
+  # Long-running command that waits until cancelled
+  WaitForCancel = Data.define do
+    include RatatuiRuby::Tea::Command::Custom
+
+    def call(out, token)
+      out.put(:command_started)
+      sleep 0.02 until token.cancelled?
+      out.put(:command_cancelled)
+    end
+  end
+
+  def test_cancel_command_signals_token
+    events = []
+    model = Ractor.make_shareable({ cmd: nil })
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s"
+          cmd = WaitForCancel.new
+          [Ractor.make_shareable({ cmd: }), cmd]
+        when "c"
+          [m, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+        when "q"
+          [m, RatatuiRuby::Tea::Command.exit]
+        else
+          [m, nil]
+        end
+      when Array
+        events << msg[0]
+        [m, nil]
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")  # Start command
+      inject_key("c")  # Cancel it
+      inject_key("q")  # Quit
+
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    assert_includes events, :command_started, "Command should have started"
+    assert_includes events, :command_cancelled, "Command should have been cancelled"
+  end
 end
