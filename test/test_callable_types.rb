@@ -131,4 +131,162 @@ class TestCallableTypes < Minitest::Test
     assert view.called, "service object should work as view"
     assert update.called, "service object should work as update"
   end
+
+  # ==========================================================================
+  # Lightweight Command Callables
+  #
+  # Documents that lambdas, procs, Method objects, and callable instances work
+  # as custom commands when they define singleton methods for the Command interface.
+  # This is the lightweight alternative to including Command::Custom in a class.
+  # ==========================================================================
+
+  # Lambda with singleton methods works as a custom command
+  LambdaCommand = -> (out, _token) { out.put(:lambda_done) }
+  def LambdaCommand.tea_command? = true
+  def LambdaCommand.tea_cancellation_grace_period = 0.1
+
+  def test_lambda_with_singleton_methods_works_as_command
+    events = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s" then [m, LambdaCommand]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      when Array
+        events << msg[0]
+        [m, nil]
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    assert_includes events, :lambda_done, "Lambda with singleton methods should work as command"
+  end
+
+  # Proc with singleton methods works as a custom command
+  ProcCommand = proc { |out, _token| out.put(:proc_done) }
+  def ProcCommand.tea_command? = true
+  def ProcCommand.tea_cancellation_grace_period = 0.1
+
+  def test_proc_with_singleton_methods_works_as_command
+    events = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s" then [m, ProcCommand]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      when Array
+        events << msg[0]
+        [m, nil]
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    assert_includes events, :proc_done, "Proc with singleton methods should work as command"
+  end
+
+  # Method object with singleton methods works as a custom command
+  def command_method(out, _token)
+    out.put(:method_done)
+  end
+
+  def test_method_object_with_singleton_methods_works_as_command
+    method_cmd = method(:command_method)
+    method_cmd.define_singleton_method(:tea_command?) { true }
+    method_cmd.define_singleton_method(:tea_cancellation_grace_period) { 0.1 }
+
+    events = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s" then [m, method_cmd]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      when Array
+        events << msg[0]
+        [m, nil]
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    assert_includes events, :method_done, "Method object with singleton methods should work as command"
+  end
+
+  # Callable instance with singleton methods works as a custom command
+  class CallableCommand
+    def call(out, _token)
+      out.put(:callable_done)
+    end
+  end
+
+  def test_callable_instance_with_singleton_methods_works_as_command
+    callable_cmd = CallableCommand.new
+    callable_cmd.define_singleton_method(:tea_command?) { true }
+    callable_cmd.define_singleton_method(:tea_cancellation_grace_period) { 0.1 }
+
+    events = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s" then [m, callable_cmd]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      when Array
+        events << msg[0]
+        [m, nil]
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    assert_includes events, :callable_done, "Callable instance with singleton methods should work as command"
+  end
 end

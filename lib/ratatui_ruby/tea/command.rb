@@ -97,6 +97,8 @@ module RatatuiRuby
       #
       # The <tt>status</tt> is the integer exit code (0 = success).
       System = Data.define(:command, :tag, :stream) do
+        include Custom
+
         # Returns true if streaming mode is enabled.
         def stream?
           stream

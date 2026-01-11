@@ -43,16 +43,34 @@ class TestRuntimeCustomCommand < Minitest::Test
       end
     end
 
+    received_out = nil
+    received_token = nil
     callback = -> (out, token) do
       received_out = out
       received_token = token
     end
-
     command = command_class.new(callback)
-    queue = Queue.new
 
-    thread = RatatuiRuby::Tea::Runtime.__send__(:dispatch, command, queue)
-    thread&.join
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s" then [m, command]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
 
     refute_nil received_out, "Command should have received an Outlet"
     refute_nil received_token, "Command should have received a CancellationToken"
@@ -60,7 +78,8 @@ class TestRuntimeCustomCommand < Minitest::Test
     assert_kind_of RatatuiRuby::Tea::Command::CancellationToken, received_token
   end
 
-  def test_outlet_messages_arrive_in_queue
+  def test_outlet_messages_arrive_in_update
+    messages = []
     command_class = Class.new do
       include RatatuiRuby::Tea::Command::Custom
 
@@ -69,19 +88,31 @@ class TestRuntimeCustomCommand < Minitest::Test
       end
     end
 
-    command = command_class.new
-    queue = Queue.new
-
-    thread = RatatuiRuby::Tea::Runtime.__send__(:dispatch, command, queue)
-    thread&.join
-
-    message = begin
-      queue.pop(true)
-    rescue
-      nil
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s" then [m, command_class.new]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      when Array
+        messages << msg
+        [m, nil]
+      else
+        [m, nil]
+      end
     end
-    refute_nil message, "Queue should have received a message"
-    assert_equal [:test_message, :payload], message
+
+    with_test_terminal do
+      inject_key("s")
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    assert_includes messages, [:test_message, :payload], "Update should receive outlet message"
   end
 
   # Command that runs briefly then finishes

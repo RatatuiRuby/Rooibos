@@ -55,6 +55,7 @@ module RatatuiRuby
 
         queue = Queue.new
         pending_threads = []
+        active_commands = {}
 
         catch(:quit) do
           RatatuiRuby.run do |tui|
@@ -75,7 +76,7 @@ module RatatuiRuby
                 validate_ractor_shareable!(model, "model")
                 throw :quit if command.is_a?(Command::Exit)
 
-                thread = dispatch(command, queue) if command
+                thread = dispatch(command, queue, active_commands) if command
                 pending_threads << thread if thread
               end
 
@@ -98,7 +99,7 @@ module RatatuiRuby
                       validate_ractor_shareable!(model, "model")
                       throw :quit if command.is_a?(Command::Exit)
 
-                      thread = dispatch(command, queue) if command
+                      thread = dispatch(command, queue, active_commands) if command
                       pending_threads << thread if thread
                     rescue ThreadError
                       break
@@ -116,7 +117,7 @@ module RatatuiRuby
                   validate_ractor_shareable!(model, "model")
                   throw :quit if command.is_a?(Command::Exit)
 
-                  thread = dispatch(command, queue) if command
+                  thread = dispatch(command, queue, active_commands) if command
                   pending_threads << thread if thread
                 rescue ThreadError
                   break
@@ -202,7 +203,7 @@ module RatatuiRuby
       #
       # Spawns a background thread and pushes results to the message queue.
       # See Command.system for message formats.
-      private_class_method def self.dispatch(command, queue)
+      private_class_method def self.dispatch(command, queue, active_commands = {})
         case command
         when Command::System
           Thread.new do
@@ -257,6 +258,7 @@ module RatatuiRuby
               entry[:thread].join
             end
           end
+          active_commands.delete(command.handle)
           nil
         else
           # Custom command (responds to tea_command?)
@@ -272,13 +274,6 @@ module RatatuiRuby
             thread
           end
         end
-      end
-
-      # Registry of active custom commands for cancellation tracking. :nodoc:
-      #
-      # Maps command objects to {thread:, token:} hashes.
-      private_class_method def self.active_commands
-        @active_commands ||= {}
       end
     end
   end
