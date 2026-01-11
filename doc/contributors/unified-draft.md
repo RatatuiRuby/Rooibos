@@ -685,15 +685,19 @@ Existing built-in commands (`Command::System`, `Command::Mapped`) continue to wo
 
 ---
 
-## Open Questions (For Future Consideration)
+## Open Questions (Resolved)
 
-1. **Message-based cancellation**: Should cancellation be triggered via update function returning a special value, rather than direct runtime API?
+1. ~~**Message-based cancellation**: Should cancellation be triggered via update function returning a special value, rather than direct runtime API?~~
+   - **Resolved**: Yes. `Command.cancel(handle)` is returned from update to signal the runtime.
 
-2. **Command IDs**: Should command IDs be exposed to the update function for tracking?
+2. ~~**Command IDs**: Should command IDs be exposed to the update function for tracking?~~
+   - **Resolved**: Not needed. The command object itself serves as the handle/ID.
 
-3. **Error propagation**: Should `out.put(:command_error, ...)` be automatic, or left to the command?
+3. ~~**Error propagation**: Should `out.put(:command_error, ...)` be automatic, or left to the command?~~
+   - **Resolved**: Yes, automatic. See [Unit 5](#unit-5-error-propagation) — runtime catches unhandled errors and sends `Command::Error`.
 
-4. **Completion signal**: Should we add `out.complete` as syntactic sugar for `out.put(:complete)`?
+4. ~~**Completion signal**: Should we add `out.complete` as syntactic sugar for `out.put(:complete)`?~~
+   - **Rejected**: Minimal value. Saves few characters while forcing a naming convention. App devs can use their own tags.
 
 ---
 
@@ -887,3 +891,115 @@ This specification can be implemented in four discrete, independently-testable u
 3. Add thread tracking (`@active_commands`)
 4. Add `cancel_command(id)` method
 5. Add `shutdown` method for app exit
+
+---
+
+### Unit 5: Error Propagation
+
+**Decision**: Approach A (Automatic) — runtime catches unhandled errors.
+
+| Approach | Who rescues | Pros | Cons |
+|----------|-------------|------|------|
+| **A: Automatic** ✅ | Runtime wraps `command.call` | Consistent format; silent failures impossible | Less control for command authors |
+| **B: Manual** | Each command handles its own errors | Full control; can recover/retry | Easy to forget; inconsistent messages |
+
+---
+
+#### Approach A: Automatic (Runtime Catches) -- Chosen!
+
+**New sentinel type** (in `command.rb`):
+
+```ruby
+# Sentinel value for command errors (like Exit and Cancel).
+Error = Data.define(:command, :exception)
+```
+
+**Runtime code** (`dispatch` in `runtime.rb`):
+
+```ruby
+thread = Thread.new do
+  command.call(outlet, token)
+rescue => e
+  queue << Command::Error.new(command:, exception: e)
+end
+```
+
+**App developer code** (command implementation):
+
+```ruby
+class FetchUserCommand
+  include Tea::Command::Custom
+
+  def call(out, _token)
+    user = API.fetch_user(@id)  # May raise—runtime catches it
+    out.put(:user_fetched, user:)
+  end
+  # No rescue needed; runtime sends Command::Error automatically
+end
+```
+
+**App developer code** (update function):
+
+```ruby
+def update(msg, model)
+  case msg
+  in Command::Error(command:, exception:)
+    # Handle ANY command failure uniformly
+    model.with(error: "#{command.class} failed: #{exception.message}")
+  end
+end
+```
+
+---
+
+#### Approach B: Manual (Command Catches) — Not Chosen
+
+> [!CAUTION]
+> **Silent failures with corrupted display**: If a command forgets its `rescue` block, the exception propagates to the Thread. Ruby writes the backtrace to STDERR, which **corrupts the TUI display** with garbled text. The update function never sees the error, so the app cannot react or recover.
+
+**Runtime code** (`dispatch` in `runtime.rb`):
+
+```ruby
+thread = Thread.new do
+  command.call(outlet, token)
+  # No rescue—exceptions propagate to Thread (logged, but update never sees them)
+end
+```
+
+**App developer code** (command implementation):
+
+```ruby
+class FetchUserCommand
+  include Tea::Command::Custom
+
+  def call(out, _token)
+    user = API.fetch_user(@id)
+    out.put(:user_fetched, user:)
+  rescue Net::HTTPError => e
+    out.put(:fetch_failed, error: e.message)  # Command chooses its own tag
+  rescue JSON::ParserError => e
+    out.put(:fetch_failed, error: "Invalid response")  # Can customize message
+  end
+end
+```
+
+**App developer code** (update function):
+
+```ruby
+def update(msg, model)
+  case msg
+  in [:fetch_failed, {error:}]
+    # Handle THIS command's failure specifically
+    model.with(user_error: error)
+  end
+end
+```
+
+---
+
+### Checklist
+- [x] Unit 1: CancellationToken
+- [x] Unit 2: Command::Custom Mixin
+- [x] Unit 3: Outlet
+- [x] Unit 4: Runtime Custom Dispatch
+- [ ] Unit 5: Error Propagation
