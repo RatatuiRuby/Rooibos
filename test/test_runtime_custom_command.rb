@@ -175,4 +175,113 @@ class TestRuntimeCustomCommand < Minitest::Test
     assert_includes events, :command_started, "Command should have started"
     assert_includes events, :command_cancelled, "Command should have been cancelled"
   end
+
+  # Command that ignores cancellation with short grace period
+  IgnoresCancel = Data.define do
+    include RatatuiRuby::Tea::Command::Custom
+
+    def tea_cancellation_grace_period = 0.1 # 100ms grace
+
+    def call(out, _token)
+      out.put(:stubborn_started)
+      sleep 10 # Ignores token, sleeps forever
+      out.put(:stubborn_finished) # Should never reach here
+    end
+  end
+
+  def test_cancel_force_kills_after_grace_period
+    events = []
+    model = Ractor.make_shareable({ cmd: nil })
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s"
+          cmd = IgnoresCancel.new
+          [Ractor.make_shareable({ cmd: }), cmd]
+        when "c"
+          [m, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+        when "q"
+          [m, RatatuiRuby::Tea::Command.exit]
+        else
+          [m, nil]
+        end
+      when Array
+        events << msg[0]
+        [m, nil]
+      else
+        [m, nil]
+      end
+    end
+
+    start_time = Time.now
+
+    with_test_terminal do
+      inject_key("s")  # Start stubborn command
+      inject_key("c")  # Cancel it (should force-kill after 0.1s)
+      inject_key("q")  # Quit
+
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    elapsed = Time.now - start_time
+
+    assert_includes events, :stubborn_started, "Command should have started"
+    refute_includes events, :stubborn_finished, "Command should have been killed before finishing"
+    assert_operator elapsed, :<, 1.0, "Should finish quickly (force-kill at 0.1s), not wait 10s"
+  end
+
+  # Command with infinite grace that cooperates with cancellation
+  InfiniteGraceCooperative = Data.define do
+    include RatatuiRuby::Tea::Command::Custom
+
+    def tea_cancellation_grace_period = Float::INFINITY
+
+    def call(out, token)
+      out.put(:infinite_started)
+      sleep 0.02 until token.cancelled?
+      out.put(:infinite_stopped)
+    end
+  end
+
+  def test_infinite_grace_waits_for_cooperative_stop
+    events = []
+    model = Ractor.make_shareable({ cmd: nil })
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s"
+          cmd = InfiniteGraceCooperative.new
+          [Ractor.make_shareable({ cmd: }), cmd]
+        when "c"
+          [m, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+        when "q"
+          [m, RatatuiRuby::Tea::Command.exit]
+        else
+          [m, nil]
+        end
+      when Array
+        events << msg[0]
+        [m, nil]
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")  # Start infinite grace command
+      inject_key("c")  # Cancel it (should wait for cooperative stop)
+      inject_key("q")  # Quit
+
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    assert_includes events, :infinite_started, "Command should have started"
+    assert_includes events, :infinite_stopped, "Command should have stopped cooperatively"
+  end
 end

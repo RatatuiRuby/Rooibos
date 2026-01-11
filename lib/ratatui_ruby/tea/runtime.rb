@@ -235,7 +235,18 @@ module RatatuiRuby
             queue << Ractor.make_shareable(transformed)
           end
         when Command::Cancel
-          active_commands[command.handle]&.[](:token)&.cancel!
+          entry = active_commands[command.handle]
+          if entry && entry[:thread].alive?
+            entry[:token].cancel!
+            grace = command.handle.tea_cancellation_grace_period
+            if grace.finite?
+              deadline = Time.now + grace
+              sleep 0.02 while entry[:thread].alive? && Time.now < deadline
+              entry[:thread].kill if entry[:thread].alive?
+            else
+              entry[:thread].join
+            end
+          end
           nil
         else
           # Custom command (responds to tea_command?)
