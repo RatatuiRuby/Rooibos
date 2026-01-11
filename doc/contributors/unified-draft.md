@@ -997,9 +997,85 @@ end
 
 ---
 
+### Unit 6: Refactor Built-In Commands
+
+**Scope**: Refactor `Command::System` (and `Command::Mapped`) to use the same patterns as custom commands.
+
+| Criteria | Assessment |
+|----------|------------|
+| Depends on | Units 1–5 |
+| Self-contained | ⚠️ Refactor, not new feature |
+| Independently testable | ✅ Existing tests should pass unchanged |
+| Surface area | `command.rb`, `runtime.rb` dispatch logic |
+
+**Why**: Built-in commands currently have special-case dispatch logic in the runtime. Refactoring them to use `Custom` mixin, `Outlet`, and `CancellationToken` accomplishes:
+
+1. **Dogfooding** — Proves the custom command architecture is sufficient for real use cases
+2. **Simplifies dispatch** — Single code path handles all commands
+3. **Enables cancellation** — `Command::System` can be cancelled mid-execution
+4. **Uniform error handling** — Built-in commands get `Command::Error` propagation automatically
+
+**Implementation sketch**:
+
+```ruby
+# Command::System becomes a proper Custom command
+System = Data.define(:command, :tag, :stream) do
+  include Custom
+
+  def call(out, token)
+    if stream?
+      stream_execution(out, token)
+    else
+      batch_execution(out)
+    end
+  end
+
+  private
+
+  def batch_execution(out)
+    stdout, stderr, status = Open3.capture3(command)
+    out.put(tag, { stdout:, stderr:, status: status.exitstatus })
+  end
+
+  def stream_execution(out, token)
+    Open3.popen3(command) do |stdin, stdout, stderr, wait_thr|
+      stdin.close
+      # Check token.cancelled? in read loops
+      # ...
+    end
+  end
+end
+```
+
+**Runtime simplification**:
+
+```ruby
+# Before: case/when with special handling per command type
+# After: single path for all commands
+private def dispatch(command, queue, active_commands)
+  return nil unless command.respond_to?(:tea_command?) && command.tea_command?
+
+  token = Command::CancellationToken.new
+  outlet = Command::Outlet.new(queue)
+
+  thread = Thread.new do
+    command.call(outlet, token)
+  rescue => e
+    queue << Command::Error.new(command:, exception: e)
+  end
+
+  active_commands[command] = { thread:, token: }
+  thread
+end
+```
+
+---
+
 ### Checklist
+
 - [x] Unit 1: CancellationToken
 - [x] Unit 2: Command::Custom Mixin
 - [x] Unit 3: Outlet
 - [x] Unit 4: Runtime Custom Dispatch
 - [ ] Unit 5: Error Propagation
+- [ ] Unit 6: Built-In Commands Built Like This
