@@ -126,8 +126,18 @@ module RatatuiRuby
           end
         end
 
-        # Shutdown: wait for active commands to finish
-        pending_threads.each(&:join)
+        # Shutdown: signal all, wait grace periods, then kill
+        active_commands.each do |handle, entry|
+          entry[:token].cancel!
+          grace = handle.tea_cancellation_grace_period
+          if grace.finite?
+            deadline = Time.now + grace
+            sleep 0.02 while entry[:thread].alive? && Time.now < deadline
+            entry[:thread].kill if entry[:thread].alive?
+          else
+            entry[:thread].join
+          end
+        end
 
         # Process any final messages from completed commands
         until queue.empty?

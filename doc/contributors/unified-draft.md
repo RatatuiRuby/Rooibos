@@ -38,10 +38,10 @@ module RatatuiRuby::Tea::Command
 
     # Cooperative cancellation grace period (seconds).
     # Override in your command to specify cleanup time needed.
-    # Default: 2.0 seconds
+    # Default: 0.1 seconds
     # Use Float::INFINITY to never be force-killed.
     def tea_cancellation_grace_period
-      2.0
+      0.1
     end
   end
 end
@@ -123,7 +123,7 @@ module RatatuiRuby::Tea::Command
   #
   # [callable] Proc, lambda, or any object responding to call(out, token).
   #            If omitted, the block is used.
-  # [grace_period] Cleanup time override. Default: 2.0 seconds.
+  # [grace_period] Cleanup time override. Default: 0.1 seconds.
   #
   # === Example
   #
@@ -289,20 +289,20 @@ class Runtime
   end
 
   # Shutdown all commands (app exit).
-  # Ignores grace periods for fast shutdown.
+  # Respects each command's grace period.
   private def shutdown
-    @active_commands.each_key do |handle|
-      @active_commands[handle][:token].cancel!
+    @active_commands.each do |handle, entry|
+      entry[:token].cancel!
+      grace = handle.tea_cancellation_grace_period
+      if grace.finite?
+        deadline = Time.now + grace
+        sleep 0.02 while entry[:thread].alive? && Time.now < deadline
+        entry[:thread].kill if entry[:thread].alive?
+      else
+        # Infinite grace: wait indefinitely (user has SIGKILL)
+        entry[:thread].join
+      end
     end
-
-    # Brief cooperative window
-    sleep 0.1
-
-    # Force-kill any survivors
-    @active_commands.each_value do |entry|
-      entry[:thread].kill if entry[:thread].alive?
-    end
-
     @active_commands.clear
   end
 end

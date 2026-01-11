@@ -16,7 +16,7 @@ module RatatuiRuby
       #
       # Include this module to identify your class as a command. The runtime uses
       # +tea_command?+ to distinguish commands from plain models. Override
-      # +tea_cancellation_grace_period+ if your cleanup takes longer than two seconds.
+      # +tea_cancellation_grace_period+ if your cleanup takes longer than 100 milliseconds.
       #
       # Use it to build real-time features, long-polling connections, or background workers.
       #
@@ -98,7 +98,7 @@ module RatatuiRuby
         # SPDX-SnippetEnd
         #++
         def tea_cancellation_grace_period
-          2.0
+          0.1
         end
       end
     end

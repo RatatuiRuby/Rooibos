@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Runtime Cancellation Dispatch**: The runtime now handles `Command::Cancel` by signaling the target command's `CancellationToken`, enabling cooperative cancellation of long-running commands. Respects `tea_cancellation_grace_period`: waits for the grace period, then force-kills unresponsive threads. Use `Float::INFINITY` to never force-kill.
 
-- **Graceful Shutdown**: Runtime now waits for all active custom commands to complete before exiting. Final queue messages from completed commands are processed during shutdown.
+- **Graceful Shutdown**: On exit, runtime signals all active commands then respects each command's grace period. Commands with `Float::INFINITY` grace are waited on indefinitely (user has SIGKILL). Final queue messages are processed before returning.
 
 ### Changed
 

@@ -21,7 +21,7 @@ class TestCommandCustom < Minitest::Test
       include RatatuiRuby::Tea::Command::Custom
     end
 
-    assert_equal 2.0, klass.new.tea_cancellation_grace_period
+    assert_equal 0.1, klass.new.tea_cancellation_grace_period
   end
 
   def test_grace_period_can_be_overridden

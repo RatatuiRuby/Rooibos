@@ -51,7 +51,7 @@ class TestCommandCustomWrapped < Minitest::Test
 
     wrapped = RatatuiRuby::Tea::Command.custom(callable)
 
-    assert_equal 2.0, wrapped.tea_cancellation_grace_period
+    assert_equal 0.1, wrapped.tea_cancellation_grace_period
   end
 
   def test_custom_accepts_block

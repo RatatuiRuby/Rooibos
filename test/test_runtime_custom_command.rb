@@ -94,7 +94,7 @@ class TestRuntimeCustomCommand < Minitest::Test
     end
   end
 
-  def test_runtime_waits_for_active_commands_on_exit
+  def test_shutdown_allows_commands_to_finish_within_grace_period
     events = []
     model = Ractor.make_shareable({})
     view = -> (_m, t) { t.clear }
@@ -103,7 +103,7 @@ class TestRuntimeCustomCommand < Minitest::Test
       case msg
       when RatatuiRuby::Event::Key
         case msg.code
-        when "s" then [m, BriefCommand.new]
+        when "s" then [m, BriefCommand.new] # 0.05s work, 0.1s grace
         when "q" then [m, RatatuiRuby::Tea::Command.exit]
         else [m, nil]
         end
@@ -117,13 +117,13 @@ class TestRuntimeCustomCommand < Minitest::Test
 
     with_test_terminal do
       inject_key("s")  # Start brief command
-      inject_key("q")  # Quit immediately
+      inject_key("q")  # Quit
 
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    # The brief command should have finished BEFORE runtime exited
-    assert_includes events, :brief_done, "Runtime should wait for active commands before exiting"
+    # Brief command (0.05s) finishes within its 0.1s grace period
+    assert_includes events, :brief_done, "Commands should finish within grace period"
   end
 
   # Long-running command that waits until cancelled
@@ -283,5 +283,45 @@ class TestRuntimeCustomCommand < Minitest::Test
 
     assert_includes events, :infinite_started, "Command should have started"
     assert_includes events, :infinite_stopped, "Command should have stopped cooperatively"
+  end
+
+  def test_shutdown_kills_stubborn_commands_quickly
+    skip "Timing test - timing doesn't distinguish kill from orphan"
+  end
+
+  def test_shutdown_does_not_orphan_command_threads
+    threads_before = Thread.list
+
+    with_test_terminal do
+      inject_key("s")  # Start stubborn command (sleeps for 10s)
+      inject_key("q")  # Quit
+
+      model = Ractor.make_shareable({})
+      view = -> (_m, t) { t.clear }
+      update = -> (msg, m) do
+        case msg
+        when RatatuiRuby::Event::Key
+          case msg.code
+          when "s" then [m, IgnoresCancel.new]
+          when "q" then [m, RatatuiRuby::Tea::Command.exit]
+          else [m, nil]
+          end
+        else
+          [m, nil]
+        end
+      end
+
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    # Give orphaned threads a moment to show up
+    sleep 0.05
+
+    threads_after = Thread.list
+    orphaned = threads_after - threads_before
+    # Filter to only command threads (from runtime.rb), not stdlib threads
+    command_orphans = orphaned.select { |t| t.to_s.include?("runtime.rb") }
+
+    assert_empty command_orphans, "Shutdown should not leave orphaned command threads: #{command_orphans.map(&:inspect)}"
   end
 end
