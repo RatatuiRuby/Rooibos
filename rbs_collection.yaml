@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# RBS collection configuration
+# See: https://github.com/ruby/rbs/blob/master/docs/collection.md
+
+sources:
+  - type: stdlib
+  - type: rubygems
+
+path: .gem_rbs_collection
+
+gems:
+  - name: ratatui_ruby

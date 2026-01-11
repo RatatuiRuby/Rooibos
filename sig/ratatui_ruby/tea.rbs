@@ -4,13 +4,25 @@
 #++
 
 module RatatuiRuby
+  # The Elm Architecture for RatatuiRuby.
   module Tea
-    # See RatatuiRuby::Tea::Runtime.run
-    def self.run: [M, Msg] (
-      model: M,
-      view: ^(M model, RatatuiRuby::TUI tui) -> untyped,
-      update: ^(Msg msg, M model) -> (M | [M, Cmd::execution?] | [M, Cmd::Quit] | [M, nil]),
-      ?init: ^() -> Msg
-    ) -> M
+    # Starts the MVU event loop.
+    def self.run: [Model] (
+      model: Model,
+      view: ^(Model, RatatuiRuby::TUI) -> (RatatuiRuby::_CustomWidget | RatatuiRuby::widget),
+      update: ^(RatatuiRuby::Event, Model) -> Runtime::update_result?,
+      ?init: (^() -> untyped)?
+    ) -> Model
+
+    # Wraps a command with a routing prefix.
+    def self.route: (Command::execution command, Symbol prefix) -> Command::Mapped
+
+    # Delegates a prefixed message to a child bag's UPDATE.
+    def self.delegate: (
+      untyped message,
+      Symbol prefix,
+      ^(Array[untyped]?, untyped) -> [untyped, Command::execution?] child_update,
+      untyped child_model
+    ) -> ([untyped, Command::execution?] | nil)
   end
 end

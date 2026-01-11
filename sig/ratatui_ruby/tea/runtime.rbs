@@ -5,22 +5,40 @@
 
 module RatatuiRuby
   module Tea
+    # MVU runtime event loop.
     class Runtime
+      # Active command tracking entry.
+      type active_entry = { thread: Thread, token: Command::CancellationToken }
+
+      # Widget type accepted by view functions.
+      type renderable = RatatuiRuby::_CustomWidget | RatatuiRuby::widget
+
+      # Duck type for update result that can be normalized.
+      # Steep needs a union type (not interface) for is_a? narrowing.
+      type update_result = [Object, Command::execution?] | Command::execution | Object
+
+      # Duck type for values that can be queried for command-ness.
+      interface _MaybeCommand
+        def nil?: () -> bool
+        def class: () -> Class
+        def respond_to?: (Symbol, ?bool) -> bool
+        def tea_command?: () -> bool
+      end
+
       # Starts the MVU event loop.
-      def self.run: [M, Msg] (
-        model: M,
-        view: ^(M model, RatatuiRuby::TUI tui) -> untyped,
-        update: ^(Msg msg, M model) -> (M | [M, Cmd::execution?] | [M, Cmd::Quit] | [M, nil]),
-        ?init: ^() -> Msg
-      ) -> M
+      def self.run: [Model] (
+        model: Model,
+        view: ^(Model, RatatuiRuby::TUI) -> renderable,
+        update: ^(RatatuiRuby::Event, Model) -> update_result?,
+        ?init: (^() -> RatatuiRuby::Event)?
+      ) -> Model
 
       private
 
-      def self.validate_view_result!: (untyped widget) -> void
-      def self.normalize_update_result: [M] (untyped result, M previous_model) -> [M, untyped]
-      def self.valid_cmd?: (untyped value) -> bool
-      def self.validate_ractor_shareable!: (untyped object, String name) -> void
-      def self.dispatch: (untyped cmd, Queue queue) -> void
+      def self.validate_view_result!: (renderable? widget) -> void
+      def self.normalize_update_result: [Model] (update_result? result, Model previous_model) -> [Model, Command::execution?]
+      def self.validate_ractor_shareable!: [T] (T object, String name) -> void
+      def self.dispatch: (Command::execution command, Queue[Array[Symbol | Hash[Symbol, String | Integer]]], ?Hash[Command::_Command, active_entry] active_commands) -> Thread?
     end
   end
 end

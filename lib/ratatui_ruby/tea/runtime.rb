@@ -54,8 +54,8 @@ module RatatuiRuby
         end
 
         queue = Queue.new
-        pending_threads = []
-        active_commands = {}
+        pending_threads = [] #: Array[Thread]
+        active_commands = {} #: Hash[Command::_Command, active_entry]
 
         catch(:quit) do
           RatatuiRuby.run do |tui|
@@ -165,23 +165,41 @@ module RatatuiRuby
           "View returned nil. Return a widget, or use TUI#clear for an empty screen."
       end
 
-      # Detects whether +result+ is a +[model, command]+ tuple, a plain model, or a Command alone.
+      # Extracts [model, command] from update result.
       #
-      # Returns +[model, command]+ in all cases.
+      # Uses is_a? checks for type narrowing. The result parameter is untyped
+      # because the method performs runtime type detection.
+      #
+      # @param result [Array, Command::execution, Object] The update result
+      # @param previous_model [Model] Fallback model if result is a command
+      # @return [Array(Object, Command::execution?)] The [model, command] tuple
       private_class_method def self.normalize_update_result(result, previous_model)
-        return result if result.is_a?(Array) && result.size == 2 && valid_command?(result[1])
-        return [previous_model, result] if valid_command?(result)
+        # Case 0: Nil result - preserve previous model
+        return [previous_model, nil] if result.nil?
 
+        # Case 1: Already a [model, command] tuple
+        if result.is_a?(Array) && (result.size == 2)
+          model = result[0]
+          command = result[1]
+          # Verify the second element is a valid command (nil, built-in, or custom)
+          if command.nil? ||
+              command.class.name&.start_with?("RatatuiRuby::Tea::Command::") ||
+              (command.respond_to?(:tea_command?) && command.tea_command?)
+
+            return [model, command]
+          end
+        end
+
+        # Case 2: Result is a Command - use previous model
+        if result.class.name&.start_with?("RatatuiRuby::Tea::Command::")
+          return [previous_model, result]
+        end
+        if result.respond_to?(:tea_command?) && result.tea_command?
+          return [previous_model, result]
+        end
+
+        # Case 3: Result is the new model
         [result, nil]
-      end
-
-      # Returns +true+ if +value+ is a valid command (+nil+ or a +Command+ type).
-      private_class_method def self.valid_command?(value)
-        return true if value.nil?
-        return true if value.class.name&.start_with?("RatatuiRuby::Tea::Command::")
-        return true if value.respond_to?(:tea_command?) && value.tea_command?
-
-        false
       end
 
       # Validates an object is Ractor-shareable (deeply frozen).

@@ -6,6 +6,21 @@
 module RatatuiRuby
   module Tea
     module Command
+      # Interface for user-defined custom commands.
+      # Any callable satisfying this interface can be dispatched.
+      interface _Command
+        # Brand predicate for update return disambiguation.
+        def tea_command?: () -> true
+
+        # Execute the command's side effect.
+        # Push result messages via the outlet.
+        def call: (Outlet out, CancellationToken token) -> void
+
+        # Grace period for cooperative cancellation (seconds).
+        # Runtime waits this long before force-killing the thread.
+        def tea_cancellation_grace_period: () -> Float
+      end
+
       # Sentinel value for application termination.
       class Exit < Data
         def self.new: () -> instance
@@ -13,6 +28,8 @@ module RatatuiRuby
 
       # Command to run a shell command via Open3.
       class System < Data
+        include Custom
+
         attr_reader command: String
         attr_reader tag: Symbol | Class
         attr_reader stream: bool
@@ -26,32 +43,47 @@ module RatatuiRuby
       # Command that wraps another command's result with a transformation.
       class Mapped < Data
         attr_reader inner_command: execution
-        attr_reader mapper: ^(untyped) -> untyped
+        attr_reader mapper: ^(Array[untyped]) -> Array[untyped]
 
-        def self.new: (inner_command: execution, mapper: ^(untyped) -> untyped) -> instance
+        def self.new: (inner_command: execution, mapper: ^(Array[untyped]) -> Array[untyped]) -> instance
+      end
+
+      # Sentinel value for command cancellation.
+      class Cancel < Data
+        attr_reader handle: _Command
+
+        def self.new: (handle: _Command) -> instance
       end
 
       # Union type for all valid commands
-      type execution = Execute | Mapped
+      type execution = System | Mapped | _Command
 
       # Creates a quit command.
-      def self.exit: () -> Quit
+      def self.exit: () -> Exit
 
       # Creates a shell execution command.
       def self.system: (String command, (Symbol | Class) tag, ?stream: bool) -> System
 
       # Creates a mapped command for Fractal Architecture composition.
-      def self.map: (execution inner_command) { (untyped) -\u003e untyped } -> Mapped
-
-      # Sentinel value for command cancellation.
-      class Cancel < Data
-        attr_reader handle: untyped
-
-        def self.new: (handle: untyped) -> instance
-      end
+      def self.map: (execution inner_command) { (Array[untyped]) -> Array[untyped] } -> Mapped
 
       # Request cancellation of a running command.
-      def self.cancel: (untyped handle) -> Cancel
+      def self.cancel: (_Command handle) -> Cancel
+
+      # Wraps a callable for unique identity per dispatch.
+      def self.custom: (^(Outlet, CancellationToken) -> void callable, ?grace_period: Float?) -> _Command
+                     | (?grace_period: Float?) { (Outlet, CancellationToken) -> void } -> _Command
+
+      # Private wrapper for Command.custom.
+      class Wrapped < Data
+        include Custom
+
+        attr_reader callable: ^(Outlet, CancellationToken) -> void
+        attr_reader grace_period: Float?
+
+        def self.new: (callable: ^(Outlet, CancellationToken) -> void, grace_period: Float?) -> instance
+        def call: (Outlet out, CancellationToken token) -> void
+      end
 
       # Cooperative cancellation mechanism for long-running commands.
       class CancellationToken
@@ -86,14 +118,15 @@ module RatatuiRuby
         def tea_command?: () -> true
 
         # Cleanup time after cancellation is requested. In seconds.
+        # Default: 0.1 seconds (100 milliseconds).
         def tea_cancellation_grace_period: () -> Float
       end
 
       # Messaging gateway for custom commands.
       class Outlet
-        @queue: Thread::Queue[untyped]
+        @queue: Thread::Queue[Array[untyped]]
 
-        def self.new: (Thread::Queue[untyped] queue) -> instance
+        def initialize: (Thread::Queue[Array[untyped]] queue) -> void
 
         # Sends a tagged message to the runtime.
         def put: (Symbol tag, *untyped payload) -> void

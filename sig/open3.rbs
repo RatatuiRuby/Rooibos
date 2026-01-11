@@ -1,0 +1,17 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+# Local shim for Open3 methods not in stdlib RBS.
+# The stdlib open3/0/open3.rbs only defines capture2e.
+# TODO: Remove when upstream RBS adds these methods.
+
+module Open3
+  # Executes a command and returns stdout, stderr, and status.
+  def self.capture3: (*String, ?stdin_data: String, ?binmode: boolish) -> [String, String, Process::Status]
+
+  # Executes a command with pipes for stdin, stdout, stderr.
+  def self.popen3: (*String) { (IO stdin, IO stdout, IO stderr, Thread wait_thr) -> void } -> Process::Status
+                 | (*String) -> [IO, IO, IO, Thread]
+end

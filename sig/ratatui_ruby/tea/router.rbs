@@ -5,94 +5,150 @@
 
 module RatatuiRuby
   module Tea
-    # Interface for child bag modules (required by route).
-    interface _Bag[M]
-      def self.UPDATE: ^(top, M) -> [M, Command::execution?]
-      def self.INITIAL: M
-    end
-
     # Declarative DSL for Fractal Architecture.
     module Router
       def self.included: (Class base) -> void
 
-      # Guard callable: receives model, returns truthy/falsy.
-      type guard[M] = ^(M model) -> boolish
+      # Duck type for Data-like models that support `with`.
+      interface _DataModel
+        def public_send: (Symbol, *Object) -> Object
+        def with: (**Object) -> self
+      end
 
-      # Handler callable: returns a command or nil.
-      type handler = ^() -> Command::execution?
+      # Interface for fractal child modules (bags).
+      # Routed modules must have an UPDATE constant that handles child messages.
+      # NOTE: We use Module here because RBS interfaces can't declare class methods.
 
-      # Click handler: receives x, y coordinates.
-      type click_handler = ^(Integer x, Integer y) -> Command::execution?
+      # Configuration for key handlers.
+      class KeyHandlerConfig < Data
+        attr_reader handler: (^() -> Command::execution?)?
+        attr_reader action: Symbol?
+        attr_reader route: Symbol?
+        attr_reader guard: (^(_DataModel) -> bool)?
 
-      # Key handler config stored in handlers hash.
-      type key_config[M] = {
-        handler: handler?,
-        action: Symbol?,
-        route: Symbol?,
-        guard: guard[M]?
-      }
+        def initialize: (?handler: (^() -> Command::execution?)?, ?action: Symbol?, ?route: Symbol?, ?guard: (^(_DataModel) -> bool)?) -> void
+      end
 
-      # Mouse handler config.
-      type mouse_config = {
-        handler: handler | click_handler,
-        action: Symbol?
-      }
+      # Configuration for scroll handlers (no coordinates).
+      class ScrollHandlerConfig < Data
+        attr_reader handler: (^() -> Command::execution?)?
+        attr_reader action: Symbol?
+
+        def initialize: (?handler: (^() -> Command::execution?)?, ?action: Symbol?) -> void
+      end
+
+      # Configuration for click handlers (x, y coordinates).
+      class ClickHandlerConfig < Data
+        attr_reader handler: (^(Integer, Integer) -> Command::execution?)?
+        attr_reader action: Symbol?
+
+        def initialize: (?handler: (^(Integer, Integer) -> Command::execution?)?, ?action: Symbol?) -> void
+      end
 
       # Class methods added when Router is included.
-      module ClassMethods
-        def route: [M] (Symbol | String prefix, to: _Bag[M]) -> void
+      module ClassMethods : Module
+        @routes: Hash[Symbol, Module]
+        @actions: Hash[Symbol, ^() -> Command::execution?]
+        @key_handlers: Hash[String, KeyHandlerConfig]
+        @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
+        @click_handler: ClickHandlerConfig?
+
+        def route: (Symbol | String prefix, to: Module) -> void
         def routes: () -> Hash[Symbol, Module]
 
-        def action: (Symbol | String name, handler) -> void
-        def actions: () -> Hash[Symbol, handler]
+        def action: (Symbol | String name, ^() -> Command::execution? handler) -> void
+        def actions: () -> Hash[Symbol, ^() -> Command::execution?]
 
-        def keymap: () { () -> void } -> void
-        def key_handlers: [M] () -> Hash[String, key_config[M]]
+        def keymap: () { (KeymapBuilder) [self: KeymapBuilder] -> void } -> void
+        def key_handlers: () -> Hash[String, KeyHandlerConfig]
 
-        def mousemap: () { () -> void } -> void
-        def mouse_handlers: () -> Hash[Symbol, mouse_config]
+        def mousemap: () { (MousemapBuilder) [self: MousemapBuilder] -> void } -> void
+        def scroll_handlers: () -> Hash[Symbol, ScrollHandlerConfig]
+        def click_handler: () -> ClickHandlerConfig?
 
-        # Generates an UPDATE lambda from routes, keymap, and mousemap.
-        def from_router: [M, Msg] () -> ^(Msg message, M model) -> [M, Command::execution?]
+        # Returns UPDATE callable that handles routing.
+        # Uses is_a? checks for Event::Key and Event::Mouse type narrowing.
+        # Model must be Data-like with `with` and field accessors.
+        def from_router: () -> RouterUpdate
+      end
+
+      # UPDATE callable returned by from_router with proper typing.
+      # Implements #call to satisfy Proc-like interfaces.
+      class RouterUpdate
+        @routes: Hash[Symbol, Module]
+        @actions: Hash[Symbol, ^() -> Command::execution?]
+        @key_handlers: Hash[String, KeyHandlerConfig]
+        @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
+        @click_handler: ClickHandlerConfig?
+
+        def initialize: (
+          routes: Hash[Symbol, Module],
+          actions: Hash[Symbol, ^() -> Command::execution?],
+          key_handlers: Hash[String, KeyHandlerConfig],
+          scroll_handlers: Hash[Symbol, ScrollHandlerConfig],
+          click_handler: ClickHandlerConfig?
+        ) -> void
+
+        # Process message and return [model, command] tuple.
+        def call: (
+          (RatatuiRuby::Event::Key | RatatuiRuby::Event::Mouse | Array[Object]) message,
+          _DataModel model
+        ) -> [_DataModel, Command::execution?]
       end
 
       # Builder for keymap DSL.
       class KeymapBuilder
-        @handlers: Hash[String, key_config[top]]
+        @handlers: Hash[String, KeyHandlerConfig]
+        @guard_stack: Array[^(_DataModel) -> bool]
 
-        attr_reader handlers: Hash[String, key_config[top]]
+        attr_reader handlers: Hash[String, KeyHandlerConfig]
 
         def initialize: () -> void
 
-        # Registers a key handler with optional guards.
-        def key: [M] (
+        def key: (
           String | Symbol key_name,
-          handler | Symbol handler_or_action,
+          (^() -> Command::execution?) | Symbol handler_or_action,
           ?route: Symbol?,
-          ?when: guard[M]?,
-          ?if: guard[M]?,
-          ?only: guard[M]?,
-          ?guard: guard[M]?,
-          ?unless: guard[M]?,
-          ?except: guard[M]?,
-          ?skip: guard[M]?
+          ?when: (^(_DataModel) -> bool)?,
+          ?if: (^(_DataModel) -> bool)?,
+          ?only: (^(_DataModel) -> bool)?,
+          ?guard: (^(_DataModel) -> bool)?,
+          ?unless: (^(_DataModel) -> bool)?,
+          ?except: (^(_DataModel) -> bool)?,
+          ?skip: (^(_DataModel) -> bool)?
         ) -> void
+
+        def only: (
+          ?when: (^(_DataModel) -> bool)?,
+          ?if: (^(_DataModel) -> bool)?,
+          ?only: (^(_DataModel) -> bool)?,
+          ?guard: (^(_DataModel) -> bool)?
+        ) { () -> void } -> void
+
+        def skip: (
+          ?when: (^(_DataModel) -> bool)?,
+          ?if: (^(_DataModel) -> bool)?,
+          ?skip: (^(_DataModel) -> bool)?,
+          ?guard: (^(_DataModel) -> bool)?
+        ) { () -> void } -> void
+
+        private
+
+        def with_guard: ((^(_DataModel) -> bool)?) { () -> void } -> void
       end
 
       # Builder for mousemap DSL.
       class MousemapBuilder
-        @handlers: Hash[Symbol, mouse_config]
+        @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
+        @click_handler: ClickHandlerConfig?
 
-        attr_reader handlers: Hash[Symbol, mouse_config]
+        attr_reader scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
+        attr_reader click_handler: ClickHandlerConfig?
 
         def initialize: () -> void
 
-        def click: (click_handler | Symbol handler_or_action) -> void
-        def scroll: (:up | :down direction, handler | Symbol handler_or_action) -> void
-
-        private
-
-        def register: (Symbol key, handler | click_handler | Symbol handler_or_action) -> void
+        def click: ((^(Integer, Integer) -> Command::execution?) | Symbol handler_or_action) -> void
+        def scroll: (:up | :down direction, (^() -> Command::execution?) | Symbol handler_or_action) -> void
       end
     end
   end

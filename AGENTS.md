@@ -55,10 +55,14 @@ Description: Part of the RatatuiRuby ecosystem.
 
 ## 3. Definition of Done (DoD)
 
-Before considering a task complete:
+Before considering a task complete and returning control to the user, you **MUST** ensure:
 
 0. **Production Ready:** RBS types are complete and accurate (no `untyped`), errors are handled with good DX, documentation follows guidelines, high code quality (no "pre-existing debt" excuses).
-1. **Default Rake Task Passes:** Run `bundle exec agent_rake` (no args). Confirm it passes with ZERO errors.
-2. **Documentation Updated:** If public APIs changed, update relevant docs.
-3. **Changelog Updated:** If public APIs changed, update CHANGELOG.md's **Unreleased** section.
-4. **Commit Message Suggested:** Include a suggested commit message block.
+1.  **Default Rake Task Passes:** Run `bundle exec agent_rake` (no args). Confirm it passes with ZERO errors **or warnings**.
+  - You will save time if you run `bundle exec agent_rake rubocop:autocorrect` first.
+  - If you think the rake is looking for deleted files, STOP EVERYTHING and tell the user.
+2.  **Documentation Updated:** If public APIs or observable behavior changed, update relevant RDoc, rustdoc, `doc/` files, `README.md`, and/or `ratatui_ruby-wiki` files.
+3.  **Changelog Updated:** If public APIs, observable behavior, or gemspec dependencies have changed, update [CHANGELOG.md](CHANGELOG.md)'s **Unreleased** section.
+4.  **Commit Message Suggested:** You **MUST** ensure the final message to the user includes a suggested commit message block. This is NOT optional.
+  - You MUST also check `git log -n1` to see the current standard AI footer ("Generated  with" and "Co-Authored-By") and include it in your suggested message.
+

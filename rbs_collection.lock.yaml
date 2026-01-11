@@ -1,0 +1,108 @@
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+path: ".gem_rbs_collection"
+gems:
+- name: base64
+  version: 0.3.0
+  source:
+    type: rubygems
+- name: bigdecimal
+  version: '0'
+  source:
+    type: stdlib
+- name: csv
+  version: '0'
+  source:
+    type: stdlib
+- name: ffi
+  version: 1.17.3
+  source:
+    type: rubygems
+- name: fileutils
+  version: '0'
+  source:
+    type: stdlib
+- name: forwardable
+  version: '0'
+  source:
+    type: stdlib
+- name: io-console
+  version: '0'
+  source:
+    type: stdlib
+- name: json
+  version: '0'
+  source:
+    type: stdlib
+- name: logger
+  version: '0'
+  source:
+    type: stdlib
+- name: minitest
+  version: '0'
+  source:
+    type: stdlib
+- name: monitor
+  version: '0'
+  source:
+    type: stdlib
+- name: mutex_m
+  version: 0.3.0
+  source:
+    type: rubygems
+- name: optparse
+  version: '0'
+  source:
+    type: stdlib
+- name: pp
+  version: '0'
+  source:
+    type: stdlib
+- name: prettyprint
+  version: '0'
+  source:
+    type: stdlib
+- name: prism
+  version: 1.7.0
+  source:
+    type: rubygems
+- name: ratatui_ruby
+  version: 0.10.1
+  source:
+    type: rubygems
+- name: ratatui_ruby-devtools
+  version: 0.1.0
+  source:
+    type: rubygems
+- name: rbs
+  version: 3.10.2
+  source:
+    type: rubygems
+- name: rdoc
+  version: '0'
+  source:
+    type: stdlib
+- name: securerandom
+  version: '0'
+  source:
+    type: stdlib
+- name: stringio
+  version: '0'
+  source:
+    type: stdlib
+- name: strscan
+  version: '0'
+  source:
+    type: stdlib
+- name: tsort
+  version: '0'
+  source:
+    type: stdlib
+- name: uri
+  version: '0'
+  source:
+    type: stdlib
+gemfile_lock_path: Gemfile.lock

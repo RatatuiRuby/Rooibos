@@ -20,7 +20,7 @@ class WidgetCmdExec
   # Msg can be Event or [:got_output, Hash]
   type msg = RatatuiRuby::Event | [Symbol, Hash[Symbol, untyped]]
 
-  UPDATE: ^(msg, Model) -> (Model | [Model, RatatuiRuby::Tea::Cmd::execution?])
+  UPDATE: ^(msg, Model) -> (Model | [Model, RatatuiRuby::Tea::Command::execution?])
 
   def run: () -> void
 end

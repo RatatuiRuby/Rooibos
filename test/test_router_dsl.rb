@@ -44,73 +44,99 @@ class TestRouterDsl < Minitest::Test
     assert test_class.actions[:scroll_down].is_a?(Proc)
   end
 
-  # keymap registers key handlers.
-  # Keys are normalized via .to_s.
-  def test_keymap_registers_key_handlers
-    handler = -> { Command.exit }
+  # keymap registers key handlers that respond to key events.
+  def test_keymap_handles_key_events
+    q_called = false
 
     test_class = Class.new do
       include RatatuiRuby::Tea::Router
 
       keymap do
-        key "q", handler
-        key :ctrl_c, handler # Symbol works
-        key "s", -> { :fetch }, route: :stats
+        key "q", -> { q_called = true; nil }
       end
     end
 
-    assert_equal handler, test_class.key_handlers["q"][:handler]
-    assert_equal handler, test_class.key_handlers["ctrl_c"][:handler]
-    assert_equal :stats, test_class.key_handlers["s"][:route]
+    update = test_class.from_router
+    model = {}.freeze
+    event = RatatuiRuby::Event::Key.new(code: "q")
+
+    update.call(event, model)
+
+    assert q_called, "Handler should be called when key matches"
   end
 
   # keymap allows delegation to named actions.
   def test_keymap_delegates_to_action
+    action_called = false
+
     test_class = Class.new do
       include RatatuiRuby::Tea::Router
 
-      action :scroll_up, -> { [:scroll, -1] }
+      action :scroll_up, -> { action_called = true; nil }
 
       keymap do
         key :up, :scroll_up # Delegate to action
       end
     end
 
-    assert_equal :scroll_up, test_class.key_handlers["up"][:action]
+    update = test_class.from_router
+    model = {}.freeze
+    event = RatatuiRuby::Event::Key.new(code: "up")
+
+    update.call(event, model)
+
+    assert action_called, "Action should be called via delegation"
   end
 
-  # mousemap registers mouse handlers.
-  def test_mousemap_registers_mouse_handlers
-    click_handler = -> (x, y) { [:clicked, x, y] }
+  # mousemap registers mouse handlers that respond to scroll events.
+  def test_mousemap_handles_scroll_events
+    scroll_up_called = false
+    scroll_down_called = false
 
     test_class = Class.new do
       include RatatuiRuby::Tea::Router
 
       mousemap do
-        click click_handler
-        scroll :up, -> { [:scroll, -1] }
-        scroll :down, -> { [:scroll, 1] }
+        scroll :up, -> { scroll_up_called = true; nil }
+        scroll :down, -> { scroll_down_called = true; nil }
       end
     end
 
-    assert_equal click_handler, test_class.mouse_handlers[:click][:handler]
-    assert test_class.mouse_handlers[:scroll_up][:handler].is_a?(Proc)
-    assert test_class.mouse_handlers[:scroll_down][:handler].is_a?(Proc)
+    update = test_class.from_router
+    model = {}.freeze
+
+    # Test scroll up
+    scroll_up_event = RatatuiRuby::Event::Mouse.new(kind: "scroll_up", button: "left", x: 0, y: 0)
+    update.call(scroll_up_event, model)
+    assert scroll_up_called, "Scroll up handler should be called"
+
+    # Test scroll down
+    scroll_down_event = RatatuiRuby::Event::Mouse.new(kind: "scroll_down", button: "left", x: 0, y: 0)
+    update.call(scroll_down_event, model)
+    assert scroll_down_called, "Scroll down handler should be called"
   end
 
   # mousemap allows delegation to named actions.
   def test_mousemap_delegates_to_action
+    action_called = false
+
     test_class = Class.new do
       include RatatuiRuby::Tea::Router
 
-      action :scroll_up, -> { [:scroll, -1] }
+      action :scroll_up_action, -> { action_called = true; nil }
 
       mousemap do
-        scroll :up, :scroll_up # Delegate to action
+        scroll :up, :scroll_up_action # Delegate to action
       end
     end
 
-    assert_equal :scroll_up, test_class.mouse_handlers[:scroll_up][:action]
+    update = test_class.from_router
+    model = {}.freeze
+    scroll_up_event = RatatuiRuby::Event::Mouse.new(kind: "scroll_up", button: "left", x: 0, y: 0)
+
+    update.call(scroll_up_event, model)
+
+    assert action_called, "Action should be called via delegation"
   end
 
   # from_router returns a callable UPDATE lambda
