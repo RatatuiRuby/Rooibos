@@ -55,6 +55,14 @@ module RatatuiRuby
         def self.new: (handle: _Command) -> instance
       end
 
+      # Sentinel value for command errors.
+      class Error < Data
+        attr_reader command: _Command
+        attr_reader exception: Exception
+
+        def self.new: (command: _Command, exception: Exception) -> instance
+      end
+
       # Union type for all valid commands
       type execution = System | Mapped | _Command
 
@@ -69,6 +77,9 @@ module RatatuiRuby
 
       # Request cancellation of a running command.
       def self.cancel: (_Command handle) -> Cancel
+
+      # Creates an error sentinel.
+      def self.error: (_Command command, Exception exception) -> Error
 
       # Wraps a callable for unique identity per dispatch.
       def self.custom: (^(Outlet, CancellationToken) -> void callable, ?grace_period: Float?) -> _Command

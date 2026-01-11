@@ -84,6 +84,38 @@ module RatatuiRuby
         Cancel.new(handle:)
       end
 
+      # Sentinel value for command errors.
+      #
+      # Commands run in threads. Exceptions bubble up silently. The update function
+      # never sees them, and backtraces in STDERR corrupt the TUI display.
+      #
+      # The runtime catches exceptions and pushes <tt>Error</tt> to the queue.
+      # Pattern match on it in your update function.
+      #
+      # Analogous to <tt>Exit</tt> and <tt>Cancel</tt>.
+      Error = Data.define(:command, :exception)
+
+      # Creates an error sentinel.
+      #
+      # The runtime produces this automatically when a command raises.
+      # Use this factory for testing or for commands that want to signal
+      # error completion without raising.
+      #
+      # [command] The command that failed.
+      # [exception] The exception that was raised.
+      #
+      # === Example
+      #
+      #   def update(message, model)
+      #     case message
+      #     in Command::Error(command:, exception:)
+      #       model.with(error: "#{command.class} failed: #{exception.message}")
+      #     end
+      #   end
+      def self.error(command, exception)
+        Error.new(command:, exception:)
+      end
+
       # Command to run a shell command via Open3.
       #
       # The runtime executes the command and produces messages. In batch mode

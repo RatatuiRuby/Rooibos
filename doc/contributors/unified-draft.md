@@ -1077,5 +1077,5 @@ end
 - [x] Unit 2: Command::Custom Mixin
 - [x] Unit 3: Outlet
 - [x] Unit 4: Runtime Custom Dispatch
-- [ ] Unit 5: Error Propagation
+- [x] Unit 5: Error Propagation
 - [ ] Unit 6: Built-In Commands Built Like This

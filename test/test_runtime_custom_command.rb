@@ -355,4 +355,48 @@ class TestRuntimeCustomCommand < Minitest::Test
 
     assert_empty command_orphans, "Shutdown should not leave orphaned command threads: #{command_orphans.map(&:inspect)}"
   end
+
+  # Command that raises an error
+  ExplodingCommand = Data.define do
+    include RatatuiRuby::Tea::Command::Custom
+
+    def call(_out, _token)
+      raise "Boom!"
+    end
+  end
+
+  def test_unhandled_command_exception_produces_command_error
+    received_error = nil
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s" then [m, ExplodingCommand.new]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      when RatatuiRuby::Tea::Command::Error
+        received_error = msg
+        [m, nil]
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")  # Start exploding command
+      inject_sync      # Wait for command to complete
+      inject_key("q")  # Quit
+
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    refute_nil received_error, "Update should receive Command::Error"
+    assert_kind_of RatatuiRuby::Tea::Command::Error, received_error
+    assert_equal ExplodingCommand, received_error.command.class
+    assert_equal "Boom!", received_error.exception.message
+  end
 end

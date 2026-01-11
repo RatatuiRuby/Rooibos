@@ -286,6 +286,8 @@ module RatatuiRuby
 
             thread = Thread.new do
               command.call(outlet, token)
+            rescue => e
+              queue << Command::Error.new(command:, exception: e)
             end
 
             active_commands[command] = { thread:, token: }

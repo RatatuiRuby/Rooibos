@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Graceful Shutdown**: On exit, runtime signals all active commands then respects each command's grace period. Commands with `Float::INFINITY` grace are waited on indefinitely (user has SIGKILL). Final queue messages are processed before returning.
 
+- **Automatic Error Propagation**: Custom commands that raise unhandled exceptions now produce a `Command::Error` message instead of corrupting the TUI display. The runtime catches exceptions and pushes `Command::Error.new(command:, exception:)` to the queue. Pattern match on `Command::Error` in your update function to handle failures uniformly. Factory method `Command.error(command, exception)` is available for testing.
+
 ### Changed
 
 ### Fixed
