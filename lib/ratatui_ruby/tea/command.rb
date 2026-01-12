@@ -314,8 +314,8 @@ module RatatuiRuby
 
         # Executes the inner command, waits for result, and transforms it.
         def call(out, token)
-          inner_queue = Queue.new
-          inner_outlet = Outlet.new(inner_queue)
+          inner_channel = Concurrent::Promises::Channel.new
+          inner_outlet = Outlet.new(inner_channel)
 
           # Dispatch inner command
           if inner_command.respond_to?(:call)
@@ -325,7 +325,7 @@ module RatatuiRuby
           end
 
           # Transform result and send
-          inner_message = inner_queue.pop
+          inner_message = inner_channel.pop
           transformed = mapper.call(inner_message)
           out.put(*transformed)
         end

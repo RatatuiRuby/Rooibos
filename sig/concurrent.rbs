@@ -15,6 +15,25 @@ module Concurrent
       def resolved?: () -> bool
       def wait: (?Numeric? timeout) -> self
     end
+
+    # Thread-safe FIFO channel for message passing.
+    class Channel
+      def initialize: (?Integer capacity) -> void
+      def push: (untyped message, ?Numeric? timeout) -> self
+      def pop: (?Numeric? timeout, ?untyped timeout_value) -> untyped
+      def try_pop: (?untyped no_value) -> untyped
+    end
+
+    # Represents a value that may not yet be available.
+    class Future[T]
+      def pending?: () -> bool
+      def resolved?: () -> bool
+      def wait: (?Numeric? timeout) -> self
+      def value: () -> T?
+    end
+
+    # Factory method for creating futures.
+    def self.future: [T] () { () -> T } -> Future[T]
   end
 
   # Cooperative cancellation abstraction.
@@ -26,5 +45,14 @@ module Concurrent
     def canceled?: () -> bool
     def check!: (?Class error) -> self
     def join: (*Cancellation cancellations) -> Cancellation
+  end
+
+  # Thread-safe hash implementation.
+  class Map[K, V]
+    def initialize: () -> void
+    def []: (K key) -> V?
+    def []=: (K key, V value) -> V
+    def delete: (K key) -> V?
+    def each: () { (K, V) -> void } -> self
   end
 end

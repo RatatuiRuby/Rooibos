@@ -54,9 +54,9 @@ module RatatuiRuby
           validate_ractor_shareable!(model, "model")
         end
 
-        queue = Queue.new
-        pending_threads = [] #: Array[Thread]
-        active_commands = {} #: Hash[Command::_Command, active_entry]
+        channel = Concurrent::Promises::Channel.new
+        pending_futures = [] #: Array[Concurrent::Promises::Future[void]]
+        active_commands = Concurrent::Map.new #: Concurrent::Map[Command::_Command, active_entry]
 
         catch(:quit) do
           RatatuiRuby.run do |tui|
@@ -77,8 +77,8 @@ module RatatuiRuby
                 validate_ractor_shareable!(model, "model")
                 throw :quit if command.is_a?(Command::Exit)
 
-                thread = dispatch(command, queue, active_commands) if command
-                pending_threads << thread if thread
+                future = dispatch(command, channel, active_commands) if command
+                pending_futures << future if future
               end
 
               # 2. Check for synthetic events (Sync)
@@ -87,72 +87,64 @@ module RatatuiRuby
               if RatatuiRuby::SyntheticEvents.pending?
                 synthetic = RatatuiRuby::SyntheticEvents.pop
                 if synthetic&.sync?
-                  # Wait for all pending threads to complete
-                  pending_threads.each(&:join)
-                  pending_threads.clear
+                  # Wait for all pending futures to complete
+                  pending_futures.each(&:wait)
+                  pending_futures.clear
 
                   # Yield to ensure any final queue writes are visible
                   Thread.pass
 
-                  # Process all pending queue items
-                  until queue.empty?
-                    begin
-                      background_message = queue.pop(true)
-                      result = update.call(background_message, model)
-                      model, command = normalize_update_result(result, model)
-                      validate_ractor_shareable!(model, "model")
-                      throw :quit if command.is_a?(Command::Exit)
+                  # Process all pending channel items
+                  loop do
+                    background_message = channel.try_pop(:EMPTY)
+                    break if background_message == :EMPTY
 
-                      thread = dispatch(command, queue, active_commands) if command
-                      pending_threads << thread if thread
-                    rescue ThreadError
-                      break
-                    end
+                    result = update.call(background_message, model)
+                    model, command = normalize_update_result(result, model)
+                    validate_ractor_shareable!(model, "model")
+                    throw :quit if command.is_a?(Command::Exit)
+
+                    future = dispatch(command, channel, active_commands) if command
+                    pending_futures << future if future
                   end
                 end
               end
 
               # 3. Check for background outcomes (non-blocking)
-              until queue.empty?
-                begin
-                  background_message = queue.pop(true)
-                  result = update.call(background_message, model)
-                  model, command = normalize_update_result(result, model)
-                  validate_ractor_shareable!(model, "model")
-                  throw :quit if command.is_a?(Command::Exit)
+              loop do
+                background_message = channel.try_pop(:EMPTY)
+                break if background_message == :EMPTY
 
-                  thread = dispatch(command, queue, active_commands) if command
-                  pending_threads << thread if thread
-                rescue ThreadError
-                  break
-                end
+                result = update.call(background_message, model)
+                model, command = normalize_update_result(result, model)
+                validate_ractor_shareable!(model, "model")
+                throw :quit if command.is_a?(Command::Exit)
+
+                future = dispatch(command, channel, active_commands) if command
+                pending_futures << future if future
               end
             end
           end
         end
 
-        # Shutdown: signal all, wait grace periods, then kill
+        # Shutdown: signal all, wait grace periods (cooperative cancellation)
         active_commands.each do |handle, entry|
           entry[:origin].resolve # Signal cancellation
           grace = handle.tea_cancellation_grace_period
           if grace.finite?
-            deadline = Time.now + grace
-            sleep 0.02 while entry[:thread].alive? && Time.now < deadline
-            entry[:thread].kill if entry[:thread].alive?
+            entry[:future].wait(grace)
           else
-            entry[:thread].join
+            entry[:future].wait
           end
         end
 
         # Process any final messages from completed commands
-        until queue.empty?
-          begin
-            background_message = queue.pop(true)
-            result = update.call(background_message, model)
-            model, = normalize_update_result(result, model)
-          rescue ThreadError
-            break
-          end
+        loop do
+          background_message = channel.try_pop(:EMPTY)
+          break if background_message == :EMPTY
+
+          result = update.call(background_message, model)
+          model, = normalize_update_result(result, model)
         end
 
         model
@@ -221,24 +213,16 @@ module RatatuiRuby
           "#{name.capitalize} is not Ractor-shareable. Use Ractor.make_shareable or Object#freeze."
       end
 
-      # Dispatches a command asynchronously. :nodoc:
-      #
-      # Spawns a background thread and pushes results to the message queue.
+      # Spawns a future and pushes results to the message channel.
       # See Command.system for message formats.
-      private_class_method def self.dispatch(command, queue, active_commands = {})
+      private_class_method def self.dispatch(command, channel, active_commands = Concurrent::Map.new)
         case command
         when Command::Cancel
           entry = active_commands[command.handle]
-          if entry && entry[:thread].alive?
+          if entry && entry[:future].pending?
             entry[:origin].resolve # Signal cancellation
             grace = command.handle.tea_cancellation_grace_period
-            if grace.finite?
-              deadline = Time.now + grace
-              sleep 0.02 while entry[:thread].alive? && Time.now < deadline
-              entry[:thread].kill if entry[:thread].alive?
-            else
-              entry[:thread].join
-            end
+            entry[:future].wait(grace.finite? ? grace : nil)
           end
           active_commands.delete(command.handle)
           nil
@@ -246,16 +230,16 @@ module RatatuiRuby
           # Custom command (responds to tea_command?)
           if command.respond_to?(:tea_command?) && command.tea_command?
             cancellation, origin = Concurrent::Cancellation.new
-            outlet = Command::Outlet.new(queue)
+            outlet = Command::Outlet.new(channel)
 
-            thread = Thread.new do
+            future = Concurrent::Promises.future do
               command.call(outlet, cancellation)
             rescue => e
-              queue << Command::Error.new(command:, exception: e)
+              channel.push Command::Error.new(command:, exception: e)
             end
 
-            active_commands[command] = { thread:, origin: }
-            thread
+            active_commands[command] = { future:, origin: }
+            future
           end
         end
       end

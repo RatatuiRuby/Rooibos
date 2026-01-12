@@ -127,9 +127,9 @@ module RatatuiRuby
 
       # Messaging gateway for custom commands.
       class Outlet
-        @queue: Thread::Queue[Array[untyped]]
+        @channel: Concurrent::Promises::Channel
 
-        def initialize: (Thread::Queue[Array[untyped]] queue) -> void
+        def initialize: (Concurrent::Promises::Channel channel) -> void
 
         # Sends a tagged message to the runtime.
         def put: (Symbol tag, *untyped payload) -> void

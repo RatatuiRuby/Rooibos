@@ -76,14 +76,14 @@ module RatatuiRuby
       # SPDX-SnippetEnd
       #++
       class Outlet
-        # Creates an outlet for the given queue.
+        # Creates an outlet for the given channel.
         #
-        # The runtime provides the queue. Custom commands receive the outlet as
+        # The runtime provides the channel. Custom commands receive the outlet as
         # their first argument.
         #
-        # [queue] A <tt>Thread::Queue</tt> or compatible object.
-        def initialize(queue)
-          @queue = queue
+        # [channel] A <tt>Concurrent::Promises::Channel</tt> or compatible object.
+        def initialize(channel)
+          @channel = channel
         end
 
         # Sends a tagged message to the runtime.
@@ -119,7 +119,7 @@ module RatatuiRuby
                 "Use Ractor.make_shareable or Object#freeze."
           end
 
-          @queue << message
+          @channel.push(message)
         end
       end
     end
