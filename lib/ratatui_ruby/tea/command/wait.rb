@@ -25,9 +25,9 @@ module RatatuiRuby
       #
       #   def update(msg, model)
       #     case msg
-      #     in [:save_clicked]
+      #     in :save_clicked
       #       [model.with(notification: "Saved!"), Command.wait(3.0, :dismiss)]
-      #     in [:dismiss]
+      #     in :dismiss
       #       [model.with(notification: nil), nil]
       #     in Command::Cancel
       #       [model.with(notification: nil), nil]  # User navigated away
@@ -38,9 +38,9 @@ module RatatuiRuby
       #
       #   def update(msg, model)
       #     case msg
-      #     in [:start_animation]
+      #     in :start_animation
       #       [model.with(frame: 0), Command.tick(0.1, :animate)]
-      #     in [:animate]
+      #     in :animate
       #       frame = (model.frame + 1) % 10
       #       [model.with(frame:), Command.tick(0.1, :animate)]
       #     end

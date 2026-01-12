@@ -86,32 +86,25 @@ module RatatuiRuby
           @channel = channel
         end
 
-        # Sends a tagged message to the runtime.
+        # Sends a message to the runtime.
         #
-        # Builds an array <tt>[tag, *payload]</tt> and pushes it to the queue.
-        # The update function pattern-matches on the tag.
+        # Custom commands produce results. Those results feed back into your
+        # update function. This method handles the wiring.
         #
-        # Debug mode validates Ractor-shareability. It raises <tt>Error::Invariant</tt>
-        # if the message is not shareable. Production skips this check.
+        # Call with one argument to send it directly. Call with multiple
+        # arguments and they arrive as an array.
         #
-        # [tag] Symbol identifying the message type.
-        # [payload] Additional arguments. Freeze them or use <tt>Ractor.make_shareable</tt>.
+        # Use it for complex data flows or transports Tea doesn't ship with.
         #
         # === Example
         #
-        #--
-        # SPDX-SnippetBegin
-        # SPDX-FileCopyrightText: 2026 Kerrick Long
-        # SPDX-License-Identifier: MIT-0
-        #++
-        #   out.put(:user_fetched, user: Ractor.make_shareable(user))
-        #   out.put(:error, message: "Connection failed".freeze)
-        #   out.put(:progress, percent: 42)  # Integers are always shareable
-        #--
-        # SPDX-SnippetEnd
-        #++
-        def put(tag, *payload)
-          message = [tag, *payload].freeze
+        #   out.put(:done)              # Update receives :done
+        #   out.put(current_user)       # Update receives current_user
+        #   out.put(:user, alice)       # Update receives [:user, alice]
+        #
+        # Debug mode validates Ractor-shareability.
+        def put(*args)
+          message = (args.size == 1) ? args.first : args.freeze
 
           if RatatuiRuby::Debug.enabled? && !Ractor.shareable?(message)
             raise RatatuiRuby::Error::Invariant,

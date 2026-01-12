@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Timer Commands**: `Command.wait(seconds, tag)` and `Command.tick(seconds, tag)` for timed events. After the duration, sends `[tag]` to the update function. Responds to cancellation cooperatively — sends `Command.cancel(self)` when cancelled so you can handle it. Uses `Concurrent::Cancellation.timeout` internally. `Command.tick` is an alias for `Command.wait`; the "recurring tick" pattern is achieved by re-dispatching in the update function.
+- **Timer Commands**: `Command.wait(seconds, tag)` and `Command.tick(seconds, tag)` for timed events. After the duration, sends `tag` to the update function. Responds to cancellation cooperatively — sends `Command.cancel(self)` when cancelled so you can handle it. Uses `Concurrent::Cancellation.timeout` internally. `Command.tick` is an alias for `Command.wait`; the "recurring tick" pattern is achieved by re-dispatching in the update function.
 
 - **Command.uncancellable Factory**: Creates a fresh `Concurrent::Cancellation` that never fires. Use for commands wrapping non-cancellable blocking I/O (e.g., `Net::HTTP` requests).
 
@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CancellationToken Replaced (Breaking)**: Custom commands now receive `Concurrent::Cancellation` instead of `CancellationToken`. The method to check cancellation changes from `token.cancelled?` (British) to `token.canceled?` (American).
 
 - **Outlet Accepts Channel (Breaking)**: `Outlet.new` now accepts a `Concurrent::Promises::Channel` instead of `Thread::Queue`.
+
+- **Outlet#put (Breaking)**: `out.put(msg)`, the common case now sends `msg` directly instead of `[msg]`; `out.put(a, b, c)` sends `[a, b, c]`. Previously all calls wrapped arguments in an array. Update functions that matched `when Array` may need adjustment.
 
 ### Fixed
 

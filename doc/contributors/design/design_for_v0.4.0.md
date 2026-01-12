@@ -634,10 +634,9 @@ spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
 
 ### Phase 2: Timer Commands
 
-- [ ] Implement `Command.wait`
-- [ ] Implement `Command.tick`
-- [ ] Test cancellation during wait
-- [ ] Document patterns (debounce, animation)
+- [x] Implement `Command.wait`
+- [x] Implement `Command.tick`
+- [x] Test cancellation during wait
 
 ### Phase 3: Parallel Commands
 
@@ -661,6 +660,7 @@ spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
 
 ### Phase 6: Documentation
 
+- [ ] Document timer patterns (debounce, animation)
 - [ ] Quickstart guide
 - [ ] Custom commands guide
 - [ ] Fractal architecture guide

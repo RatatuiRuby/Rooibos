@@ -24,10 +24,8 @@ class TestRuntimeTimer < Minitest::Test
         when "q" then [m, RatatuiRuby::Tea::Command.exit]
         else [m, nil]
         end
-      when Array
-        messages << msg
-        [m, nil]
       else
+        messages << msg
         [m, nil]
       end
     end
@@ -39,7 +37,7 @@ class TestRuntimeTimer < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    assert_includes messages, [:waited]
+    assert_includes messages, :waited
   end
 
   def test_tick_message_arrives_in_update
@@ -55,10 +53,8 @@ class TestRuntimeTimer < Minitest::Test
         when "q" then [m, RatatuiRuby::Tea::Command.exit]
         else [m, nil]
         end
-      when Array
-        messages << msg
-        [m, nil]
       else
+        messages << msg
         [m, nil]
       end
     end
@@ -70,7 +66,7 @@ class TestRuntimeTimer < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    assert_includes messages, [:ticked]
+    assert_includes messages, :ticked
   end
 
   def test_wait_returns_quickly_when_cancelled
@@ -93,10 +89,8 @@ class TestRuntimeTimer < Minitest::Test
         else
           [m, nil]
         end
-      when Array
-        messages << msg
-        [m, nil]
       else
+        messages << msg
         [m, nil]
       end
     end
@@ -112,7 +106,7 @@ class TestRuntimeTimer < Minitest::Test
 
     # Must return quickly (< 2s), not wait full 10s
     assert_operator elapsed, :<, 2.0, "Cancelled wait should return quickly, not block for grace period"
-    refute messages.any? { |m| m[0] == :should_not_arrive }, "No timeout message when cancelled"
+    refute messages.include?(:should_not_arrive), "No timeout message when cancelled"
   end
 
   def test_cancelled_wait_acknowledges_cancellation
@@ -136,10 +130,8 @@ class TestRuntimeTimer < Minitest::Test
         else
           [m, nil]
         end
-      when Array
-        messages << msg
-        [m, nil]
       else
+        messages << msg
         [m, nil]
       end
     end
@@ -152,7 +144,7 @@ class TestRuntimeTimer < Minitest::Test
     end
 
     # Cooperative cancellation sends Command.cancel(self); thread-kill sends nothing
-    cancel_msg = messages.find { |m| m[0].is_a?(RatatuiRuby::Tea::Command::Cancel) }
-    assert_same original_cmd, cancel_msg[0].handle
+    cancel_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Cancel) }
+    assert_same original_cmd, cancel_msg.handle
   end
 end

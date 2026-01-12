@@ -150,9 +150,8 @@ module RatatuiRuby
 
         def initialize: (Concurrent::Promises::Channel channel) -> void
 
-        # Sends a tagged message to the runtime.
-        def put: (Symbol tag, *untyped payload) -> void
-               | (Cancel cancel_sentinel) -> void
+        # Sends a message to the runtime.
+        def put: (*untyped args) -> void
       end
     end
   end

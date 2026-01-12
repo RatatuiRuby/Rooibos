@@ -11,7 +11,28 @@ require "concurrent-edge"
 
 class TestOutlet < Minitest::Test
   include RatatuiRuby::TestHelper
-  def test_put_pushes_message_to_channel
+
+  def test_put_sends_one_message
+    channel = Concurrent::Promises::Channel.new
+    outlet = RatatuiRuby::Tea::Command::Outlet.new(channel)
+
+    outlet.put(:done)
+
+    assert_equal :done, channel.pop
+  end
+
+  User = Data.define(:name)
+  def test_put_sends_frozen_array_messages
+    channel = Concurrent::Promises::Channel.new
+    outlet = RatatuiRuby::Tea::Command::Outlet.new(channel)
+
+    alice = User.new("Alice")
+    outlet.put([:user, alice].freeze)
+
+    assert_equal [:user, alice], channel.pop
+  end
+
+  def test_put_wraps_multiple_params_in_frozen_array_for_you
     channel = Concurrent::Promises::Channel.new
     outlet = RatatuiRuby::Tea::Command::Outlet.new(channel)
 

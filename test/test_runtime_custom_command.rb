@@ -97,10 +97,8 @@ class TestRuntimeCustomCommand < Minitest::Test
         when "q" then [m, RatatuiRuby::Tea::Command.exit]
         else [m, nil]
         end
-      when Array
-        messages << msg
-        [m, nil]
       else
+        messages << msg
         [m, nil]
       end
     end
@@ -137,10 +135,8 @@ class TestRuntimeCustomCommand < Minitest::Test
         when "q" then [m, RatatuiRuby::Tea::Command.exit]
         else [m, nil]
         end
-      when Array
-        events << msg[0]
-        [m, nil]
       else
+        events << msg
         [m, nil]
       end
     end
@@ -186,10 +182,8 @@ class TestRuntimeCustomCommand < Minitest::Test
         else
           [m, nil]
         end
-      when Array
-        events << msg[0]
-        [m, nil]
       else
+        events << msg
         [m, nil]
       end
     end
@@ -238,10 +232,8 @@ class TestRuntimeCustomCommand < Minitest::Test
         else
           [m, nil]
         end
-      when Array
-        events << msg[0]
-        [m, nil]
       else
+        events << msg
         [m, nil]
       end
     end
@@ -295,10 +287,8 @@ class TestRuntimeCustomCommand < Minitest::Test
         else
           [m, nil]
         end
-      when Array
-        events << msg[0]
-        [m, nil]
       else
+        events << msg
         [m, nil]
       end
     end
