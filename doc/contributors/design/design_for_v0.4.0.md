@@ -621,16 +621,16 @@ spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
 
 ## Part 6: Implementation Roadmap
 
-### Phase 1: concurrent-ruby-edge Foundation
+### Phase 1: concurrent-ruby-edge Foundation ✅
 
-- [ ] Add concurrent-ruby-edge dependency
-- [ ] Remove `CancellationToken` class — use `Concurrent::Cancellation` directly
-- [ ] Replace `CancellationToken::NONE` constant with `Command.uncancellable` factory method
-- [ ] Update command signature to `call(out, token)` (token has a new interface)
-- [ ] Refactor `Outlet` internals to use Channel
-- [ ] Refactor runtime dispatch to use `Concurrent::Promises.future`
-- [ ] Replace `active_commands = {}` with `Concurrent::Map.new` for thread-safe command tracking
-- [ ] All existing tests pass (with updated signatures)
+- [x] Add concurrent-ruby-edge dependency
+- [x] Remove `CancellationToken` class — use `Concurrent::Cancellation` directly
+- [x] Replace `CancellationToken::NONE` constant with `Command.uncancellable` factory method
+- [x] Update command signature to `call(out, token)` (token has a new interface)
+- [x] Refactor `Outlet` internals to use Channel
+- [x] Refactor runtime dispatch to use `Concurrent::Promises.future`
+- [x] Replace `active_commands = {}` with `Concurrent::Map.new` for thread-safe command tracking
+- [x] All existing tests pass (with updated signatures)
 
 ### Phase 2: Timer Commands
 

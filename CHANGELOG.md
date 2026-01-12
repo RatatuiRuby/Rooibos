@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Timer Commands**: `Command.wait(seconds, tag)` and `Command.tick(seconds, tag)` for timed events. After the duration, sends `[tag]` to the update function. Responds to cancellation cooperatively — sends `Command.cancel(self)` when cancelled so you can handle it. Uses `Concurrent::Cancellation.timeout` internally. `Command.tick` is an alias for `Command.wait`; the "recurring tick" pattern is achieved by re-dispatching in the update function.
+
 - **Command.uncancellable Factory**: Creates a fresh `Concurrent::Cancellation` that never fires. Use for commands wrapping non-cancellable blocking I/O (e.g., `Net::HTTP` requests).
 
 - **Dependencies**: Added `concurrent-ruby` (~> 1.3) and `concurrent-ruby-edge` (~> 0.7) for robust concurrency primitives.

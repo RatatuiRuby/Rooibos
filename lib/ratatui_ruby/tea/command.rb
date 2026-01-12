@@ -8,6 +8,7 @@
 require "concurrent-edge"
 require_relative "command/custom"
 require_relative "command/outlet"
+require_relative "command/wait"
 
 module RatatuiRuby
   module Tea
@@ -375,6 +376,26 @@ module RatatuiRuby
       def self.custom(callable = nil, grace_period: nil, &block)
         Wrapped.new(callable: callable || block, grace_period:)
       end
+
+      # Creates a one-shot timer command.
+      #
+      # Waits for +seconds+ then sends +[tag, seconds]+ to the update function.
+      # Use for delayed actions like notification dismissal or debounced search.
+      #
+      # [seconds] Duration to wait (Float or Integer).
+      # [tag] Symbol to tag the result message.
+      def self.wait(seconds, tag)
+        Wait.new(seconds:, tag:)
+      end
+
+      # Creates a recurring timer command.
+      #
+      # Identical to +wait+, but semantically used for animation frames where
+      # the update function re-dispatches to continue the animation loop.
+      #
+      # [interval] Duration between ticks (Float or Integer).
+      # [tag] Symbol to tag the result message.
+      singleton_class.alias_method :tick, :wait
 
       # :nodoc:
       Wrapped = Data.define(:callable, :grace_period) do

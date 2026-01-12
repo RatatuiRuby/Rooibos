@@ -104,6 +104,25 @@ module RatatuiRuby
       def self.custom: (^(Outlet, Concurrent::Cancellation) -> void callable, ?grace_period: Float?) -> _Command
                      | (?grace_period: Float?) { (Outlet, Concurrent::Cancellation) -> void } -> _Command
 
+      # Creates a one-shot timer command.
+      def self.wait: (Float seconds, Symbol tag) -> Wait
+
+      # Alias for wait, semantically used for recurring timers.
+      def self.tick: (Float seconds, Symbol tag) -> Wait
+
+      # One-shot timer command that waits, then sends a message.
+      class Wait < Data
+        include Custom
+
+        attr_reader seconds: Float
+        attr_reader tag: Symbol
+
+        def self.new: (seconds: Float, tag: Symbol) -> instance
+
+        # Execute the timer with cooperative cancellation.
+        def call: (Outlet out, Concurrent::Cancellation token) -> void
+      end
+
       # Private wrapper for Command.custom.
       class Wrapped < Data
         include Custom
@@ -133,6 +152,7 @@ module RatatuiRuby
 
         # Sends a tagged message to the runtime.
         def put: (Symbol tag, *untyped payload) -> void
+               | (Cancel cancel_sentinel) -> void
       end
     end
   end
