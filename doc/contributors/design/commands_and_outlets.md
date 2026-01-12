@@ -75,6 +75,16 @@ The runtime catches unhandled exceptions and pushes `Command::Error` to the queu
 
 This mirrors the sentinel pattern used for `Command::Exit` and `Command::Cancel`.
 
+**Error categorization:** We use a single `Command::Error` sentinel for all command exceptions. Distinguishing "framework bugs" vs "user bugs" at the sentinel level adds complexity with marginal benefit. Instead, exception *classes* provide the signal:
+
+| Exception Class | Source |
+|-----------------|--------|
+| `RatatuiRuby::Error::Invariant` | Framework validation (debug mode) |
+| `RatatuiRuby::Error::Internal` | Framework bugs |
+| `ArgumentError`, `RuntimeError`, etc. | User code |
+
+The update function can pattern-match on `error_msg.exception.class` if it needs to distinguish sources.
+
 ### 5. Ractor Readiness
 
 This design is forward-compatible with Ruby's Ractor-based parallelism.

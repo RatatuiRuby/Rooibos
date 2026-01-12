@@ -10,6 +10,7 @@ require_relative "command/custom"
 require_relative "command/outlet"
 require_relative "command/wait"
 require_relative "command/batch"
+require_relative "command/all"
 
 module RatatuiRuby
   module Tea
@@ -426,6 +427,27 @@ module RatatuiRuby
       #   Command.batch([cmd1, cmd2, cmd3])
       def self.batch(*)
         Batch.new(*)
+      end
+
+      # Creates an aggregating parallel command.
+      #
+      # Applications load dashboards that combine user, settings, and stats.
+      # Fire-and-forget loses correlation. This command waits for all children
+      # and returns their results together in a single message.
+      #
+      # [commands] One or more commands to run in parallel. Pass multiple
+      #   arguments or a single array.
+      #
+      # === Example
+      #
+      #   # Variadic syntax
+      #   Command.all(
+      #     Command.http(:get, "/users", :_),
+      #     Command.http(:get, "/stats", :_),
+      #   )
+      #   # Produces: [:all, [user_result, stats_result]]
+      def self.all(tag, *)
+        All.new(tag, *)
       end
 
       # :nodoc:

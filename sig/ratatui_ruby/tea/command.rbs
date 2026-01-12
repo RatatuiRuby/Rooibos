@@ -167,6 +167,22 @@ module RatatuiRuby
 
       # Creates a parallel batch command.
       def self.batch: (*Custom | Array[Custom]) -> Batch
+
+      # An aggregating parallel command.
+      class All
+        include Custom
+
+        attr_reader tag: Symbol
+        attr_reader commands: Array[Custom]
+        attr_reader nested: bool
+
+        def self.new: (Symbol tag, *Custom | Array[Custom]) -> instance
+
+        def call: (Outlet outlet, Concurrent::Cancellation token) -> void
+      end
+
+      # Creates an aggregating parallel command.
+      def self.all: (Symbol tag, *Custom | Array[Custom]) -> All
     end
   end
 end

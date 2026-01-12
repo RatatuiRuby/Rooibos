@@ -640,8 +640,8 @@ spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
 
 ### Phase 3: Parallel Commands
 
-- [ ] Implement `Command.batch`
-- [ ] Implement `Command.all`
+- [x] Implement `Command.batch`
+- [x] Implement `Command.all`
 - [ ] Test mixed command types
 
 ### Phase 4: HTTP Command

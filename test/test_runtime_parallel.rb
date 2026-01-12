@@ -162,9 +162,10 @@ class TestRuntimeParallel < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    error_msg = messages.find { |m| m.is_a?(Array) && m[0] == :batch_error }
-    refute_nil error_msg, "Expected :batch_error message from failed child"
-    assert_match(/intentional failure/, error_msg[1][:error])
+    # Child error should surface as Command::Error (aligned with Command.all)
+    error_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Error) }
+    refute_nil error_msg, "Expected Command::Error message from failed child"
+    assert_match(/intentional failure/, error_msg.exception.message)
   end
 
   def test_batch_exits_early_on_cancellation
@@ -248,5 +249,53 @@ class TestRuntimeParallel < Minitest::Test
     batch_variadic = RatatuiRuby::Tea::Command::Batch.new([cmd1, cmd2])
     assert_equal 2, batch_array.commands.size
     assert_equal 2, batch_variadic.commands.size
+  end
+
+  def test_batch_continues_other_commands_when_one_fails
+    messages = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    failing_class = Data.define do
+      include RatatuiRuby::Tea::Command::Custom
+      def call(_out, _token)
+        raise "intentional failure"
+      end
+    end
+    failing_command = Ractor.make_shareable(failing_class.new)
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "b"
+          # One fails, one succeeds
+          cmd = RatatuiRuby::Tea::Command.batch([
+            failing_command,
+            RatatuiRuby::Tea::Command.wait(0.01, :success),
+          ])
+          [m, cmd]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      else
+        messages << msg
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("b")
+      inject_sync
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    # The successful command should still complete
+    assert_includes messages, :success, "Successful command should still run when sibling fails"
+
+    # Error should also be reported
+    error_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Error) }
+    refute_nil error_msg, "Expected Command::Error from failed child"
   end
 end
