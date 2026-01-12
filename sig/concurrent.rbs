@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+# Minimal stubs for concurrent-ruby-edge types used by Tea.
+# This is not a complete type definition — just enough for Steep.
+
+module Concurrent
+  module Promises
+    # Factory for resolvable events.
+    def self.resolvable_event: () -> ResolvableEvent
+
+    # A future/event that can be resolved by user code.
+    class ResolvableEvent
+      def resolve: (?bool wait, ?bool raise_on_reassign) -> self
+      def resolved?: () -> bool
+      def wait: (?Numeric? timeout) -> self
+    end
+  end
+
+  # Cooperative cancellation abstraction.
+  class Cancellation
+    def self.new: (?Promises::ResolvableEvent origin) -> [Cancellation, Promises::ResolvableEvent]
+    def self.timeout: (Numeric seconds) -> Cancellation
+
+    def origin: () -> Promises::ResolvableEvent
+    def canceled?: () -> bool
+    def check!: (?Class error) -> self
+    def join: (*Cancellation cancellations) -> Cancellation
+  end
+end

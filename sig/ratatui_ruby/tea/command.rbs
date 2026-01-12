@@ -14,7 +14,7 @@ module RatatuiRuby
 
         # Execute the command's side effect.
         # Push result messages via the outlet.
-        def call: (Outlet out, CancellationToken token) -> void
+        def call: (Outlet out, Concurrent::Cancellation token) -> void
 
         # Grace period for cooperative cancellation (seconds).
         # Runtime waits this long before force-killing the thread.
@@ -42,7 +42,7 @@ module RatatuiRuby
         def stream?: () -> bool
 
         # Executes the shell command and sends results via outlet.
-        def call: (Outlet out, CancellationToken token) -> void
+        def call: (Outlet out, Concurrent::Cancellation token) -> void
 
         def self.new: (command: String, tag: (Symbol | Class), stream: bool) -> instance
       end
@@ -59,7 +59,7 @@ module RatatuiRuby
         def tea_cancellation_grace_period: () -> Float
 
         # Executes the inner command and transforms the result.
-        def call: (Outlet out, CancellationToken token) -> void
+        def call: (Outlet out, Concurrent::Cancellation token) -> void
 
         def self.new: (inner_command: execution, mapper: ^(Array[untyped]) -> Array[untyped]) -> instance
       end
@@ -85,6 +85,9 @@ module RatatuiRuby
       # Creates a quit command.
       def self.exit: () -> Exit
 
+      # Creates a fresh cancellation that never fires.
+      def self.uncancellable: () -> Concurrent::Cancellation
+
       # Creates a shell execution command.
       def self.system: (String command, (Symbol | Class) tag, ?stream: bool) -> System
 
@@ -98,45 +101,18 @@ module RatatuiRuby
       def self.error: (_Command command, Exception exception) -> Error
 
       # Wraps a callable for unique identity per dispatch.
-      def self.custom: (^(Outlet, CancellationToken) -> void callable, ?grace_period: Float?) -> _Command
-                     | (?grace_period: Float?) { (Outlet, CancellationToken) -> void } -> _Command
+      def self.custom: (^(Outlet, Concurrent::Cancellation) -> void callable, ?grace_period: Float?) -> _Command
+                     | (?grace_period: Float?) { (Outlet, Concurrent::Cancellation) -> void } -> _Command
 
       # Private wrapper for Command.custom.
       class Wrapped < Data
         include Custom
 
-        attr_reader callable: ^(Outlet, CancellationToken) -> void
+        attr_reader callable: ^(Outlet, Concurrent::Cancellation) -> void
         attr_reader grace_period: Float?
 
-        def self.new: (callable: ^(Outlet, CancellationToken) -> void, grace_period: Float?) -> instance
-        def call: (Outlet out, CancellationToken token) -> void
-      end
-
-      # Cooperative cancellation mechanism for long-running commands.
-      class CancellationToken
-        # Number of times cancel! has been called.
-        attr_reader cancel_count: Integer
-
-        def self.new: () -> instance
-
-        # Signals cancellation. Thread-safe.
-        def cancel!: () -> void
-
-        # Checks if cancellation was requested. Thread-safe.
-        def cancelled?: () -> bool
-
-        # Null object for commands that ignore cancellation.
-        class NoneToken < Data
-          attr_reader cancelled?: bool
-
-          def self.new: (cancelled?: bool) -> instance
-
-          # Does nothing. Ignores cancellation requests.
-          def cancel!: () -> nil
-        end
-
-        # Singleton null token.
-        NONE: NoneToken
+        def self.new: (callable: ^(Outlet, Concurrent::Cancellation) -> void, grace_period: Float?) -> instance
+        def call: (Outlet out, Concurrent::Cancellation token) -> void
       end
 
       # Mixin for user-defined custom commands.

@@ -64,7 +64,7 @@ module RatatuiRuby
       #     include Tea::Command::Custom
       #
       #     def call(out, token)
-      #       until token.cancelled?
+      #       until token.canceled?
       #         data = fetch_batch
       #         out.put(:batch, Ractor.make_shareable(data))
       #         sleep 5

@@ -6,6 +6,7 @@
 #++
 
 require "ratatui_ruby"
+require "concurrent-edge"
 
 module RatatuiRuby
   module Tea
@@ -132,7 +133,7 @@ module RatatuiRuby
 
         # Shutdown: signal all, wait grace periods, then kill
         active_commands.each do |handle, entry|
-          entry[:token].cancel!
+          entry[:origin].resolve # Signal cancellation
           grace = handle.tea_cancellation_grace_period
           if grace.finite?
             deadline = Time.now + grace
@@ -229,7 +230,7 @@ module RatatuiRuby
         when Command::Cancel
           entry = active_commands[command.handle]
           if entry && entry[:thread].alive?
-            entry[:token].cancel!
+            entry[:origin].resolve # Signal cancellation
             grace = command.handle.tea_cancellation_grace_period
             if grace.finite?
               deadline = Time.now + grace
@@ -244,16 +245,16 @@ module RatatuiRuby
         else
           # Custom command (responds to tea_command?)
           if command.respond_to?(:tea_command?) && command.tea_command?
-            token = Command::CancellationToken.new
+            cancellation, origin = Concurrent::Cancellation.new
             outlet = Command::Outlet.new(queue)
 
             thread = Thread.new do
-              command.call(outlet, token)
+              command.call(outlet, cancellation)
             rescue => e
               queue << Command::Error.new(command:, exception: e)
             end
 
-            active_commands[command] = { thread:, token: }
+            active_commands[command] = { thread:, origin: }
             thread
           end
         end

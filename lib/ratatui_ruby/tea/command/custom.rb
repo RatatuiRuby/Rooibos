@@ -39,7 +39,7 @@ module RatatuiRuby
       #       ws.on_message { |msg| out.put(:ws_message, msg) }
       #       ws.connect
       #
-      #       until token.cancelled?
+      #       until token.canceled?
       #         ws.ping
       #         sleep 1
       #       end

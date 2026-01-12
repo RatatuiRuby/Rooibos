@@ -15,11 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Command.uncancellable Factory**: Creates a fresh `Concurrent::Cancellation` that never fires. Use for commands wrapping non-cancellable blocking I/O (e.g., `Net::HTTP` requests).
+
+- **Dependencies**: Added `concurrent-ruby` (~> 1.3) and `concurrent-ruby-edge` (~> 0.7) for robust concurrency primitives.
+
 ### Changed
+
+- **CancellationToken Replaced (Breaking)**: Custom commands now receive `Concurrent::Cancellation` instead of `CancellationToken`. The method to check cancellation changes from `token.cancelled?` (British) to `token.canceled?` (American). Update your custom commands accordingly.
 
 ### Fixed
 
 ### Removed
+
+- **CancellationToken Class**: Removed in favor of `Concurrent::Cancellation` from concurrent-ruby-edge.
+- **CancellationToken::NONE (Breaking)**: Removed. Use `Command.uncancellable` factory instead.
 
 ## [0.3.1] - 2026-01-11
 

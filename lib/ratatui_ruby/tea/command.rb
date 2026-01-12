@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 #++
 
-require_relative "command/cancellation_token"
+require "concurrent-edge"
 require_relative "command/custom"
 require_relative "command/outlet"
 
@@ -52,6 +52,25 @@ module RatatuiRuby
       #   end
       def self.exit
         Exit.new
+      end
+
+      # Creates a fresh cancellation that never fires.
+      #
+      # Some I/O operations cannot be cancelled mid-execution. Ruby's <tt>Net::HTTP</tt>
+      # blocks until completion or timeout — there is no way to interrupt it.
+      #
+      # A shared singleton would be unsafe. If any code path accidentally resolves
+      # the origin, all commands using it become cancelled.
+      #
+      # Use it for commands that wrap non-cancellable blocking I/O.
+      #
+      # === Example
+      #
+      #   token = Command.uncancellable
+      #   HttpCommand.new(url).call(outlet, token)
+      def self.uncancellable
+        cancellation, _origin = Concurrent::Cancellation.new(Concurrent::Promises.resolvable_event)
+        cancellation
       end
 
       # Sentinel value for command cancellation.
@@ -199,8 +218,8 @@ module RatatuiRuby
 
             # Cooperative cancellation: SIGTERM when token is cancelled
             cancellation_watcher = Thread.new do
-              sleep 0.01 until token.cancelled? || !wait_thr.alive?
-              if token.cancelled? && wait_thr.alive?
+              sleep 0.01 until token.canceled? || !wait_thr.alive?
+              if token.canceled? && wait_thr.alive?
                 begin
                   Process.kill("TERM", pid)
                 rescue Errno::ESRCH
@@ -348,7 +367,7 @@ module RatatuiRuby
       #
       #   # With block
       #   cmd = Command.custom(grace_period: 5.0) do |out, token|
-      #     until token.cancelled?
+      #       until token.canceled?
       #       out.put(:tick, Time.now)
       #       sleep 1
       #     end

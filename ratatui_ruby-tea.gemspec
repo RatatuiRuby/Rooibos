@@ -43,6 +43,8 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "ratatui_ruby", "~> 0.10.1"
   spec.add_dependency "ostruct", "~> 0.6"
+  spec.add_dependency "concurrent-ruby", "~> 1.3"
+  spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
   spec.add_development_dependency "rdoc", "~> 7.0"
   spec.add_development_dependency "faker", "~> 3.5"
 end

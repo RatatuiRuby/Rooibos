@@ -53,4 +53,13 @@ class TestCommand < Minitest::Test
     assert_equal inner, command.inner_command
     assert_equal mapper, command.mapper
   end
+
+  def test_uncancellable_returns_fresh_cancellation_each_time
+    token1 = RatatuiRuby::Tea::Command.uncancellable
+    token2 = RatatuiRuby::Tea::Command.uncancellable
+
+    refute_same token1, token2, "Each call should return a fresh instance"
+    refute token1.canceled?, "Fresh uncancellable token should not be canceled"
+    refute token2.canceled?, "Fresh uncancellable token should not be canceled"
+  end
 end

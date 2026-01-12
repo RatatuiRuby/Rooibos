@@ -72,10 +72,9 @@ class TestRuntimeCustomCommand < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    refute_nil received_out, "Command should have received an Outlet"
-    refute_nil received_token, "Command should have received a CancellationToken"
+    refute_nil received_token, "Command should have received a Cancellation"
     assert_kind_of RatatuiRuby::Tea::Command::Outlet, received_out
-    assert_kind_of RatatuiRuby::Tea::Command::CancellationToken, received_token
+    assert_kind_of Concurrent::Cancellation, received_token
   end
 
   def test_outlet_messages_arrive_in_update
@@ -163,7 +162,7 @@ class TestRuntimeCustomCommand < Minitest::Test
 
     def call(out, token)
       out.put(:command_started)
-      sleep 0.02 until token.cancelled?
+      sleep 0.02 until token.canceled?
       out.put(:command_cancelled)
     end
   end
@@ -272,7 +271,7 @@ class TestRuntimeCustomCommand < Minitest::Test
 
     def call(out, token)
       out.put(:infinite_started)
-      sleep 0.02 until token.cancelled?
+      sleep 0.02 until token.canceled?
       out.put(:infinite_stopped)
     end
   end

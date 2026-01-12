@@ -8,7 +8,7 @@ module RatatuiRuby
     # MVU runtime event loop.
     class Runtime
       # Active command tracking entry.
-      type active_entry = { thread: Thread, token: Command::CancellationToken }
+      type active_entry = { thread: Thread, origin: Concurrent::Promises::ResolvableEvent }
 
       # Widget type accepted by view functions.
       type renderable = RatatuiRuby::_CustomWidget | RatatuiRuby::widget
