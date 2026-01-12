@@ -283,7 +283,9 @@ module RatatuiRuby
       # Use it to compose child bags that return their own commands.
       Mapped = Data.define(:inner_command, :mapper) do
         # Command identification for runtime dispatch.
-        def tea_command? = true
+        def tea_command?
+          true
+        end
 
         # Grace period delegates to inner command.
         def tea_cancellation_grace_period
