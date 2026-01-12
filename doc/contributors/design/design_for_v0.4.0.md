@@ -643,24 +643,24 @@ spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
 - [ ] Implement `Command.batch`
 - [ ] Implement `Command.all`
 - [ ] Test mixed command types
-- [ ] Document parallel fetch patterns
 
 ### Phase 4: HTTP Command
 
 - [ ] Implement `Command.http` (GET, POST, PUT, DELETE)
 - [ ] Handle SSL, timeouts, errors
 - [ ] Test with mock server
-- [ ] Document response format
 
 ### Phase 5: Composition
 
 - [ ] Implement `Outlet#source`
 - [ ] Test sync→parallel→sync flows
-- [ ] Document composition patterns
 
 ### Phase 6: Documentation
 
 - [ ] Document timer patterns (debounce, animation)
+- [ ] Document parallel fetch patterns
+- [ ] Document response format
+- [ ] Document composition patterns
 - [ ] Quickstart guide
 - [ ] Custom commands guide
 - [ ] Fractal architecture guide

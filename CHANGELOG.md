@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Command.uncancellable Factory**: Creates a fresh `Concurrent::Cancellation` that never fires. Use for commands wrapping non-cancellable blocking I/O (e.g., `Net::HTTP` requests).
 
+- **Command.batch**: Fire-and-forget parallel execution. `Command.batch(cmd1, cmd2)` or `Command.batch([cmds])` runs children in parallel; each child sends its own messages independently. On cancellation, emits `Command.cancel(self)` so you can detect the batch was stopped. Child errors emit `[:batch_error, {error: message}]`. Requires all child commands to be Ractor-shareable.
+
 - **Dependencies**: Added `concurrent-ruby` (~> 1.3) and `concurrent-ruby-edge` (~> 0.7) for robust concurrency primitives.
 
 ### Changed

@@ -9,6 +9,7 @@ require "concurrent-edge"
 require_relative "command/custom"
 require_relative "command/outlet"
 require_relative "command/wait"
+require_relative "command/batch"
 
 module RatatuiRuby
   module Tea
@@ -396,6 +397,36 @@ module RatatuiRuby
       # [interval] Duration between ticks (Float or Integer).
       # [tag] Symbol to tag the result message.
       singleton_class.alias_method :tick, :wait
+
+      # Creates a parallel batch command.
+      #
+      # Applications fetch data from multiple sources. Dashboard panels load
+      # users, stats, and notifications. Waiting sequentially is slow.
+      # Managing threads and error handling manually is error-prone.
+      #
+      # This command runs children in parallel. Each child sends its own messages
+      # independently. The batch completes when all children finish or when
+      # cancellation fires.
+      #
+      # Use it for parallel fetches, concurrent refreshes, or any work that
+      # does not need coordinated results.
+      #
+      # [commands] One or more commands to run in parallel. Pass multiple
+      #   arguments or a single array.
+      #
+      # === Example
+      #
+      #   # Variadic syntax
+      #   Command.batch(
+      #     Command.http(:get, "/users", :users),
+      #     Command.http(:get, "/stats", :stats),
+      #   )
+      #
+      #   # Array syntax
+      #   Command.batch([cmd1, cmd2, cmd3])
+      def self.batch(*)
+        Batch.new(*)
+      end
 
       # :nodoc:
       Wrapped = Data.define(:callable, :grace_period) do

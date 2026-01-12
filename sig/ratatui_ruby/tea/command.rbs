@@ -153,6 +153,20 @@ module RatatuiRuby
         # Sends a message to the runtime.
         def put: (*untyped args) -> void
       end
+
+      # A fire-and-forget parallel command.
+      class Batch
+        include Custom
+
+        attr_reader commands: Array[Custom]
+
+        def self.new: (*Custom | Array[Custom]) -> instance
+
+        def call: (Outlet outlet, Concurrent::Cancellation token) -> void
+      end
+
+      # Creates a parallel batch command.
+      def self.batch: (*Custom | Array[Custom]) -> Batch
     end
   end
 end
