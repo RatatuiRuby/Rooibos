@@ -144,14 +144,55 @@ module RatatuiRuby
         def tea_cancellation_grace_period: () -> Float
       end
 
+      # Minimal interface for callables accepted by Lifecycle.run_sync.
+      interface _Callable
+        def call: (Outlet out, Concurrent::Cancellation token) -> void
+        def respond_to?: (Symbol, ?bool) -> bool
+        def tea_cancellation_grace_period: () -> Float
+      end
+
+      # Manages command execution with lifecycle support.
+      class Lifecycle
+        # Internal representation of a tracked async command.
+        class Entry < Data
+          attr_reader future: Concurrent::Promises::Future[void]
+          attr_reader origin: Concurrent::Promises::ResolvableEvent
+
+          def self.new: (future: Concurrent::Promises::Future[void], origin: Concurrent::Promises::ResolvableEvent) -> instance
+        end
+
+        @active: Concurrent::Map[_Callable, Entry]
+
+        def initialize: () -> void
+
+        # Runs a command synchronously, returning its result.
+        def run_sync: (_Callable command, Concurrent::Cancellation token, timeout: Float) -> Object?
+
+        # Runs a command asynchronously, tracking it for later cancellation.
+        def run_async: (_Callable command, Concurrent::Promises::Channel channel) -> Entry
+
+        # Cancels a running command, waiting for its grace period.
+        def cancel: (_Callable command) -> void
+
+        # Cancels all active commands and waits for them to complete.
+        def shutdown: () -> void
+      end
+
       # Messaging gateway for custom commands.
       class Outlet
         @channel: Concurrent::Promises::Channel
+        @live: Lifecycle
 
-        def initialize: (Concurrent::Promises::Channel channel) -> void
+        def initialize: (Concurrent::Promises::Channel channel, lifecycle: Lifecycle) -> void
+
+        # Internal infrastructure for nested command lifecycle sharing.
+        attr_reader live: Lifecycle
 
         # Sends a message to the runtime.
-        def put: (*untyped args) -> void
+        def put: (*Object args) -> void
+
+        # Runs a child command synchronously, returning its result.
+        def source: (_Callable command, Concurrent::Cancellation token, ?timeout: Float) -> Object?
       end
 
       # A fire-and-forget parallel command.

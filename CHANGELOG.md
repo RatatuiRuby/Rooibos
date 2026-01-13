@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Command.all**: Aggregating parallel execution. `Command.all(:tag, cmd1, cmd2)` or `Command.all(:tag, [cmds])` runs children in parallel and waits for all to complete, then sends a single aggregated message. Array syntax produces `[:tag, [results]]`; variadic syntax splats results as `[:tag, result1, result2]`. On cancellation, emits `Command.cancel(self)`. Child errors surface as `Command::Error`. Requires all child commands to be Ractor-shareable.
 
+- **Outlet#source**: Command composition for multi-step workflows. `out.source(child_command, token, timeout: 30.0)` runs a child command synchronously within a custom command, returning its result (or `nil` if cancelled/timed out). Exceptions from failed children propagate to the caller. Use this to orchestrate sequential API calls, conditional fetches, or any workflow that needs one result before starting the next.
+
 - **Dependencies**: Added `concurrent-ruby` (~> 1.3) and `concurrent-ruby-edge` (~> 0.7) for robust concurrency primitives.
 
 ### Changed

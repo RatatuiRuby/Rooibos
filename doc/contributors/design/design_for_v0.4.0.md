@@ -143,26 +143,33 @@ end
 
 #### Fire-and-Forget (batch)
 
-Each child sends its own messages:
+Each child sends its own messages. Supports DWIM arity:
 
 ```ruby
-Command.batch([
-  Command.http(:get, "/users", :users),
-  Command.http(:get, "/posts", :posts),
-])
+# Array syntax
+Command.batch([cmd1, cmd2])
+
+# Variadic syntax (equivalent)
+Command.batch(cmd1, cmd2)
+
 # Messages arrive independently: [:users, ...], [:posts, ...] (any order)
+# On cancellation: emits Command.cancel(self)
+# Child errors surface as Command::Error
 ```
 
 #### Aggregating (all)
 
-Wait for all, return combined:
+Wait for all, return combined. Supports DWIM arity with output format matching input:
 
 ```ruby
-Command.all([
-  Command.http(:get, "/users", :_),
-  Command.http(:get, "/stats", :_),
-])
-# Single message: [:all, [user_result, stats_result]]
+# Array syntax → nested output: [:dashboard, [user_result, stats_result]]
+Command.all(:dashboard, [user_cmd, stats_cmd])
+
+# Variadic syntax → splatted output: [:dashboard, user_result, stats_result]
+Command.all(:dashboard, user_cmd, stats_cmd)
+
+# On cancellation: emits Command.cancel(self)
+# Child errors surface as Command::Error
 ```
 
 ### Command Composition (source)
@@ -251,117 +258,154 @@ end
 
 ### Outlet#source
 
-Run the child command asynchronously. Use `MVar` as a simpler single-element blocking container instead of Channel+race. **Add a grace period timeout backstop** to prevent hung commands from blocking indefinitely. **Propagate exceptions from failed commands** — don't swallow them.
+Run the child command synchronously via the shared `Lifecycle` service. The lifecycle handles timeout, cancellation, grace periods, and force-termination.
 
 ```ruby
 class Outlet
-  # Default grace period for child commands (seconds)
-  SOURCE_GRACE_PERIOD = 30.0
+  # Default timeout for child commands (seconds)
+  SOURCE_DEFAULT_TIMEOUT = 30.0
 
-  def source(command, token, grace_period: SOURCE_GRACE_PERIOD)
-    result_slot = Concurrent::MVar.new
-    child_outlet = SourceOutlet.new(result_slot)
-
-    # Run command asynchronously
-    command_future = Concurrent::Promises.future do
-      command.call(child_outlet, token)
-    end
-
-    # Wait for result with grace period as a definitive backstop
-    result = result_slot.take(grace_period)
-
-    return nil if token.canceled?
-    return nil if result == Concurrent::MVar::TIMEOUT
-
-    # Propagate exceptions from failed commands — don't swallow errors
-    if command_future.rejected?
-      raise command_future.reason
-    end
-
-    result
+  def initialize(channel, lifecycle:)
+    @channel = channel
+    @live = lifecycle  # Shared lifecycle manager
   end
 
-  # Internal outlet for #source that writes to MVar instead of Queue
-  class SourceOutlet
-    def initialize(mvar)
-      @mvar = mvar
-    end
-
-    def put(tag, *payload)
-      message = [tag, *payload].freeze
-      @mvar.put(message)  # Overwrites if already set (last message wins)
-    end
+  def source(command, token, timeout: SOURCE_DEFAULT_TIMEOUT)
+    @live.run_sync(command, token, timeout:)
   end
-  private_constant :SourceOutlet
+end
+```
+
+### Command::Lifecycle
+
+Internal service shared by Runtime and `Outlet#source`. Manages thread tracking, cancellation, and force-termination. App developers don't interact with this directly.
+
+```ruby
+class Lifecycle
+  Entry = Data.define(:future, :origin)
+
+  def initialize
+    @active = Concurrent::Map.new
+  end
+
+  # Synchronous execution with timeout (for Outlet#source)
+  def run_sync(command, token, timeout:)
+    # 1. Return nil if already cancelled
+    # 2. Create child channel + outlet with self as lifecycle
+    # 3. Run command in thread
+    # 4. Race: result vs cancellation vs timeout
+    # 5. If cancelled: wait grace period, Thread#kill if needed
+    # 6. Propagate exceptions, return result
+  end
+
+  # Async execution with tracking (for Runtime dispatch)
+  def run_async(command, channel)
+    # 1. Create cancellation token
+    # 2. Run in future, push errors as Command::Error
+    # 3. Track in @active map
+    # 4. Return Entry for future access
+  end
+
+  # Cancel a specific command
+  def cancel(command)
+    # 1. Signal origin
+    # 2. Wait grace period
+    # 3. Remove from tracking
+  end
+
+  # Shutdown all active commands
+  def shutdown
+    # Signal and wait for each tracked command
+  end
 end
 ```
 
 ### Command.batch
 
-Multiple commands write to the shared outlet concurrently. `Outlet#put` uses `Channel#push` which is thread-safe. Report errors for any rejected futures **using callbacks** so errors are captured even if cancellation fires early.
+Multiple commands write to the shared outlet concurrently. `Outlet#put` uses `Channel#push` which is thread-safe.
+
+> [!IMPORTANT]
+> **Implementation deviation:** Child errors surface as `Command::Error` (propagated to runtime) instead of `:batch_error` callbacks. This aligns with `Command.all` and the automatic error propagation pattern documented in `commands_and_outlets.md`.
+
+> [!NOTE]
+> **DWIM arity:** Accepts either variadic arguments `batch(cmd1, cmd2)` or an array `batch([cmd1, cmd2])`. The constructor normalizes both to an internal commands array.
 
 ```ruby
 Batch = Data.define(:commands) do
   include Custom
 
+  def self.new(*args)
+    # DWIM: batch(cmd1, cmd2) or batch([cmd1, cmd2])
+    commands = args.size == 1 && args.first.is_a?(Array) ? args.first : args
+    # Validate shareability in debug mode
+    super(commands: commands.freeze)
+  end
+
   def call(outlet, token)
     futures = commands.map do |command|
       Concurrent::Promises.future { command.call(outlet, token) }
-        .rescue do |e|
-          # Report errors via callback — guaranteed to run even after cancellation
-          outlet.put(:batch_error, Ractor.make_shareable({ error: e.message }))
-        end
     end
 
     all_done = Concurrent::Promises.zip_futures(*futures)
-
-    # Race: all complete vs cancellation token
     Concurrent::Promises.any_event(all_done, token.origin).wait
-    # No output on success — each child sends its own messages
-    # Errors already reported via rescue callbacks above
+
+    # Re-raise first child exception for runtime to wrap in Command::Error
+    futures.each { |f| raise f.reason if f.rejected? }
+
+    # Emit sentinel on cancellation so app can detect batch was stopped
+    outlet.put(Command.cancel(self)) if token.canceled?
   end
 end
 ```
 
 ### Command.all
 
-Use non-blocking `pop_op` and **race against the command future** to avoid thread pool exhaustion. This handles both clean exits (command completes) and hung commands (grace period timeout).
+> [!IMPORTANT]
+> **Implementation deviation:** Uses a simpler synchronous design instead of nested futures with `pop_op`. Each child command returns its result directly; the futures are zipped to wait for all.
+
+> [!NOTE]
+> **DWIM arity + output format:** Array input produces nested output `[:tag, [results]]`; variadic input produces splatted output `[:tag, r1, r2]`. A `nested` field tracks which was used.
 
 ```ruby
-All = Data.define(:commands) do
+All = Data.define(:tag, :commands, :nested) do
   include Custom
 
+  def self.new(tag, *args)
+    # DWIM: all(:tag, cmd1, cmd2) or all(:tag, [cmd1, cmd2])
+    if args.size == 1 && args.first.is_a?(Array)
+      commands = args.first
+      nested = true
+    else
+      commands = args
+      nested = false
+    end
+    # Validate shareability in debug mode
+    super(tag:, commands: commands.freeze, nested:)
+  end
+
   def call(outlet, token)
+    return outlet.put(Command.cancel(self)) if token.canceled?
+
     futures = commands.map do |command|
       Concurrent::Promises.future do
         child_channel = Concurrent::Promises::Channel.new
         child_outlet = Outlet.new(child_channel)
-
-        # Run command and race against its completion
-        command_future = Concurrent::Promises.future do
-          command.call(child_outlet, token)
-        end
-
-        pop_op = child_channel.pop_op
-
-        # Race: got result vs command finished vs cancelled
-        Concurrent::Promises.any_event(pop_op, command_future, token.origin).wait
-
-        # Propagate errors from failed child commands
-        raise command_future.reason if command_future.rejected?
-
-        # Return result if available, nil otherwise
-        pop_op.resolved? ? pop_op.value : nil
+        command.call(child_outlet, token)
+        child_channel.pop  # Blocks until child sends result
       end
     end
 
     all_done = Concurrent::Promises.zip_futures(*futures)
-
-    # Race: all complete vs cancellation token
     Concurrent::Promises.any_event(all_done, token.origin).wait
-    return if token.canceled?
 
-    outlet.put(:all, Ractor.make_shareable(all_done.value!))
+    return outlet.put(Command.cancel(self)) if token.canceled?
+
+    shareable_results = Ractor.make_shareable(all_done.value!)
+    if nested
+      outlet.put(tag, shareable_results)
+    else
+      outlet.put(tag, *shareable_results)
+    end
   end
 end
 ```
@@ -372,6 +416,9 @@ Use `Concurrent::Cancellation.timeout` for cleaner timer cancellation. This crea
 
 > [!NOTE]
 > We use `Cancellation.timeout` + `join` instead of `Concurrent::ScheduledTask` because ScheduledTask requires calling `#cancel` (a bang-like mutation method) to stop it. The `Cancellation` pattern is purely declarative: the timer "just happens" when the origin resolves, with no imperative cancellation calls needed.
+
+> [!IMPORTANT]
+> **Implementation decision:** When cancelled, these commands emit `Command.cancel(self)` instead of silently returning. This allows the update function to detect and handle cancellation explicitly.
 
 ```ruby
 Wait = Data.define(:seconds, :tag) do
@@ -384,23 +431,18 @@ Wait = Data.define(:seconds, :tag) do
 
     combined.origin.wait
 
-    # Send message only if timer expired (not external cancellation)
-    outlet.put(tag, seconds) if timer_cancellation.canceled? && !token.canceled?
+    if token.canceled?
+      # Emit sentinel so app can detect and handle cancellation
+      outlet.put(Command.cancel(self))
+    elsif timer_cancellation.canceled?
+      outlet.put(tag)
+    end
   end
 end
 
-Tick = Data.define(:interval, :tag) do
-  include Custom
-
-  def call(outlet, token)
-    timer_cancellation = Concurrent::Cancellation.timeout(interval)
-    combined = token.join(timer_cancellation)
-
-    combined.origin.wait
-
-    outlet.put(tag, interval) if timer_cancellation.canceled? && !token.canceled?
-  end
-end
+# Tick is an alias for Wait — the "recurring" behavior comes from
+# re-dispatching Command.tick in the update function
+Tick = Wait
 ```
 
 ### RecurringTick (Continuous Animation) — App Developer Pattern
@@ -652,7 +694,7 @@ spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
 
 ### Phase 5: Composition
 
-- [ ] Implement `Outlet#source`
+- [x] Implement `Outlet#source`
 - [ ] Test sync→parallel→sync flows
 
 ### Phase 6: Documentation

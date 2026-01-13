@@ -38,7 +38,7 @@ module RatatuiRuby
       def self.validate_view_result!: (renderable? widget) -> void
       def self.normalize_update_result: [Model] (update_result? result, Model previous_model) -> [Model, Command::execution?]
       def self.validate_ractor_shareable!: [T] (T object, String name) -> void
-      def self.dispatch: (Command::execution command, Concurrent::Promises::Channel, ?Concurrent::Map[Command::_Command, active_entry] active_commands) -> Concurrent::Promises::Future[void]?
+      def self.dispatch: (Command::execution command, Concurrent::Promises::Channel, Command::Lifecycle lifecycle) -> Concurrent::Promises::Future[void]?
     end
   end
 end

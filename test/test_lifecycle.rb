@@ -1,0 +1,244 @@
+# frozen_string_literal: true
+
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+require "test_helper"
+
+class TestLifecycle < Minitest::Test
+  def test_run_sync_returns_result_from_child_command
+    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    token = RatatuiRuby::Tea::Command.uncancellable
+
+    # Child command that puts a result
+    child = -> (out, _tok) { out.put(:hello, :world) }
+
+    result = lifecycle.run_sync(child, token, timeout: 1.0)
+
+    assert_equal [:hello, :world], result
+  end
+
+  def test_run_sync_returns_nil_when_already_cancelled
+    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+
+    # Pre-cancelled token
+    origin = Concurrent::Promises.resolvable_event
+    origin.resolve
+    token = Concurrent::Cancellation.new(origin)
+
+    # Child that would put if called
+    child = -> (out, _tok) { out.put(:never_called) }
+
+    result = lifecycle.run_sync(child, token, timeout: 1.0)
+
+    assert_nil result
+  end
+
+  def test_run_sync_returns_nil_when_timeout_expires
+    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    token = RatatuiRuby::Tea::Command.uncancellable
+
+    # Child that never puts (hangs)
+    child = -> (_out, _tok) { sleep 10 }
+
+    start = Time.now
+    result = lifecycle.run_sync(child, token, timeout: 0.05)
+    elapsed = Time.now - start
+
+    assert_nil result
+    assert_operator elapsed, :<, 1.0, "Should timeout quickly"
+  end
+
+  def test_run_sync_propagates_exceptions
+    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    token = RatatuiRuby::Tea::Command.uncancellable
+
+    # Child that raises
+    child = -> (_out, _tok) { raise ArgumentError, "boom" }
+
+    error = assert_raises(ArgumentError) do
+      lifecycle.run_sync(child, token, timeout: 1.0)
+    end
+
+    assert_equal "boom", error.message
+  end
+
+  def test_run_sync_returns_immediately_when_cancelled_mid_wait
+    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+
+    origin = Concurrent::Promises.resolvable_event
+    token = Concurrent::Cancellation.new(origin)
+
+    # Child that blocks for 10s
+    child = -> (_out, _tok) { sleep 10 }
+
+    # Cancel after 50ms in another thread
+    Thread.new { sleep 0.05; origin.resolve }
+
+    start = Time.now
+    result = lifecycle.run_sync(child, token, timeout: 30.0)
+    elapsed = Time.now - start
+
+    assert_nil result
+    assert_operator elapsed, :<, 1.0, "Should return quickly when cancelled, not wait 10s or 30s"
+  end
+
+  # Command that ignores cancellation with short grace period
+  IgnoresCancel = Data.define(:events, :thread_ref) do
+    include RatatuiRuby::Tea::Command::Custom
+
+    def tea_cancellation_grace_period = 0.05 # 50ms grace
+
+    def call(out, _token)
+      thread_ref[:thread] = Thread.current
+      sleep 10 # Ignores token, sleeps forever before putting anything
+      events << :stubborn_finished
+      out.put(:stubborn_finished)
+    end
+  end
+
+  def test_run_sync_force_kills_misbehaving_command_after_grace_period
+    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+
+    origin = Concurrent::Promises.resolvable_event
+    token = Concurrent::Cancellation.new(origin)
+
+    events = []
+    thread_ref = {}
+    child = IgnoresCancel.new(events, thread_ref)
+
+    # Cancel after 10ms
+    Thread.new { sleep 0.01; origin.resolve }
+
+    start = Time.now
+    result = lifecycle.run_sync(child, token, timeout: 30.0)
+    elapsed = Time.now - start
+
+    # Wait a bit for force-kill to complete
+    sleep 0.1
+
+    assert_nil result
+    assert_operator elapsed, :<, 0.5, "Should kill within grace period (~50ms) not wait 10s"
+    refute_nil thread_ref[:thread], "Child thread should have been captured"
+    refute thread_ref[:thread].alive?, "Child thread should have been killed"
+    refute_includes events, :stubborn_finished, "Child should have been killed, not completed"
+  end
+
+  # --- run_async tests ---
+
+  def test_run_async_runs_command_and_tracks_it
+    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    channel = Concurrent::Promises::Channel.new
+
+    command = -> (out, _tok) { out.put(:async_result) }
+
+    entry = lifecycle.run_async(command, channel)
+
+    # Should return entry with future and origin
+    refute_nil entry.future
+    refute_nil entry.origin
+
+    # Wait for completion
+    entry.future.wait
+
+    # Check result was pushed to channel
+    result = channel.try_pop(:EMPTY)
+    assert_equal :async_result, result
+  end
+
+  def test_cancel_signals_cancellation_and_waits_grace
+    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    channel = Concurrent::Promises::Channel.new
+
+    # Command that tracks cancellation
+    cancelled = Concurrent::AtomicBoolean.new(false)
+    command_class = Class.new do
+      include RatatuiRuby::Tea::Command::Custom
+      define_method(:tea_cancellation_grace_period) { 0.05 }
+      define_method(:initialize) { |flag| @cancelled = flag }
+      define_method(:call) do |out, token|
+        loop do
+          if token.canceled?
+            @cancelled.make_true
+            out.put(:cancelled)
+            break
+          end
+          sleep 0.01
+        end
+      end
+    end
+    command = command_class.new(cancelled)
+
+    lifecycle.run_async(command, channel)
+    sleep 0.01 # Let command start
+
+    # Cancel it
+    lifecycle.cancel(command)
+
+    # Should have signalled cancellation and waited
+    assert cancelled.true?, "Command should have received cancellation"
+    result = channel.try_pop(:EMPTY)
+    assert_equal :cancelled, result
+
+    # Verify command removed from tracking (shutdown won't try to cancel again)
+    lifecycle.shutdown # Should not hang or error
+  end
+
+  def test_cancel_removes_command_from_tracking
+    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    channel = Concurrent::Promises::Channel.new
+
+    command = -> (out, token) do
+      loop do
+        break out.put(:done) if token.canceled?
+        sleep 0.01
+      end
+    end
+
+    lifecycle.run_async(command, channel)
+    sleep 0.01
+
+    lifecycle.cancel(command)
+
+    # Cancelling again should be a no-op (command is no longer tracked)
+    lifecycle.cancel(command) # Should not hang or error
+
+    # Shutdown should not try to cancel the already-cancelled command
+    lifecycle.shutdown
+  end
+
+  def test_shutdown_cancels_all_active_commands
+    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    channel = Concurrent::Promises::Channel.new
+
+    cancelled_count = Concurrent::AtomicFixnum.new(0)
+    command_class = Class.new do
+      include RatatuiRuby::Tea::Command::Custom
+      define_method(:tea_cancellation_grace_period) { 0.05 }
+      define_method(:initialize) { |counter| @counter = counter }
+      define_method(:call) do |out, token|
+        loop do
+          if token.canceled?
+            @counter.increment
+            out.put(:shutdown_received)
+            break
+          end
+          sleep 0.01
+        end
+      end
+    end
+
+    # Start multiple commands
+    lifecycle.run_async(command_class.new(cancelled_count), channel)
+    lifecycle.run_async(command_class.new(cancelled_count), channel)
+    lifecycle.run_async(command_class.new(cancelled_count), channel)
+    sleep 0.01 # Let commands start
+
+    # Shutdown should cancel all
+    lifecycle.shutdown
+
+    assert_equal 3, cancelled_count.value, "All three commands should have been cancelled"
+  end
+end

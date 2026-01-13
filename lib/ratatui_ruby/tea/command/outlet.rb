@@ -78,13 +78,18 @@ module RatatuiRuby
       class Outlet
         # Creates an outlet for the given channel.
         #
-        # The runtime provides the channel. Custom commands receive the outlet as
-        # their first argument.
+        # The runtime provides the channel and lifecycle. Custom commands receive
+        # the outlet as their first argument.
         #
         # [channel] A <tt>Concurrent::Promises::Channel</tt> or compatible object.
-        def initialize(channel)
+        # [lifecycle] A <tt>Lifecycle</tt> for managing nested command execution.
+        def initialize(channel, lifecycle:)
           @channel = channel
+          @live = lifecycle
         end
+
+        # :nodoc: Internal infrastructure for nested command lifecycle sharing.
+        attr_reader :live
 
         # Sends a message to the runtime.
         #
@@ -113,6 +118,40 @@ module RatatuiRuby
           end
 
           @channel.push(message)
+        end
+
+        # Runs a child command synchronously within a custom command.
+        #
+        # Use this to orchestrate multi-step workflows: fetch one result, then
+        # use it to compose the next command.
+        #
+        # The child runs asynchronously in a future. This method blocks until
+        # the child calls +put+, cancellation occurs, or the timeout expires.
+        #
+        # [command] A callable (lambda or Custom command) with +call(out, token)+.
+        # [token]   The parent's cancellation token, passed through to the child.
+        # [timeout] Max seconds to wait for the child's result (default: 30.0).
+        #
+        # Returns the message from the child, or +nil+ if cancelled/timed out.
+        # Raises if the child command raised an exception.
+        #
+        # === Example
+        #
+        #--
+        # SPDX-SnippetBegin
+        # SPDX-FileCopyrightText: 2026 Kerrick Long
+        # SPDX-License-Identifier: MIT-0
+        #++
+        #   def call(out, token)
+        #     user_result = out.source(fetch_user_cmd, token)
+        #     return if user_result.nil?
+        #     out.put(:user_loaded, user: user_result)
+        #   end
+        #--
+        # SPDX-SnippetEnd
+        #++
+        def source(command, token, timeout: 30.0)
+          @live.run_sync(command, token, timeout:)
         end
       end
     end

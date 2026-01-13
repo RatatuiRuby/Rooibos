@@ -38,10 +38,12 @@ module RatatuiRuby
         end
 
         def call(outlet, token)
+          child_lifecycle = Lifecycle.new
+
           futures = commands.map do |command|
             Concurrent::Promises.future do
               child_channel = Concurrent::Promises::Channel.new
-              child_outlet = Outlet.new(child_channel)
+              child_outlet = Outlet.new(child_channel, lifecycle: child_lifecycle)
               command.call(child_outlet, token)
               child_channel.pop
             end

@@ -8,6 +8,7 @@
 require "concurrent-edge"
 require_relative "command/custom"
 require_relative "command/outlet"
+require_relative "command/lifecycle"
 require_relative "command/wait"
 require_relative "command/batch"
 require_relative "command/all"
@@ -318,7 +319,7 @@ module RatatuiRuby
         # Executes the inner command, waits for result, and transforms it.
         def call(out, token)
           inner_channel = Concurrent::Promises::Channel.new
-          inner_outlet = Outlet.new(inner_channel)
+          inner_outlet = Outlet.new(inner_channel, lifecycle: out.live)
 
           # Dispatch inner command
           if inner_command.respond_to?(:call)

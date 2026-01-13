@@ -56,7 +56,7 @@ module RatatuiRuby
 
         channel = Concurrent::Promises::Channel.new
         pending_futures = [] #: Array[Concurrent::Promises::Future[void]]
-        active_commands = Concurrent::Map.new #: Concurrent::Map[Command::_Command, active_entry]
+        lifecycle = Command::Lifecycle.new
 
         catch(:quit) do
           RatatuiRuby.run do |tui|
@@ -77,7 +77,7 @@ module RatatuiRuby
                 validate_ractor_shareable!(model, "model")
                 throw :quit if command.is_a?(Command::Exit)
 
-                future = dispatch(command, channel, active_commands) if command
+                future = dispatch(command, channel, lifecycle) if command
                 pending_futures << future if future
               end
 
@@ -104,7 +104,7 @@ module RatatuiRuby
                     validate_ractor_shareable!(model, "model")
                     throw :quit if command.is_a?(Command::Exit)
 
-                    future = dispatch(command, channel, active_commands) if command
+                    future = dispatch(command, channel, lifecycle) if command
                     pending_futures << future if future
                   end
                 end
@@ -120,7 +120,7 @@ module RatatuiRuby
                 validate_ractor_shareable!(model, "model")
                 throw :quit if command.is_a?(Command::Exit)
 
-                future = dispatch(command, channel, active_commands) if command
+                future = dispatch(command, channel, lifecycle) if command
                 pending_futures << future if future
               end
             end
@@ -128,15 +128,7 @@ module RatatuiRuby
         end
 
         # Shutdown: signal all, wait grace periods (cooperative cancellation)
-        active_commands.each do |handle, entry|
-          entry[:origin].resolve # Signal cancellation
-          grace = handle.tea_cancellation_grace_period
-          if grace.finite?
-            entry[:future].wait(grace)
-          else
-            entry[:future].wait
-          end
-        end
+        lifecycle.shutdown
 
         # Process any final messages from completed commands
         loop do
@@ -215,31 +207,16 @@ module RatatuiRuby
 
       # Spawns a future and pushes results to the message channel.
       # See Command.system for message formats.
-      private_class_method def self.dispatch(command, channel, active_commands = Concurrent::Map.new)
+      private_class_method def self.dispatch(command, channel, lifecycle)
         case command
         when Command::Cancel
-          entry = active_commands[command.handle]
-          if entry && entry[:future].pending?
-            entry[:origin].resolve # Signal cancellation
-            grace = command.handle.tea_cancellation_grace_period
-            entry[:future].wait(grace.finite? ? grace : nil)
-          end
-          active_commands.delete(command.handle)
+          lifecycle.cancel(command.handle)
           nil
         else
           # Custom command (responds to tea_command?)
           if command.respond_to?(:tea_command?) && command.tea_command?
-            cancellation, origin = Concurrent::Cancellation.new
-            outlet = Command::Outlet.new(channel)
-
-            future = Concurrent::Promises.future do
-              command.call(outlet, cancellation)
-            rescue => e
-              channel.push Command::Error.new(command:, exception: e)
-            end
-
-            active_commands[command] = { future:, origin: }
-            future
+            entry = lifecycle.run_async(command, channel)
+            entry.future
           end
         end
       end

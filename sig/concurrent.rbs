@@ -28,12 +28,26 @@ module Concurrent
     class Future[T]
       def pending?: () -> bool
       def resolved?: () -> bool
+      def rejected?: () -> bool
       def wait: (?Numeric? timeout) -> self
       def value: () -> T?
+      def reason: () -> Exception?
     end
 
     # Factory method for creating futures.
     def self.future: [T] () { () -> T } -> Future[T]
+
+    # Races multiple futures/events, returning when any resolves.
+    def self.any_event: (*Future[untyped] | ResolvableEvent) -> ResolvableEvent
+  end
+
+  # Single-element blocking container for synchronization.
+  class MVar
+    TIMEOUT: Symbol
+
+    def initialize: (?untyped initial_value) -> void
+    def put: (untyped value) -> void
+    def take: (?Numeric? timeout) -> untyped
   end
 
   # Cooperative cancellation abstraction.
