@@ -6,6 +6,7 @@
 #++
 
 require_relative "tea/version"
+require_relative "tea/message"
 require_relative "tea/command"
 require_relative "tea/runtime"
 require_relative "tea/router"

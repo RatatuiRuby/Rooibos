@@ -11,19 +11,9 @@ require "uri"
 module RatatuiRuby
   module Tea
     module Command
-      # Response object for HTTP requests.
-      #
-      # Implements +deconstruct_keys+ for pattern matching with +type:+ discriminator,
-      # consistent with Event destructuring.
-      HttpResponse = Data.define(:envelope, :status, :body, :headers, :error) do
-        def deconstruct_keys(_keys)
-          if error
-            { type: :http, envelope:, error: }
-          else
-            { type: :http, envelope:, status:, body:, headers: }
-          end
-        end
-      end
+      # Alias to Message::HttpResponse for backwards compatibility.
+      # New code should use RatatuiRuby::Tea::Message::HttpResponse.
+      HttpResponse = Message::HttpResponse
 
       # An HTTP request command.
       Http = Data.define(:method, :url, :envelope, :headers, :body, :timeout, :parser) do

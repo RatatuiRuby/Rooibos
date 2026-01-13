@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Command.http**: Native HTTP client for API calls. Supports GET, POST, PUT, PATCH, DELETE with DWIM syntax: `Command.http(get: 'url')`, `Command.http(:get, 'url', :tag)`, etc. Returns hash-based `HttpResponse` with `deconstruct_keys` for pattern matching: `{ type: :http, envelope:, status:, body:, headers: }` or `{ type: :http, envelope:, error: }`. Optional `parser:` keyword invokes a callable on the response body for JSON, YAML, CSV, or custom parsing. SSL, default 10s timeout, and cancellation-before-request are supported. Parsers and parsed results must be Ractor-shareable.
 
+- **Message::Predicates Mixin**: Include in custom message types for safe predicate calls. Returns `false` for any unknown predicate method (ending in `?`). Enables pattern matching workflows where messages can respond to predicates like `msg.http?` or `msg.timer?` without raising `NoMethodError`. Includes `respond_to_missing?` for introspection parity.
+
+- **Message::TimerResponse and Message::HttpResponse**: Predicate-rich response types for timer and HTTP commands. Include `Predicates` mixin and implement `deconstruct_keys` for pattern matching with `type:` discriminator. `HttpResponse` includes `success?`, `error?` predicates.
+
 - **Dependencies**: Added `concurrent-ruby` (~> 1.3) and `concurrent-ruby-edge` (~> 0.7) for robust concurrency primitives.
 
 ### Changed
