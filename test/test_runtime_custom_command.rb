@@ -200,61 +200,6 @@ class TestRuntimeCustomCommand < Minitest::Test
     assert_includes events, :command_cancelled, "Command should have been cancelled"
   end
 
-  # Command that ignores cancellation with short grace period
-  IgnoresCancel = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
-
-    def tea_cancellation_grace_period = 0.1 # 100ms grace
-
-    def call(out, _token)
-      out.put(:stubborn_started)
-      sleep 10 # Ignores token, sleeps forever
-      out.put(:stubborn_finished) # Should never reach here
-    end
-  end
-
-  def test_cancel_force_kills_after_grace_period
-    events = []
-    model = Ractor.make_shareable({ cmd: nil })
-    view = -> (_m, t) { t.clear }
-
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s"
-          cmd = IgnoresCancel.new
-          [Ractor.make_shareable({ cmd: }), cmd]
-        when "c"
-          [m, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
-        when "q"
-          [m, RatatuiRuby::Tea::Command.exit]
-        else
-          [m, nil]
-        end
-      else
-        events << msg
-        [m, nil]
-      end
-    end
-
-    start_time = Time.now
-
-    with_test_terminal do
-      inject_key("s")  # Start stubborn command
-      inject_key("c")  # Cancel it (should force-kill after 0.1s)
-      inject_key("q")  # Quit
-
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
-    end
-
-    elapsed = Time.now - start_time
-
-    assert_includes events, :stubborn_started, "Command should have started"
-    refute_includes events, :stubborn_finished, "Command should have been killed before finishing"
-    assert_operator elapsed, :<, 1.0, "Should finish quickly (force-kill at 0.1s), not wait 10s"
-  end
-
   # Command with infinite grace that cooperates with cancellation
   InfiniteGraceCooperative = Data.define do
     include RatatuiRuby::Tea::Command::Custom
@@ -307,42 +252,6 @@ class TestRuntimeCustomCommand < Minitest::Test
 
   def test_shutdown_kills_stubborn_commands_quickly
     skip "Timing test - timing doesn't distinguish kill from orphan"
-  end
-
-  def test_shutdown_does_not_orphan_command_threads
-    threads_before = Thread.list
-
-    with_test_terminal do
-      inject_key("s")  # Start stubborn command (sleeps for 10s)
-      inject_key("q")  # Quit
-
-      model = Ractor.make_shareable({})
-      view = -> (_m, t) { t.clear }
-      update = -> (msg, m) do
-        case msg
-        when RatatuiRuby::Event::Key
-          case msg.code
-          when "s" then [m, IgnoresCancel.new]
-          when "q" then [m, RatatuiRuby::Tea::Command.exit]
-          else [m, nil]
-          end
-        else
-          [m, nil]
-        end
-      end
-
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
-    end
-
-    # Give orphaned threads a moment to show up
-    sleep 0.05
-
-    threads_after = Thread.list
-    orphaned = threads_after - threads_before
-    # Filter to only command threads (from runtime.rb), not stdlib threads
-    command_orphans = orphaned.select { |t| t.to_s.include?("runtime.rb") }
-
-    assert_empty command_orphans, "Shutdown should not leave orphaned command threads: #{command_orphans.map(&:inspect)}"
   end
 
   # Command that raises an error

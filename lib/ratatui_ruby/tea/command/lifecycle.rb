@@ -8,17 +8,17 @@
 module RatatuiRuby
   module Tea
     module Command
-      # Executes commands with thread tracking and force-termination.
+      # Coordinates command execution across the runtime.
       #
-      # Commands run in threads. Some ignore cancellation. They block forever,
-      # orphan resources, or hang the terminal. Manual thread tracking is tedious
-      # and error-prone.
+      # Commands run off the main thread. Both the runtime and nested commands
+      # via <tt>Outlet#source</tt> share cancellation tokens. Racing results
+      # against cancellation is repetitive. Tracking active commands is tedious.
       #
-      # This class manages command threads. It races results against cancellation.
-      # After a grace period, it kills misbehaving threads. The runtime and
-      # <tt>Outlet#source</tt> share one instance for unified behavior.
+      # This class centralizes that logic. It races results against cancellation
+      # and timeout. Commands that ignore cancellation are orphaned until
+      # process exit. Cooperative cancellation is the only way to exit cleanly.
       #
-      # Use it indirectly — the framework creates and injects it automatically.
+      # The framework creates one instance at startup. All outlets share it.
       class Lifecycle
         # :nodoc: Internal representation of a tracked async command.
         Entry = Data.define(:future, :origin)
@@ -50,7 +50,7 @@ module RatatuiRuby
           child_outlet = Outlet.new(child_channel, lifecycle: self)
 
           exception = nil
-          thread = Thread.new do
+          Concurrent::Promises.future do
             command.call(child_outlet, token)
           rescue => e
             exception = e
@@ -60,17 +60,8 @@ module RatatuiRuby
           pop_future = Concurrent::Promises.future { child_channel.pop(timeout, :timeout) }
           Concurrent::Promises.any_event(pop_future, token.origin).wait
 
-          if token.canceled?
-            # Get grace period from command if available
-            grace = command.respond_to?(:tea_cancellation_grace_period) ?
-              command.tea_cancellation_grace_period : 0.1
-
-            # Wait for grace period, then force-kill if still running
-            thread.join(grace)
-            thread.kill if thread.alive?
-
-            return nil
-          end
+          # Cooperative cancellation only — misbehaving commands are orphaned
+          return nil if token.canceled?
 
           if exception
             raise exception.is_a?(Exception) ? exception : RuntimeError.new(exception.to_s)

@@ -416,4 +416,51 @@ class TestRuntime < Minitest::Test
     assert_equal "loaded", result_seen_before_quit,
       "Sync should ensure async result is processed before next event"
   end
+
+  def test_quit_drains_channel_before_exiting
+    # When a command pushes messages and the user quits immediately after,
+    # those messages should still be processed. This tests graceful exit.
+    #
+    # We use a custom command that pushes to the channel synchronously
+    # during dispatch, guaranteeing the message is there when quit runs.
+    messages = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, tui) { tui.clear }
+
+    # Command that pushes immediately when called
+    fast_command = Class.new do
+      include RatatuiRuby::Tea::Command::Custom
+      def call(out, _token)
+        out.put(:fast_message, :data)
+      end
+    end
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s" then [m, fast_command.new]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      when Array
+        messages << msg
+        [m, nil]
+      else
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s") # Start command that pushes immediately
+      # NO inject_sync - quit happens before channel is polled
+      inject_key("q") # Quit
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    # Without graceful_exit!, this fails - message is lost
+    # With graceful_exit!, this passes - message is drained before exit
+    assert_includes messages.map(&:first), :fast_message,
+      "Quit should drain pending messages before exiting"
+  end
 end

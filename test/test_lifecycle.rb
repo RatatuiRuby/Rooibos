@@ -85,47 +85,6 @@ class TestLifecycle < Minitest::Test
     assert_operator elapsed, :<, 1.0, "Should return quickly when cancelled, not wait 10s or 30s"
   end
 
-  # Command that ignores cancellation with short grace period
-  IgnoresCancel = Data.define(:events, :thread_ref) do
-    include RatatuiRuby::Tea::Command::Custom
-
-    def tea_cancellation_grace_period = 0.05 # 50ms grace
-
-    def call(out, _token)
-      thread_ref[:thread] = Thread.current
-      sleep 10 # Ignores token, sleeps forever before putting anything
-      events << :stubborn_finished
-      out.put(:stubborn_finished)
-    end
-  end
-
-  def test_run_sync_force_kills_misbehaving_command_after_grace_period
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
-
-    origin = Concurrent::Promises.resolvable_event
-    token = Concurrent::Cancellation.new(origin)
-
-    events = []
-    thread_ref = {}
-    child = IgnoresCancel.new(events, thread_ref)
-
-    # Cancel after 10ms
-    Thread.new { sleep 0.01; origin.resolve }
-
-    start = Time.now
-    result = lifecycle.run_sync(child, token, timeout: 30.0)
-    elapsed = Time.now - start
-
-    # Wait a bit for force-kill to complete
-    sleep 0.1
-
-    assert_nil result
-    assert_operator elapsed, :<, 0.5, "Should kill within grace period (~50ms) not wait 10s"
-    refute_nil thread_ref[:thread], "Child thread should have been captured"
-    refute thread_ref[:thread].alive?, "Child thread should have been killed"
-    refute_includes events, :stubborn_finished, "Child should have been killed, not completed"
-  end
-
   # --- run_async tests ---
 
   def test_run_async_runs_command_and_tracks_it
