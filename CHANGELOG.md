@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Streaming Command Data Loss**: Fixed race condition where fast commands (e.g., `echo hello`) could lose stdout/stderr messages. The streaming reader threads were being killed immediately after the child process exited, before they could finish reading buffered output. Now the runtime joins the reader threads to ensure all data is processed before sending `:complete`.
+
 ### Removed
 
 - **CancellationToken Class**: Removed in favor of `Concurrent::Cancellation` from concurrent-ruby-edge.

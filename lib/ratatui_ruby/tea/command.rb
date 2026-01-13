@@ -235,10 +235,12 @@ module RatatuiRuby
 
             wait_thr.join
 
-            # Child exited; clean up threads
-            stdout_thread.kill
-            stderr_thread.kill
-            cancellation_watcher.kill
+            # Wait for reader threads to finish processing remaining output.
+            # This ensures all :stdout/:stderr messages are sent before :complete.
+            # Using join instead of kill prevents data loss for fast commands.
+            stdout_thread.join
+            stderr_thread.join
+            cancellation_watcher.join
 
             status = wait_thr.value.exitstatus
             out.put(tag, :complete, Ractor.make_shareable({ status: }))
