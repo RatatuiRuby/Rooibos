@@ -12,6 +12,7 @@ require_relative "command/lifecycle"
 require_relative "command/wait"
 require_relative "command/batch"
 require_relative "command/all"
+require_relative "command/http"
 
 module RatatuiRuby
   module Tea
@@ -449,6 +450,12 @@ module RatatuiRuby
       #   # Produces: [:all, [user_result, stats_result]]
       def self.all(tag, *)
         All.new(tag, *)
+      end
+
+      # Creates an HTTP request command.
+      # Supports DWIM arity - see Http.new for patterns.
+      def self.http(*, **)
+        Http.new(*, **)
       end
 
       # :nodoc:

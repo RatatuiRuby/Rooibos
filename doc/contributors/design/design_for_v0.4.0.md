@@ -341,9 +341,9 @@ Batch = Data.define(:commands) do
     super(commands: commands.freeze)
   end
 
-  def call(outlet, token)
+  def call(out, token)
     futures = commands.map do |command|
-      Concurrent::Promises.future { command.call(outlet, token) }
+      Concurrent::Promises.future { command.call(out, token) }
     end
 
     all_done = Concurrent::Promises.zip_futures(*futures)
@@ -353,7 +353,7 @@ Batch = Data.define(:commands) do
     futures.each { |f| raise f.reason if f.rejected? }
 
     # Emit sentinel on cancellation so app can detect batch was stopped
-    outlet.put(Command.cancel(self)) if token.canceled?
+    out.put(Command.cancel(self)) if token.canceled?
   end
 end
 ```
@@ -383,8 +383,8 @@ All = Data.define(:tag, :commands, :nested) do
     super(tag:, commands: commands.freeze, nested:)
   end
 
-  def call(outlet, token)
-    return outlet.put(Command.cancel(self)) if token.canceled?
+  def call(out, token)
+    return out.put(Command.cancel(self)) if token.canceled?
 
     futures = commands.map do |command|
       Concurrent::Promises.future do
@@ -398,13 +398,13 @@ All = Data.define(:tag, :commands, :nested) do
     all_done = Concurrent::Promises.zip_futures(*futures)
     Concurrent::Promises.any_event(all_done, token.origin).wait
 
-    return outlet.put(Command.cancel(self)) if token.canceled?
+    return out.put(Command.cancel(self)) if token.canceled?
 
     shareable_results = Ractor.make_shareable(all_done.value!)
     if nested
-      outlet.put(tag, shareable_results)
+      out.put(tag, shareable_results)
     else
-      outlet.put(tag, *shareable_results)
+      out.put(tag, *shareable_results)
     end
   end
 end
@@ -424,7 +424,7 @@ Use `Concurrent::Cancellation.timeout` for cleaner timer cancellation. This crea
 Wait = Data.define(:seconds, :tag) do
   include Custom
 
-  def call(outlet, token)
+  def call(out, token)
     # Cancellation.timeout creates an auto-cancelling token after N seconds
     timer_cancellation = Concurrent::Cancellation.timeout(seconds)
     combined = token.join(timer_cancellation)
@@ -433,9 +433,9 @@ Wait = Data.define(:seconds, :tag) do
 
     if token.canceled?
       # Emit sentinel so app can detect and handle cancellation
-      outlet.put(Command.cancel(self))
+      out.put(Command.cancel(self))
     elsif timer_cancellation.canceled?
-      outlet.put(tag)
+      out.put(tag)
     end
   end
 end
@@ -470,9 +470,9 @@ Tick = Wait
 RecurringTick = Data.define(:interval, :tag) do
   include Tea::Command::Custom
 
-  def call(outlet, token)
+  def call(out, token)
     timer_task = Concurrent::TimerTask.new(execution_interval: interval) do
-      outlet.put(tag, Time.now.to_f) unless token.canceled?
+      out.put(tag, Time.now.to_f) unless token.canceled?
     end
     timer_task.execute
 
@@ -491,10 +491,10 @@ end
 AdaptiveHeartbeat = Data.define(:initial_interval, :tag) do
   include Tea::Command::Custom
 
-  def call(outlet, token)
+  def call(out, token)
     timer_task = Concurrent::TimerTask.new(execution_interval: initial_interval) do |task|
       # Send heartbeat
-      outlet.put(tag, Time.now.to_f)
+      out.put(tag, Time.now.to_f)
 
       # Adapt interval based on conditions (e.g., slow down over time)
       task.execution_interval = [task.execution_interval * 1.1, 60.0].min
@@ -688,9 +688,16 @@ spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
 
 ### Phase 4: HTTP Command
 
-- [ ] Implement `Command.http` (GET, POST, PUT, DELETE)
-- [ ] Handle SSL, timeouts, errors
-- [ ] Test with mock server
+- [x] Implement `Command.http` (GET, POST, PUT, PATCH, DELETE)
+- [x] Handle timeouts, errors
+- [x] Test with mock server
+- [x] Debug-mode Ractor validation for url, headers, body
+- [x] Hash-based response format with `deconstruct_keys` (Appendix A)
+- [x] Envelope terminology (Appendix B)
+- [x] SSL (via TDD)
+- [x] Default timeout 10s (via TDD)
+- [x] Cancellation checks (via TDD)
+
 
 ### Phase 5: Composition
 
@@ -718,3 +725,127 @@ spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
 **Breaking change for custom command authors:** Command signature changes from `call(out, token)` where `token` is a `CancellationToken` to `call(out, token)` where `token` is a `Concurrent::Cancellation`. Use `cancellation.canceled?` (American spelling) instead of `token.cancelled?` (British spelling).
 
 Built-in commands and the runtime API are unchanged.
+
+---
+
+## Appendix A: Hash-Based Message Format
+
+### The Problem
+
+Events use hash-based `deconstruct_keys` with a `type:` discriminator:
+
+```ruby
+case msg
+in { type: :key, code: "q" }
+  Command.exit
+end
+```
+
+But early command designs returned arrays:
+
+```ruby
+# Array-based (inconsistent)
+[:users, { status: 200, body: "..." }]
+```
+
+This creates ugly pattern matching where events and command responses look different:
+
+```ruby
+case msg
+in { type: :key, code: "f" }           # Hash
+  [m, fetch_users_command]
+in [:users, { status:, body: }]         # Array - inconsistent!
+  [m.with(users: JSON.parse(body)), nil]
+end
+```
+
+### The Solution
+
+Command responses use the same hash-based format with `type:` discriminator:
+
+```ruby
+{ type: :http, envelope: :users, status: 200, body: "...", headers: {...} }
+{ type: :http, envelope: :users, error: "Connection refused" }
+```
+
+Pattern matching is now consistent:
+
+```ruby
+case msg
+in { type: :key, code: "f" }
+  [m, Command.http(:get, "/users", :users)]
+in { type: :http, envelope: :users, status:, body: }
+  [m.with(users: JSON.parse(body)), nil]
+in { type: :http, envelope: :users, error: }
+  [m.with(error:), nil]
+end
+```
+
+### Implementation
+
+Responses implement `deconstruct_keys`:
+
+```ruby
+HttpResponse = Data.define(:envelope, :status, :body, :headers, :error) do
+  def deconstruct_keys(_keys)
+    if error
+      { type: :http, envelope:, error: }
+    else
+      { type: :http, envelope:, status:, body:, headers: }
+    end
+  end
+end
+```
+
+### Future Work
+
+This pattern should extend to other commands:
+
+| Command | Type | Keys |
+|---------|------|------|
+| `Command.http` | `:http` | `envelope:`, `status:`, `body:`, `headers:` or `error:` |
+| `Command.system` | `:system` | `envelope:`, `stdout:`, `stderr:`, `status:` or `stream:`, `line:` |
+| `Command.wait` | `:timer` | `envelope:`, `elapsed:` |
+
+---
+
+## Appendix B: The Envelope Pattern
+
+### Why "envelope" Instead of "tag"?
+
+The term **envelope** comes from the Ractor-ready design draft (d278bc9), which explicitly replaced `tag` with the envelope pattern for message routing. The commit message states:
+
+> Introduces envelope pattern for message routing, replacing the simpler tag field.
+
+The envelope metaphor is apt: just as a physical envelope carries a letter back to the sender, the `envelope:` field carries the response back to the correct handler in your update function.
+
+### Terminology Recovery
+
+The envelope terminology was accidentally lost when the draft documents were consolidated (341f62a). The permanent architecture doc reverted to `tag`. This design document recovers the intentional terminology.
+
+### Usage
+
+Commands accept an envelope at creation time:
+
+```ruby
+Command.http(:get, "/users", :users)  # :users is the envelope
+```
+
+Responses include the envelope for routing:
+
+```ruby
+case msg
+in { type: :http, envelope: :users, status:, body: }
+  # Handle users response
+in { type: :http, envelope: :settings, status:, body: }
+  # Handle settings response
+end
+```
+
+### Envelope vs Tag
+
+| Aspect | Tag | Envelope |
+|--------|-----|----------|
+| **Metaphor** | Label on a thing | Container that routes back |
+| **Connotation** | Static identifier | Active routing mechanism |
+| **Ruby idiom** | Generic | Aligns with message-passing patterns |

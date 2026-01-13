@@ -60,17 +60,17 @@ module RatatuiRuby
         # Waits for <tt>seconds</tt>, then sends <tt>[tag]</tt>.
         # If cancelled, sends <tt>Command.cancel(self)</tt> instead.
         #
-        # [outlet] Outlet for sending messages.
+        # [out] Outlet for sending messages.
         # [token] Cancellation token from the runtime.
-        def call(outlet, token)
+        def call(out, token)
           timer_cancellation, _origin = Concurrent::Cancellation.timeout(seconds)
           combined = token.join(timer_cancellation)
           combined.origin.wait
 
           if token.canceled?
-            outlet.put(Command.cancel(self))
+            out.put(Command.cancel(self))
           else
-            outlet.put(tag)
+            out.put(tag)
           end
         end
       end

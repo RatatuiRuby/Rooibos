@@ -57,9 +57,9 @@ module RatatuiRuby
           instance
         end
 
-        def call(outlet, token)
+        def call(out, token)
           futures = commands.map do |command|
-            Concurrent::Promises.future { command.call(outlet, token) }
+            Concurrent::Promises.future { command.call(out, token) }
           end
 
           all_done = Concurrent::Promises.zip_futures(*futures)
@@ -68,7 +68,7 @@ module RatatuiRuby
           # Re-raise any child exception for runtime to wrap in Command::Error
           futures.each { |f| raise f.reason if f.rejected? }
 
-          outlet.put(Command.cancel(self)) if token.canceled?
+          out.put(Command.cancel(self)) if token.canceled?
         end
       end
     end

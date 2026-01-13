@@ -160,7 +160,7 @@ This design implements several established patterns from the software architectu
 | Library | Pattern | Mapping |
 |---------|---------|---------|
 | **Redux Thunk** | Raw dispatch access | Direct queue access (rejected) |
-| **Redux Saga** | `put()` effect dispatches actions | **Outlet.put** ← adopted |
+| **Redux Saga** | `put()` effect dispatches actions | **Outlet#put** ← adopted |
 | **Redux Observable** | RxJS Observables | RxRuby (rejected for complexity) |
 | **redux-loop** | Elm-style Cmd | Recursive commands |
 

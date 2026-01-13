@@ -37,7 +37,7 @@ module RatatuiRuby
           instance
         end
 
-        def call(outlet, token)
+        def call(out, token)
           child_lifecycle = Lifecycle.new
 
           futures = commands.map do |command|
@@ -52,13 +52,13 @@ module RatatuiRuby
           all_done = Concurrent::Promises.zip_futures(*futures)
           Concurrent::Promises.any_event(all_done, token.origin).wait
 
-          return outlet.put(Command.cancel(self)) if token.canceled?
+          return out.put(Command.cancel(self)) if token.canceled?
 
           shareable_results = Ractor.make_shareable(all_done.value!)
           if nested
-            outlet.put(tag, shareable_results)
+            out.put(tag, shareable_results)
           else
-            outlet.put(tag, *shareable_results)
+            out.put(tag, *shareable_results)
           end
         end
       end

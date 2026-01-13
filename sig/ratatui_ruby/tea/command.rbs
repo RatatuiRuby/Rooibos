@@ -224,6 +224,44 @@ module RatatuiRuby
 
       # Creates an aggregating parallel command.
       def self.all: (Symbol tag, *Custom | Array[Custom]) -> All
+
+      # HTTP response shapes for pattern matching
+      type http_success_shape = { type: :http, envelope: Symbol, status: Integer, body: String, headers: Hash[String, String] }
+      type http_error_shape = { type: :http, envelope: Symbol, error: String }
+
+      # HTTP response with deconstruct_keys for pattern matching.
+      class HttpResponse < Data
+        attr_reader envelope: Symbol
+        attr_reader status: Integer?
+        attr_reader body: String?
+        attr_reader headers: Hash[String, String]?
+        attr_reader error: String?
+
+        def self.new: (envelope: Symbol, status: Integer?, body: String?, headers: Hash[String, String]?, error: String?) -> instance
+
+        def deconstruct_keys: (Array[Symbol]?) -> (http_success_shape | http_error_shape)
+      end
+
+      # An HTTP request command.
+      class Http < Data
+        include Custom
+
+        attr_reader method: Symbol
+        attr_reader url: String
+        attr_reader envelope: Symbol
+        attr_reader headers: Hash[String, String]?
+        attr_reader body: String?
+        attr_reader timeout: (Integer | Float)?
+
+        def self.new: (method: Symbol, url: String, envelope: Symbol, headers: Hash[String, String]?, body: String?, timeout: (Integer | Float)?) -> instance
+
+        def call: (Outlet outlet, Concurrent::Cancellation token) -> void
+      end
+
+      # Creates an HTTP request command.
+      # DWIM: accepts positional args, method keywords (get:, post:, etc.), or explicit keywords.
+      # See Http class and documentation for all supported patterns.
+      def self.http: (*(Symbol | String | nil), **(Symbol | String | Integer | Float | Hash[String, String] | ^(String, Hash[String, String]?, Integer?) -> Object | nil)) -> Http
     end
   end
 end

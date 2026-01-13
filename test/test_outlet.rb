@@ -27,9 +27,9 @@ class TestOutlet < Minitest::Test
 
   def test_put_sends_one_message
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
 
-    outlet.put(:done)
+    out.put(:done)
 
     assert_equal :done, channel.pop
   end
@@ -37,30 +37,30 @@ class TestOutlet < Minitest::Test
   User = Data.define(:name)
   def test_put_sends_frozen_array_messages
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
 
     alice = User.new("Alice")
-    outlet.put([:user, alice].freeze)
+    out.put([:user, alice].freeze)
 
     assert_equal [:user, alice], channel.pop
   end
 
   def test_put_wraps_multiple_params_in_frozen_array_for_you
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
 
-    outlet.put(:hello, :world)
+    out.put(:hello, :world)
 
     assert_equal [:hello, :world], channel.pop
   end
 
   def test_put_raises_in_debug_mode_for_non_shareable_payload
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
     mutable_hash = { data: "not frozen" } # NOT Ractor-shareable
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
-      outlet.put(:bad, mutable_hash)
+      out.put(:bad, mutable_hash)
     end
 
     assert_match(/ractor|shareable/i, error.message)
@@ -68,11 +68,11 @@ class TestOutlet < Minitest::Test
 
   def test_put_allows_non_shareable_in_production_mode
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
     mutable_hash = { data: "not frozen" }
 
     RatatuiRuby::Debug.suppress_debug_mode do
-      outlet.put(:ok, mutable_hash) # Should NOT raise
+      out.put(:ok, mutable_hash) # Should NOT raise
     end
 
     assert_equal [:ok, mutable_hash], channel.pop
@@ -81,20 +81,20 @@ class TestOutlet < Minitest::Test
   # Outlet#source tests
   def test_source_runs_command_and_returns_result
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
     token = RatatuiRuby::Tea::Command.uncancellable
 
     # Simple command that immediately puts a result
     simple_command = -> (out, _tok) { out.put(:result, 42) }
 
-    result = outlet.source(simple_command, token)
+    result = out.source(simple_command, token)
 
     assert_equal [:result, 42], result
   end
 
   def test_source_returns_nil_when_cancelled
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
 
     origin = Concurrent::Promises.resolvable_event
     token = Concurrent::Cancellation.new(origin)
@@ -102,21 +102,21 @@ class TestOutlet < Minitest::Test
 
     command = -> (out, _tok) { out.put(:should_not_see_this) }
 
-    result = outlet.source(command, token)
+    result = out.source(command, token)
 
     assert_nil result
   end
 
   def test_source_returns_nil_when_timeout_expires
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
     token = RatatuiRuby::Tea::Command.uncancellable
 
     # Command that never puts anything (simulates a hung command)
     hung_command = -> (_out, _tok) { sleep 10 }
 
     start = Time.now
-    result = outlet.source(hung_command, token, timeout: 0.05)
+    result = out.source(hung_command, token, timeout: 0.05)
     elapsed = Time.now - start
 
     assert_nil result
@@ -125,13 +125,13 @@ class TestOutlet < Minitest::Test
 
   def test_source_propagates_exceptions_from_failed_commands
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
     token = RatatuiRuby::Tea::Command.uncancellable
 
     failing_command = -> (_out, _tok) { raise ArgumentError, "something went wrong" }
 
     error = assert_raises(ArgumentError) do
-      outlet.source(failing_command, token, timeout: 0.1)
+      out.source(failing_command, token, timeout: 0.1)
     end
 
     assert_equal "something went wrong", error.message
@@ -139,7 +139,7 @@ class TestOutlet < Minitest::Test
 
   def test_source_returns_nil_if_cancelled_during_execution
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
 
     origin = Concurrent::Promises.resolvable_event
     token = Concurrent::Cancellation.new(origin)
@@ -150,14 +150,14 @@ class TestOutlet < Minitest::Test
       origin.resolve # Cancel AFTER putting result
     }
 
-    result = outlet.source(command, token)
+    result = out.source(command, token)
 
     assert_nil result # Should be nil because token was cancelled
   end
 
   def test_source_returns_immediately_when_cancelled_mid_wait
     channel = Concurrent::Promises::Channel.new
-    outlet = make_outlet(channel)
+    out = make_outlet(channel)
 
     origin = Concurrent::Promises.resolvable_event
     token = Concurrent::Cancellation.new(origin)
@@ -169,7 +169,7 @@ class TestOutlet < Minitest::Test
     Thread.new { sleep 0.05; origin.resolve }
 
     start = Time.now
-    result = outlet.source(blocking_child, token, timeout: 30.0)
+    result = out.source(blocking_child, token, timeout: 30.0)
     elapsed = Time.now - start
 
     assert_nil result

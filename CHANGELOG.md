@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Outlet#source**: Command composition for multi-step workflows. `out.source(child_command, token, timeout: 30.0)` runs a child command synchronously within a custom command, returning its result (or `nil` if cancelled/timed out). Exceptions from failed children propagate to the caller. Use this to orchestrate sequential API calls, conditional fetches, or any workflow that needs one result before starting the next.
 
+- **Command.http**: Native HTTP client for API calls. Supports GET, POST, PUT, PATCH, DELETE with DWIM syntax: `Command.http(get: 'url')`, `Command.http(:get, 'url', :tag)`, etc. Returns hash-based `HttpResponse` with `deconstruct_keys` for pattern matching: `{ type: :http, envelope:, status:, body:, headers: }` or `{ type: :http, envelope:, error: }`. Optional `parser:` keyword invokes a callable on the response body for JSON, YAML, CSV, or custom parsing. SSL, default 10s timeout, and cancellation-before-request are supported. Parsers and parsed results must be Ractor-shareable.
+
 - **Dependencies**: Added `concurrent-ruby` (~> 1.3) and `concurrent-ruby-edge` (~> 0.7) for robust concurrency primitives.
 
 ### Changed
