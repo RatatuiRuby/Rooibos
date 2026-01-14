@@ -34,8 +34,8 @@ Description: Part of the RatatuiRuby ecosystem.
 ### Tea-Specific Vocabulary
 
 - **BANNED WORD: "component"** — Reserved for Kit.
-- **Avoid "widget" for Tea units** — "Widget" refers to Engine/Ratatui render primitives. In Tea, call them **bags**.
-- **Bag:** A module containing `Model`, `INITIAL`, `UPDATE`, and `VIEW` constants. Bags compose: parent bags delegate to child bags.
+- **Avoid "widget" for Tea units** — "Widget" refers to Engine/Ratatui render primitives. In Tea, call them **fragments**.
+- **Fragment:** A module containing `Model`, `INITIAL`, `UPDATE`, and `VIEW` constants. Fragments compose: parent fragments delegate to child fragments.
 - Use "model", "update", "view" for the MVU pattern. Use "message" (not "msg") and "command" (not "cmd").
 
 ### Ruby Standards

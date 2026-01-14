@@ -19,7 +19,7 @@ require "ratatui_ruby/tea"
 #   ruby app.rb helpers   # Tea.route and Tea.delegate helpers
 #   ruby app.rb router    # Tea::Router DSL
 #
-# All three share the same bags, Model, INITIAL, and VIEW. Only the UPDATE
+# All three share the same fragments, Model, INITIAL, and VIEW. Only the UPDATE
 # implementation differs. Compare the three update_*.rb files to see the
 # progression from verbose to declarative.
 #
@@ -31,7 +31,7 @@ require "ratatui_ruby/tea"
 #   ├── update_manual.rb
 #   ├── update_helpers.rb
 #   └── update_router.rb
-#   bags/
+#   fragments/
 #   ├── system_info.rb
 #   ├── disk_usage.rb
 #   ├── ping.rb

@@ -49,9 +49,9 @@ class MyCommand
 end
 ```
 
-### Fractal Architecture (Bags)
+### Fractal Architecture (Fragments)
 
-A **bag** is a module with `Model`, `INITIAL`, `UPDATE`, `VIEW` constants:
+A **fragment** is a module with `Model`, `INITIAL`, `UPDATE`, `VIEW` constants:
 
 ```ruby
 module SystemInfo
@@ -207,7 +207,7 @@ end
 
 ### External Changes
 
-Replace SCREAMING_SNAKE_CASE with PascalCase for required Bag members.
+Replace SCREAMING_SNAKE_CASE with PascalCase for required Fragment members.
 
 | Current | v0.4.0 |
 |---------|---------|
@@ -849,3 +849,5 @@ end
 | **Metaphor** | Label on a thing | Container that routes back |
 | **Connotation** | Static identifier | Active routing mechanism |
 | **Ruby idiom** | Generic | Aligns with message-passing patterns |
+
+Tea's delegate helper should probably not wrap in arrays.

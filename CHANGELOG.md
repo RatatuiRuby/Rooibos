@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Terminology: "Bag" → "Fragment"**: Renamed Fractal Architecture units from "bags" to "fragments" throughout the codebase. A fragment is a module containing `Model`, `INITIAL`, `UPDATE`, and `VIEW` constants. Parent fragments compose child fragments via routing. The `examples/app_fractal_dashboard/bags/` directory is now `examples/app_fractal_dashboard/fragments/`. All API documentation, code comments, and examples updated to reflect this terminology change.
+
 - **CancellationToken Replaced (Breaking)**: Custom commands now receive `Concurrent::Cancellation` instead of `CancellationToken`. The method to check cancellation changes from `token.cancelled?` (British) to `token.canceled?` (American).
 
 - **Outlet Accepts Channel (Breaking)**: `Outlet.new` now accepts a `Concurrent::Promises::Channel` instead of `Thread::Queue`.

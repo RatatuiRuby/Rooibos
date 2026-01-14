@@ -34,7 +34,7 @@ module DashboardHelpers
       return [model.with(shell_modal: new_modal), command]
     end
 
-    # Route to child bags
+    # Route to child fragments
     if (result = Tea.delegate(message, :stats, StatsPanel::UPDATE, model.stats))
       new_child, command = result
       return [model.with(stats: new_child), command && Tea.route(command, :stats)]

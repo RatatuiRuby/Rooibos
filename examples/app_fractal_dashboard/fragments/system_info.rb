@@ -5,13 +5,13 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
-# Fetches and displays disk usage via +df -h+.
-# A bag for fetching and displaying disk usage.
-module DiskUsage
+# Fetches and displays system information via +uname -a+.
+# A fragment for fetching and displaying system information.
+module SystemInfo
   Command = RatatuiRuby::Tea::Command
 
   Model = Data.define(:output, :loading)
-  INITIAL = Model.new(output: "Press 'd' for disk usage", loading: false)
+  INITIAL = Model.new(output: "Press 's' for system info", loading: false)
 
   VIEW = lambda do |model, tui, disabled: false|
     text_style = if disabled && model.output == INITIAL.output
@@ -22,16 +22,15 @@ module DiskUsage
 
     tui.paragraph(
       text: tui.text_span(content: model.output, style: text_style),
-      block: tui.block(title: "Disk Usage", borders: [:all], border_style: { fg: :cyan })
+      block: tui.block(title: "System Info", borders: [:all], border_style: { fg: :cyan })
     )
   end
 
   UPDATE = lambda do |message, model|
     case message
-    in [{ type: :system, envelope: :disk_usage, status: 0, stdout: }]
-      lines = Ractor.make_shareable(stdout.lines.first(4).join.strip)
-      [model.with(output: lines, loading: false), nil]
-    in [{ type: :system, envelope: :disk_usage, stderr: }]
+    in [{ type: :system, envelope: :system_info, status: 0, stdout: }]
+      [model.with(output: Ractor.make_shareable(stdout.strip), loading: false), nil]
+    in [{ type: :system, envelope: :system_info, stderr: }]
       [model.with(output: Ractor.make_shareable("Error: #{stderr.strip}"), loading: false), nil]
     else
       [model, nil]
@@ -39,6 +38,6 @@ module DiskUsage
   end
 
   def self.fetch_command
-    Command.system("df -h", :disk_usage)
+    Command.system("uname -a", :system_info)
   end
 end

@@ -9,16 +9,16 @@ module RatatuiRuby
   module Tea
     # Declarative DSL for Fractal Architecture.
     #
-    # Large applications decompose into bags. Each bag has its own Model,
-    # UPDATE, and VIEW. Parent bags route messages to child bags and compose views.
+    # Large applications decompose into fragments. Each fragment has its own Model,
+    # UPDATE, and VIEW. Parent fragments route messages to child fragments and compose views.
     # Writing this routing logic by hand is tedious and error-prone.
     #
     # Include this module to declare routes and keymaps. Call +from_router+ to
     # generate an UPDATE lambda that handles routing automatically.
     #
-    # A *bag* is a module containing <tt>Model</tt>, <tt>INITIAL</tt>,
-    # <tt>UPDATE</tt>, and <tt>VIEW</tt> constants. Bags compose: parent bags
-    # delegate to child bags.
+    # A *fragment* is a module containing <tt>Model</tt>, <tt>INITIAL</tt>,
+    # <tt>UPDATE</tt>, and <tt>VIEW</tt> constants. Fragments compose: parent fragments
+    # delegate to child fragments.
     #
     # === Example
     #
@@ -171,13 +171,13 @@ module RatatuiRuby
 
         # Process message and return [model, command] tuple.
         def call(message, model)
-          # 1. Try routing prefixed messages to child bags
-          @routes.each do |prefix, bag|
-            bag_update = bag.const_get(:UPDATE)
-            result = Tea.delegate(message, prefix, bag_update, model.public_send(prefix))
+          # 1. Try routing prefixed messages to child fragments
+          @routes.each do |prefix, fragment|
+            fragment_update = fragment.const_get(:UPDATE)
+            result = Tea.delegate(message, prefix, fragment_update, model.public_send(prefix))
             if result
-              new_bag_model, command = result
-              return [model.with(prefix => new_bag_model), command] #: [_DataModel, Command::execution?]
+              new_fragment_model, command = result
+              return [model.with(prefix => new_fragment_model), command] #: [_DataModel, Command::execution?]
             end
           end
 

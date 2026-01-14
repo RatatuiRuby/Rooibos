@@ -5,9 +5,9 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
-require_relative "../bags/stats_panel"
-require_relative "../bags/network_panel"
-require_relative "../bags/custom_shell_modal"
+require_relative "../fragments/stats_panel"
+require_relative "../fragments/network_panel"
+require_relative "../fragments/custom_shell_modal"
 
 # Shared Model, INITIAL, and VIEW for the Dashboard.
 #

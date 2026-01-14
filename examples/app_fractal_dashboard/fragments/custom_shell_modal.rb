@@ -8,7 +8,7 @@
 require_relative "custom_shell_input"
 require_relative "custom_shell_output"
 
-# Parent coordinator bag for custom shell modal.
+# Parent coordinator fragment for custom shell modal.
 #
 # Routes to active child (input or output). Checks child model state for transitions.
 module CustomShellModal

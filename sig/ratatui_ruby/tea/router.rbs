@@ -15,7 +15,7 @@ module RatatuiRuby
         def with: (**Object) -> self
       end
 
-      # Interface for fractal child modules (bags).
+      # Interface for fractal child modules (fragments).
       # Routed modules must have an UPDATE constant that handles child messages.
       # NOTE: We use Module here because RBS interfaces can't declare class methods.
 

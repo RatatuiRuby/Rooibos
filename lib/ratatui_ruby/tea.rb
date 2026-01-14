@@ -31,29 +31,29 @@ module RatatuiRuby # :nodoc: Documented in the ratatui_ruby gem.
 
     # Wraps a command with a routing prefix.
     #
-    # Parent bags trigger child bag commands. The results need routing back
-    # to the correct child bag. Manually wrapping every command is tedious.
+    # Parent fragments trigger child fragment commands. The results need routing back
+    # to the correct child fragment. Manually wrapping every command is tedious.
     #
     # This method prefixes command results automatically. Use it to route
-    # child bag command results in Fractal Architecture.
+    # child fragment command results in Fractal Architecture.
     #
-    # [command] The child bag command to wrap.
+    # [command] The child fragment command to wrap.
     # [prefix] Symbol prepended to results (e.g., <tt>:stats</tt>).
     #
     # === Example
     #
     #   # Verbose:
-    #   Command.map(child_bag.fetch_command) { |r| [:stats, *r] }
+    #   Command.map(child_fragment.fetch_command) { |r| [:stats, *r] }
     #
     #   # Concise:
-    #   Tea.route(child_bag.fetch_command, :stats)
+    #   Tea.route(child_fragment.fetch_command, :stats)
     def self.route(command, prefix)
       Command.map(command) { |result| [prefix, *result] }
     end
 
-    # Delegates a prefixed message to a child bag's UPDATE.
+    # Delegates a prefixed message to a child fragment's UPDATE.
     #
-    # Parent bag UPDATE functions route messages to child bags. Each route
+    # Parent fragment UPDATE functions route messages to child fragments. Each route
     # requires pattern matching, calling the child, and rewrapping any returned
     # command. The boilerplate adds up fast.
     #

@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 #++
 
-# Text input bag for custom shell command modal.
+# Text input fragment for custom shell command modal.
 #
 # Handles text entry. Sets cancelled: or submitted: in model for parent to detect.
 module CustomShellInput

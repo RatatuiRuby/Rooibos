@@ -5,13 +5,13 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
-# Displays system uptime.
-# A bag for displaying system uptime.
-module Uptime
+# Pings localhost to check network connectivity.
+# A fragment for pinging localhost.
+module Ping
   Command = RatatuiRuby::Tea::Command
 
   Model = Data.define(:output, :loading)
-  INITIAL = Model.new(output: "Press 'u' for uptime", loading: false)
+  INITIAL = Model.new(output: "Press 'p' for ping", loading: false)
 
   VIEW = lambda do |model, tui, disabled: false|
     text_style = if disabled && model.output == INITIAL.output
@@ -22,15 +22,15 @@ module Uptime
 
     tui.paragraph(
       text: tui.text_span(content: model.output, style: text_style),
-      block: tui.block(title: "Uptime", borders: [:all], border_style: { fg: :magenta })
+      block: tui.block(title: "Ping", borders: [:all], border_style: { fg: :magenta })
     )
   end
 
   UPDATE = lambda do |message, model|
     case message
-    in [{ type: :system, envelope: :uptime, status: 0, stdout: }]
+    in [{ type: :system, envelope: :ping, status: 0, stdout: }]
       [model.with(output: Ractor.make_shareable(stdout.strip), loading: false), nil]
-    in [{ type: :system, envelope: :uptime, stderr: }]
+    in [{ type: :system, envelope: :ping, stderr: }]
       [model.with(output: Ractor.make_shareable("Error: #{stderr.strip}"), loading: false), nil]
     else
       [model, nil]
@@ -38,6 +38,6 @@ module Uptime
   end
 
   def self.fetch_command
-    Command.system("uptime", :uptime)
+    Command.system("ping -c 1 localhost", :ping)
   end
 end

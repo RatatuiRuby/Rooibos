@@ -17,7 +17,7 @@ module RatatuiRuby
     # Wraps a command with a routing prefix.
     def self.route: (Command::execution command, Symbol prefix) -> Command::Mapped
 
-    # Delegates a prefixed message to a child bag's UPDATE.
+    # Delegates a prefixed message to a child fragment's UPDATE.
     def self.delegate: (
       untyped message,
       Symbol prefix,
