@@ -25,9 +25,11 @@ class TestUpdateHelpers < Minitest::Test
     assert_equal inner_command, wrapped.inner_command
 
     # The mapper should prefix the result
-    original_result = [:done, { stdout: "hello" }]
+    original_result = RatatuiRuby::Tea::Message::System::Batch.new(
+      envelope: :done, stdout: "hello", stderr: "", status: 0
+    )
     transformed = wrapped.mapper.call(original_result)
-    assert_equal [:stats, :done, { stdout: "hello" }], transformed
+    assert_equal [:stats, original_result], transformed
   end
 
   # Tea.delegate routes a prefixed message to a child UPDATE.
@@ -48,7 +50,7 @@ class TestUpdateHelpers < Minitest::Test
     # and returns [new_model, nil]
     child_update = -> (message, model) do
       case message
-      in [:system_info, { stdout: }]
+      in [{ type: :system, envelope: :system_info, stdout: }]
         [model.merge(output: stdout).freeze, nil]
       else
         [model, nil]
@@ -57,7 +59,10 @@ class TestUpdateHelpers < Minitest::Test
     child_model = { output: "initial" }.freeze
 
     # Message with :stats prefix
-    message = [:stats, :system_info, { stdout: "Darwin" }]
+    batch_msg = RatatuiRuby::Tea::Message::System::Batch.new(
+      envelope: :system_info, stdout: "Darwin", stderr: "", status: 0
+    )
+    message = [:stats, batch_msg]
 
     result = RatatuiRuby::Tea.delegate(message, :stats, child_update, child_model)
 
@@ -96,8 +101,10 @@ class TestUpdateHelpers < Minitest::Test
     assert_kind_of RatatuiRuby::Tea::Command::Mapped, wrapped_command
 
     # Verify the command is properly wrapped
-    original_result = [:files, { stdout: "a.txt" }]
+    original_result = RatatuiRuby::Tea::Message::System::Batch.new(
+      envelope: :files, stdout: "a.txt", stderr: "", status: 0
+    )
     transformed = wrapped_command.mapper.call(original_result)
-    assert_equal [:stats, :files, { stdout: "a.txt" }], transformed
+    assert_equal [:stats, original_result], transformed
   end
 end

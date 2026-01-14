@@ -252,7 +252,7 @@ class TestRuntime < Minitest::Test
     view = -> (_m, tui) { tui.clear }
     update = -> (msg, m) do
       case msg
-      in [:got_output, { stdout:, status: 0 }]
+      in { type: :system, envelope: :got_output, status: 0, stdout: }
         received_stdout = stdout.strip
         assert Ractor.shareable?(msg), "Background message must be Ractor-shareable"
         [Ractor.make_shareable({ output: stdout }), RatatuiRuby::Tea::Command.exit]
@@ -283,7 +283,7 @@ class TestRuntime < Minitest::Test
     view = -> (_m, tui) { tui.clear }
     update = -> (msg, m) do
       case msg
-      in [:ran_cmd, { stderr:, status: }] if status != 0
+      in { type: :system, envelope: :ran_cmd, stderr:, status: } unless status == 0
         received_stderr = stderr
         assert Ractor.shareable?(msg), "Background message must be Ractor-shareable"
         [Ractor.make_shareable({ error: stderr }), RatatuiRuby::Tea::Command.exit]
@@ -315,7 +315,7 @@ class TestRuntime < Minitest::Test
     view = -> (_m, tui) { tui.clear }
     update = -> (msg, m) do
       case msg
-      in [:ran_cmd, { stdout:, stderr:, status: 0 }]
+      in { type: :system, envelope: :ran_cmd, status: 0, stdout:, stderr: }
         received_stdout = stdout
         received_stderr = stderr
         [Ractor.make_shareable({ output: stdout, noise: stderr }), RatatuiRuby::Tea::Command.exit]
@@ -345,13 +345,18 @@ class TestRuntime < Minitest::Test
     view = -> (_m, tui) { tui.clear }
     update = -> (msg, m) do
       case msg
-      in [:parent, :inner_done, { stdout:, status: 0 }]
-        received_msg = msg
-        [Ractor.make_shareable({ output: stdout }), RatatuiRuby::Tea::Command.exit]
+      when Array
+        if msg[0] == :parent && msg[1].is_a?(RatatuiRuby::Tea::Message::System::Batch)
+          received_msg = msg
+          batch = msg[1]
+          [Ractor.make_shareable({ output: batch.stdout }), RatatuiRuby::Tea::Command.exit]
+        else
+          m
+        end
       else
         # First event triggers the mapped command
         inner_cmd = RatatuiRuby::Tea::Command.system("echo hello", :inner_done)
-        mapped_cmd = RatatuiRuby::Tea::Command.map(inner_cmd) { |m| [:parent, *m] }
+        mapped_cmd = RatatuiRuby::Tea::Command.map(inner_cmd) { |m| [:parent, m] }
         [m, mapped_cmd]
       end
     end
@@ -366,8 +371,8 @@ class TestRuntime < Minitest::Test
       end
     end
 
-    assert_equal :parent, received_msg[0], "Mapper should wrap with :parent"
-    assert_equal :inner_done, received_msg[1], "Inner tag should be preserved"
+    assert_kind_of RatatuiRuby::Tea::Message::System::Batch, received_msg[1], "Should receive System::Batch"
+    assert_equal :inner_done, received_msg[1].envelope, "Inner envelope should be preserved"
   end
 
   def test_sync_event_waits_for_pending_threads
@@ -389,13 +394,8 @@ class TestRuntime < Minitest::Test
         else
           m
         end
-      when Array
-        tag, data = msg
-        if tag == :data
-          Ractor.make_shareable({ result: data[:stdout].strip })
-        else
-          m
-        end
+      when -> (msg) { msg.respond_to?(:envelope) && msg.envelope == :data }
+        Ractor.make_shareable({ result: msg.stdout.strip })
       else
         m
       end

@@ -109,10 +109,12 @@ class TestCommandAll < Minitest::Test
     all_msg = messages.find { |m| m.is_a?(Array) && m[0] == :dashboard }
     refute_nil all_msg, "Expected [:dashboard, ...] message from Command.all"
 
-    # Splatted: [:dashboard, :first, :second] (not [:dashboard, [:first, :second]])
+    # Splatted: [:dashboard, TimerResponse1, TimerResponse2] (not nested array)
     assert_equal 3, all_msg.size, "Expected 3 elements (tag + 2 splatted results)"
-    assert_equal :first, all_msg[1]
-    assert_equal :second, all_msg[2]
+    assert_kind_of RatatuiRuby::Tea::Message::Timer, all_msg[1]
+    assert_kind_of RatatuiRuby::Tea::Message::Timer, all_msg[2]
+    assert_equal :first, all_msg[1].envelope
+    assert_equal :second, all_msg[2].envelope
   end
 
   def test_all_emits_cancel_sentinel_on_cancellation

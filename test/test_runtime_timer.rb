@@ -37,7 +37,11 @@ class TestRuntimeTimer < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    assert_includes messages, :waited
+    # Should receive TimerResponse, not bare tag
+    timer_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::Timer) }
+    refute_nil timer_msg, "Should receive TimerResponse"
+    assert_equal :waited, timer_msg.envelope
+    assert_operator timer_msg.elapsed, :>=, 0.05
   end
 
   def test_tick_message_arrives_in_update
@@ -66,7 +70,10 @@ class TestRuntimeTimer < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    assert_includes messages, :ticked
+    # Should receive TimerResponse, not bare tag
+    timer_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::Timer) }
+    refute_nil timer_msg, "Should receive TimerResponse"
+    assert_equal :ticked, timer_msg.envelope
   end
 
   def test_wait_returns_quickly_when_cancelled

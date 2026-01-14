@@ -28,9 +28,9 @@ module SystemInfo
 
   UPDATE = lambda do |message, model|
     case message
-    in [:system_info, { stdout:, status: 0 }]
+    in [{ type: :system, envelope: :system_info, status: 0, stdout: }]
       [model.with(output: Ractor.make_shareable(stdout.strip), loading: false), nil]
-    in [:system_info, { stderr:, _status: }]
+    in [{ type: :system, envelope: :system_info, stderr: }]
       [model.with(output: Ractor.make_shareable("Error: #{stderr.strip}"), loading: false), nil]
     else
       [model, nil]

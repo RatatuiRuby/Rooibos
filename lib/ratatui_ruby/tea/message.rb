@@ -33,5 +33,8 @@ module RatatuiRuby
   end
 end
 
-require_relative "message/timer_response"
+require_relative "message/timer"
 require_relative "message/http_response"
+require_relative "message/system/batch"
+require_relative "message/system/stream"
+require_relative "message/all"

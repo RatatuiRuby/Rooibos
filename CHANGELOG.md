@@ -27,9 +27,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Command.http**: Native HTTP client for API calls. Supports GET, POST, PUT, PATCH, DELETE with DWIM syntax: `Command.http(get: 'url')`, `Command.http(:get, 'url', :tag)`, etc. Returns hash-based `HttpResponse` with `deconstruct_keys` for pattern matching: `{ type: :http, envelope:, status:, body:, headers: }` or `{ type: :http, envelope:, error: }`. Optional `parser:` keyword invokes a callable on the response body for JSON, YAML, CSV, or custom parsing. SSL, default 10s timeout, and cancellation-before-request are supported. Parsers and parsed results must be Ractor-shareable.
 
+- **Streaming Command Data Loss Fix**: Fixed race condition in `Command.system(stream: true)` where fast commands could lose stdout/stderr data. Reader threads now `join` instead of `kill` to ensure all output is processed before completion.
+
 - **Message::Predicates Mixin**: Include in custom message types for safe predicate calls. Returns `false` for any unknown predicate method (ending in `?`). Enables pattern matching workflows where messages can respond to predicates like `msg.http?` or `msg.timer?` without raising `NoMethodError`. Includes `respond_to_missing?` for introspection parity.
 
-- **Message::TimerResponse and Message::HttpResponse**: Predicate-rich response types for timer and HTTP commands. Include `Predicates` mixin and implement `deconstruct_keys` for pattern matching with `type:` discriminator. `HttpResponse` includes `success?`, `error?` predicates.
+- **Message::Timer**: Predicate-rich response type for timer commands (`Command.wait`, `Command.tick`). Includes `timer?` predicate and `deconstruct_keys` for pattern matching with `type: :timer` discriminator. Contains `envelope` (routing symbol) and `elapsed` (actual wait time in seconds).
+
+- **Message::HttpResponse**: Moved from `Command::HttpResponse` to `Message::HttpResponse` with added predicates. Includes `http?`, `success?`, and `error?` predicates. Implements `deconstruct_keys` for pattern matching with `type: :http` discriminator.
+
+- **Message::System::Batch**: Response type for `Command.system` (batch mode). Includes `system?`, `success?` (exit 0), and `error?` (non-zero exit) predicates. Contains `envelope`, `stdout`, `stderr`, and `status`. Implements `deconstruct_keys` for pattern matching.
+
+- **Message::System::Stream**: Response type for `Command.system(..., stream: true)`. Includes `system?`, `stdout?`, `stderr?`, and `complete?` predicates. Contains `envelope`, `stream` type (`:stdout`, `:stderr`, `:complete`), `content` (for output lines), and `status` (for completion). Implements conditional `deconstruct_keys` based on stream type.
+
+- **Message::All**: Response type for `Command.all` aggregating parallel execution. Includes `all?` predicate. Contains `envelope`, `results` array, and `nested` boolean. Implements `deconstruct_keys` for pattern matching.
+
+- **Command.wait/tick Parameter Rename**: Renamed `tag` parameter to `envelope` for consistency with other message types. `Command.wait` and `Command.tick` now emit `Message::Timer` instead of bare symbol tags.
 
 - **Dependencies**: Added `concurrent-ruby` (~> 1.3) and `concurrent-ruby-edge` (~> 0.7) for robust concurrency primitives.
 

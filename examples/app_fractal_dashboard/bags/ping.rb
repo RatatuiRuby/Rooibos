@@ -28,9 +28,9 @@ module Ping
 
   UPDATE = lambda do |message, model|
     case message
-    in [:ping, { stdout:, status: 0 }]
+    in [{ type: :system, envelope: :ping, status: 0, stdout: }]
       [model.with(output: Ractor.make_shareable(stdout.strip), loading: false), nil]
-    in [:ping, { stderr:, _status: }]
+    in [{ type: :system, envelope: :ping, stderr: }]
       [model.with(output: Ractor.make_shareable("Error: #{stderr.strip}"), loading: false), nil]
     else
       [model, nil]

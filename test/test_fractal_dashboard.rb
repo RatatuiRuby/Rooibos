@@ -11,7 +11,13 @@ require_relative "../examples/app_fractal_dashboard/dashboard/update_manual"
 class TestFractalDashboard < Minitest::Test
   def test_update_routes_stats_panel_message
     model = DashboardManual::INITIAL
-    msg = [:stats, :system_info, { stdout: "Darwin\n", stderr: "", status: 0 }]
+    batch = RatatuiRuby::Tea::Message::System::Batch.new(
+      envelope: :system_info,
+      stdout: "Darwin\n",
+      stderr: "",
+      status: 0
+    )
+    msg = [:stats, :system_info, batch]
 
     result = DashboardManual::UPDATE.call(msg, model)
 
@@ -22,7 +28,13 @@ class TestFractalDashboard < Minitest::Test
 
   def test_update_routes_network_panel_message
     model = DashboardManual::INITIAL
-    msg = [:network, :ping, { stdout: "PING localhost\n", stderr: "", status: 0 }]
+    batch = RatatuiRuby::Tea::Message::System::Batch.new(
+      envelope: :ping,
+      stdout: "PING localhost\n",
+      stderr: "",
+      status: 0
+    )
+    msg = [:network, :ping, batch]
 
     result = DashboardManual::UPDATE.call(msg, model)
 
@@ -60,13 +72,18 @@ class TestFractalDashboard < Minitest::Test
   def test_mapper_wraps_with_panel_prefix
     # Verify the mapper transforms the message correctly
     inner_cmd = SystemInfo.fetch_command
-    cmd = RatatuiRuby::Tea::Command.map(inner_cmd) { |m| [:stats, *m] }
+    cmd = RatatuiRuby::Tea::Command.map(inner_cmd) { |m| [:stats, m] }
 
-    # Simulate what dispatch would produce
-    inner_msg = [:system_info, { stdout: "test", stderr: "", status: 0 }]
+    # Simulate what dispatch would produce (System::Batch object)
+    inner_msg = RatatuiRuby::Tea::Message::System::Batch.new(
+      envelope: :system_info,
+      stdout: "test",
+      stderr: "",
+      status: 0
+    )
     transformed = cmd.mapper.call(inner_msg)
 
     assert_equal :stats, transformed[0]
-    assert_equal :system_info, transformed[1]
+    assert_kind_of RatatuiRuby::Tea::Message::System::Batch, transformed[1]
   end
 end

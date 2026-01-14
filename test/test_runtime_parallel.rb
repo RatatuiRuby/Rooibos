@@ -42,8 +42,11 @@ class TestRuntimeParallel < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    assert_includes messages, :first
-    assert_includes messages, :second
+    # Should receive TimerResponse messages, not bare tags
+    timer_messages = messages.select { |m| m.is_a?(RatatuiRuby::Tea::Message::Timer) }
+    envelopes = timer_messages.map(&:envelope)
+    assert_includes envelopes, :first
+    assert_includes envelopes, :second
   end
 
   def test_batch_runs_commands_in_parallel
@@ -291,8 +294,9 @@ class TestRuntimeParallel < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    # The successful command should still complete
-    assert_includes messages, :success, "Successful command should still run when sibling fails"
+    # The successful command should still complete - check for TimerResponse
+    timer_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::Timer) && m.envelope == :success }
+    refute_nil timer_msg, "Successful command should still run when sibling fails"
 
     # Error should also be reported
     error_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Error) }

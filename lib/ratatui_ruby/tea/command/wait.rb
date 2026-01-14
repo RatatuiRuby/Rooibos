@@ -45,7 +45,7 @@ module RatatuiRuby
       #       [model.with(frame:), Command.tick(0.1, :animate)]
       #     end
       #   end
-      Wait = Data.define(:seconds, :tag) do
+      Wait = Data.define(:seconds, :envelope) do
         include Custom
 
         # Cooperative cancellation needs no grace period.
@@ -57,12 +57,13 @@ module RatatuiRuby
 
         # Executes the timer.
         #
-        # Waits for <tt>seconds</tt>, then sends <tt>[tag]</tt>.
+        # Waits for <tt>seconds</tt>, then sends <tt>TimerResponse</tt>.
         # If cancelled, sends <tt>Command.cancel(self)</tt> instead.
         #
         # [out] Outlet for sending messages.
         # [token] Cancellation token from the runtime.
         def call(out, token)
+          start_time = Time.now
           timer_cancellation, _origin = Concurrent::Cancellation.timeout(seconds)
           combined = token.join(timer_cancellation)
           combined.origin.wait
@@ -70,7 +71,9 @@ module RatatuiRuby
           if token.canceled?
             out.put(Command.cancel(self))
           else
-            out.put(tag)
+            elapsed = Time.now - start_time
+            response = Message::Timer.new(envelope:, elapsed:)
+            out.put(Ractor.make_shareable(response))
           end
         end
       end

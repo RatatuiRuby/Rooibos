@@ -16,8 +16,56 @@ module RatatuiRuby
         def respond_to_missing?: (Symbol name, ?bool include_private) -> bool
       end
 
+      # System command response types.
+      module System
+        # Response from a system command (batch mode).
+        class Batch
+          include Predicates
+
+          attr_reader envelope: Symbol
+          attr_reader stdout: String
+          attr_reader stderr: String
+          attr_reader status: Integer
+
+          def initialize: (
+            envelope: Symbol,
+            stdout: String,
+            stderr: String,
+            status: Integer
+          ) -> void
+
+          def system?: () -> bool
+          def success?: () -> bool
+          def error?: () -> bool
+          def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+        end
+
+        # Streaming message from a system command.
+        class Stream
+          include Predicates
+
+          attr_reader envelope: Symbol
+          attr_reader stream: Symbol
+          attr_reader content: String?
+          attr_reader status: Integer?
+
+          def initialize: (
+            envelope: Symbol,
+            stream: Symbol,
+            content: String?,
+            status: Integer?
+          ) -> void
+
+          def system?: () -> bool
+          def stdout?: () -> bool
+          def stderr?: () -> bool
+          def complete?: () -> bool
+          def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+        end
+      end
+
       # Response from a timer command.
-      class TimerResponse
+      class Timer
         include Predicates
 
         attr_reader envelope: Symbol
@@ -50,6 +98,24 @@ module RatatuiRuby
         def http?: () -> bool
         def success?: () -> bool
         def error?: () -> bool
+        def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+      end
+
+      # Response from Command.all aggregating parallel execution.
+      class All
+        include Predicates
+
+        attr_reader envelope: Symbol
+        attr_reader results: Array[untyped]
+        attr_reader nested: bool
+
+        def initialize: (
+          envelope: Symbol,
+          results: Array[untyped],
+          nested: bool
+        ) -> void
+
+        def all?: () -> bool
         def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
       end
     end

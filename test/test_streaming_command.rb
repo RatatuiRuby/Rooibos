@@ -32,6 +32,12 @@ class TestStreamingCommand < Minitest::Test
       when Array
         messages << msg
         [m, nil]
+      when RatatuiRuby::Tea::Message::System::Batch
+        messages << msg
+        [m, nil]
+      when RatatuiRuby::Tea::Message::System::Stream
+        messages << msg
+        [m, nil]
       else
         [m, nil]
       end
@@ -51,64 +57,64 @@ class TestStreamingCommand < Minitest::Test
   def test_streaming_command_produces_stdout_message
     messages = run_command_and_collect("echo hello", :output, stream: true)
 
-    stdout_msgs = messages.select { |m| m[1] == :stdout }
-    refute_empty stdout_msgs, "Expected [:output, :stdout, ...] message, got batch mode"
+    stdout_msgs = messages.select { |m| m.respond_to?(:stdout?) && m.stdout? }
+    refute_empty stdout_msgs, "Expected System::Stream stdout message"
   end
 
   def test_streaming_stdout_message_has_correct_tag
     messages = run_command_and_collect("echo hello", :my_tag, stream: true)
 
-    stdout_msg = messages.find { |m| m[1] == :stdout }
-    assert_equal :my_tag, stdout_msg[0], "stdout message tag should match command tag"
+    stdout_msg = messages.find { |m| m.respond_to?(:stdout?) && m.stdout? }
+    assert_equal :my_tag, stdout_msg.envelope, "stdout message tag should match command tag"
   end
 
   def test_streaming_stdout_message_has_line_content
     messages = run_command_and_collect("echo hello", :output, stream: true)
 
-    stdout_msg = messages.find { |m| m[1] == :stdout }
-    assert_equal "hello\n", stdout_msg[2], "stdout message should contain line content"
+    stdout_msg = messages.find { |m| m.respond_to?(:stdout?) && m.stdout? }
+    assert_equal "hello\n", stdout_msg.content, "stdout message should contain line content"
   end
 
   def test_streaming_command_produces_stderr_message
     messages = run_command_and_collect("echo error >&2", :output, stream: true)
 
-    stderr_msgs = messages.select { |m| m[1] == :stderr }
-    refute_empty stderr_msgs, "Expected [:output, :stderr, ...] message"
+    stderr_msgs = messages.select { |m| m.respond_to?(:stderr?) && m.stderr? }
+    refute_empty stderr_msgs, "Expected System::Stream stderr message"
   end
 
   def test_streaming_stderr_message_has_correct_tag
     messages = run_command_and_collect("echo error >&2", :my_tag, stream: true)
 
-    stderr_msg = messages.find { |m| m[1] == :stderr }
-    assert_equal :my_tag, stderr_msg[0], "stderr message tag should match command tag"
+    stderr_msg = messages.find { |m| m.respond_to?(:stderr?) && m.stderr? }
+    assert_equal :my_tag, stderr_msg.envelope, "stderr message tag should match command tag"
   end
 
   def test_streaming_stderr_message_has_line_content
     messages = run_command_and_collect("echo error >&2", :output, stream: true)
 
-    stderr_msg = messages.find { |m| m[1] == :stderr }
-    assert_equal "error\n", stderr_msg[2], "stderr message should contain line content"
+    stderr_msg = messages.find { |m| m.respond_to?(:stderr?) && m.stderr? }
+    assert_equal "error\n", stderr_msg.content, "stderr message should contain line content"
   end
 
   def test_streaming_command_sends_complete_message
     messages = run_command_and_collect("true", :output, stream: true)
 
-    complete_msgs = messages.select { |m| m[1] == :complete }
-    assert_equal 1, complete_msgs.size, "Expected one :complete message"
+    complete_msgs = messages.select { |m| m.respond_to?(:complete?) && m.complete? }
+    assert_equal 1, complete_msgs.size, "Expected one complete message"
   end
 
   def test_streaming_complete_message_has_correct_tag
     messages = run_command_and_collect("true", :my_tag, stream: true)
 
-    complete_msg = messages.find { |m| m[1] == :complete }
-    assert_equal :my_tag, complete_msg[0], "Tag should match the command's tag"
+    complete_msg = messages.find { |m| m.respond_to?(:complete?) && m.complete? }
+    assert_equal :my_tag, complete_msg.envelope, "Tag should match the command's tag"
   end
 
   def test_streaming_complete_message_has_exit_status
     messages = run_command_and_collect("exit 42", :output, stream: true)
 
-    complete_msg = messages.find { |m| m[1] == :complete }
-    assert_equal 42, complete_msg[2][:status], "Exit status should be 42"
+    complete_msg = messages.find { |m| m.respond_to?(:complete?) && m.complete? }
+    assert_equal 42, complete_msg.status, "Exit status should be 42"
   end
 
   # Regression test: batch mode still works (stream: false default)
@@ -118,20 +124,23 @@ class TestStreamingCommand < Minitest::Test
     assert_equal 1, messages.size, "Batch mode should return single message"
     msg = messages.first
 
-    assert_equal :output, msg[0], "Tag should match"
-    assert_kind_of Hash, msg[1], "Batch mode should return hash, not :stdout/:stderr symbol"
-    assert msg[1].key?(:stdout), "Hash should have :stdout key"
-    assert msg[1].key?(:stderr), "Hash should have :stderr key"
-    assert msg[1].key?(:status), "Hash should have :status key"
+    assert_kind_of RatatuiRuby::Tea::Message::System::Batch, msg, "Should be System::Batch"
+    assert_equal :output, msg.envelope, "Envelope should match"
+    assert_kind_of String, msg.stdout, "Should have stdout"
+    assert_kind_of String, msg.stderr, "Should have stderr"
+    assert_kind_of Integer, msg.status, "Should have status"
   end
 
   # Error handling: invalid command sends :error message
   def test_streaming_invalid_command_sends_error_message
     messages = run_command_and_collect("nonexistent_cmd_xyz_123", :output, stream: true)
 
-    # Should receive either :error message OR :complete with non-zero status
-    error_or_complete = messages.find { |m| m[1] == :error || m[1] == :complete }
-    assert error_or_complete, "Should receive :error or :complete message"
+    # Should receive either error message OR complete with non-zero status
+    error_or_complete = messages.find do |m|
+      (m.respond_to?(:stream) && m.stream == :error) ||
+        (m.respond_to?(:complete?) && m.complete?)
+    end
+    assert error_or_complete, "Should receive error or complete message"
   end
 
   # Baseline test: streaming command can be force-killed.
@@ -155,13 +164,12 @@ class TestStreamingCommand < Minitest::Test
         else
           [m, nil]
         end
-      when Array
-        tag, event_type, = msg
-        events << event_type
-        if tag == :output && event_type == :stdout && !m[:cancelled]
+      when RatatuiRuby::Tea::Message::System::Stream
+        events << msg.stream
+        if msg.envelope == :output && msg.stdout? && !m[:cancelled]
           new_model = Ractor.make_shareable({ cmd: m[:cmd], cancelled: true })
           [new_model, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
-        elsif tag == :output && event_type == :complete
+        elsif msg.envelope == :output && msg.complete?
           [m, RatatuiRuby::Tea::Command.exit]
         else
           [m, nil]
@@ -204,13 +212,12 @@ class TestStreamingCommand < Minitest::Test
         else
           [m, nil]
         end
-      when Array
-        tag, event_type, = msg
-        events << event_type
-        if tag == :output && event_type == :stdout && !m[:cancelled]
+      when RatatuiRuby::Tea::Message::System::Stream
+        events << msg.stream
+        if msg.envelope == :output && msg.stdout? && !m[:cancelled]
           new_model = Ractor.make_shareable({ cmd: m[:cmd], cancelled: true })
           [new_model, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
-        elsif tag == :output && event_type == :complete
+        elsif msg.envelope == :output && msg.complete?
           [m, RatatuiRuby::Tea::Command.exit]
         else
           [m, nil]

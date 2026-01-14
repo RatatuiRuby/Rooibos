@@ -28,7 +28,7 @@ module RatatuiRuby
       #     model.with(frame: next_frame(elapsed))
       #   end
       #
-      TimerResponse = Data.define(:envelope, :elapsed) do
+      Timer = Data.define(:envelope, :elapsed) do
         include Predicates
 
         # Returns +true+ for timer responses.

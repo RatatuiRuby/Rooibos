@@ -61,22 +61,22 @@ module DashboardManual
       [model.with(shell_modal: CustomShellModal.open), nil]
 
     in _ if message.s?
-      command = Command.map(SystemInfo.fetch_command) { |r| [:stats, *r] }
+      command = Command.map(SystemInfo.fetch_command) { |batch| [:stats, batch.envelope, batch] }
       new_stats = model.stats.with(system_info: model.stats.system_info.with(loading: true))
       [model.with(stats: new_stats), command]
 
     in _ if message.d?
-      command = Command.map(DiskUsage.fetch_command) { |r| [:stats, *r] }
+      command = Command.map(DiskUsage.fetch_command) { |batch| [:stats, batch.envelope, batch] }
       new_stats = model.stats.with(disk_usage: model.stats.disk_usage.with(loading: true))
       [model.with(stats: new_stats), command]
 
     in _ if message.p?
-      command = Command.map(Ping.fetch_command) { |r| [:network, *r] }
+      command = Command.map(Ping.fetch_command) { |batch| [:network, batch.envelope, batch] }
       new_network = model.network.with(ping: model.network.ping.with(loading: true))
       [model.with(network: new_network), command]
 
     in _ if message.u?
-      command = Command.map(Uptime.fetch_command) { |r| [:network, *r] }
+      command = Command.map(Uptime.fetch_command) { |batch| [:network, batch.envelope, batch] }
       new_network = model.network.with(uptime: model.network.uptime.with(loading: true))
       [model.with(network: new_network), command]
 

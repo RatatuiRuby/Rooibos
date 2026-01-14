@@ -31,12 +31,10 @@ module StatsPanel
   UPDATE = lambda do |message, model|
     case message
     in [:system_info, *rest]
-      child_message = [:system_info, *rest]
-      new_child, command = SystemInfo::UPDATE.call(child_message, model.system_info)
+      new_child, command = SystemInfo::UPDATE.call(rest, model.system_info)
       [model.with(system_info: new_child), command]
     in [:disk_usage, *rest]
-      child_message = [:disk_usage, *rest]
-      new_child, command = DiskUsage::UPDATE.call(child_message, model.disk_usage)
+      new_child, command = DiskUsage::UPDATE.call(rest, model.disk_usage)
       [model.with(disk_usage: new_child), command]
     else
       [model, nil]

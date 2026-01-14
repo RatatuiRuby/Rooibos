@@ -197,7 +197,13 @@ module RatatuiRuby
 
         private def batch_execution(out)
           stdout, stderr, status = Open3.capture3(command)
-          out.put(tag, Ractor.make_shareable({ stdout:, stderr:, status: status.exitstatus }))
+          message = Message::System::Batch.new(
+            envelope: tag,
+            stdout:,
+            stderr:,
+            status: status.exitstatus
+          )
+          out.put(Ractor.make_shareable(message))
         end
 
         private def stream_execution(out, token)
@@ -206,7 +212,15 @@ module RatatuiRuby
             pid = wait_thr.pid
 
             stdout_thread = Thread.new do
-              stdout.each_line { |line| out.put(tag, :stdout, line.freeze) }
+              stdout.each_line do |line|
+                msg = Message::System::Stream.new(
+                  envelope: tag,
+                  stream: :stdout,
+                  content: line.freeze,
+                  status: nil
+                )
+                out.put(Ractor.make_shareable(msg))
+              end
             rescue IOError
               # Stream closed - SIGKILL the child if still alive (forcible cleanup)
               begin
@@ -216,7 +230,15 @@ module RatatuiRuby
               end
             end
             stderr_thread = Thread.new do
-              stderr.each_line { |line| out.put(tag, :stderr, line.freeze) }
+              stderr.each_line do |line|
+                msg = Message::System::Stream.new(
+                  envelope: tag,
+                  stream: :stderr,
+                  content: line.freeze,
+                  status: nil
+                )
+                out.put(Ractor.make_shareable(msg))
+              end
             rescue IOError
               # Stream closed
             end
@@ -243,10 +265,22 @@ module RatatuiRuby
             cancellation_watcher.join
 
             status = wait_thr.value.exitstatus
-            out.put(tag, :complete, Ractor.make_shareable({ status: }))
+            msg = Message::System::Stream.new(
+              envelope: tag,
+              stream: :complete,
+              content: nil,
+              status:
+            )
+            out.put(Ractor.make_shareable(msg))
           end
         rescue Errno::ENOENT, Errno::EACCES => e
-          out.put(tag, :error, Ractor.make_shareable({ message: e.message }))
+          msg = Message::System::Stream.new(
+            envelope: tag,
+            stream: :error,
+            content: e.message,
+            status: nil
+          )
+          out.put(Ractor.make_shareable(msg))
         end
       end
 
@@ -385,13 +419,13 @@ module RatatuiRuby
 
       # Creates a one-shot timer command.
       #
-      # Waits for +seconds+ then sends +[tag, seconds]+ to the update function.
+      # Waits for +seconds+ then sends +TimerResponse+ to the update function.
       # Use for delayed actions like notification dismissal or debounced search.
       #
       # [seconds] Duration to wait (Float or Integer).
-      # [tag] Symbol to tag the result message.
-      def self.wait(seconds, tag)
-        Wait.new(seconds:, tag:)
+      # [envelope] Symbol to tag the result message.
+      def self.wait(seconds, envelope)
+        Wait.new(seconds:, envelope:)
       end
 
       # Creates a recurring timer command.
