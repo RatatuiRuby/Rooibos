@@ -10,7 +10,7 @@ source "https://rubygems.org"
 gemspec
 
 # Use local development version for cross-gem development
-gem "ratatui_ruby", path: "../ratatui_ruby"
+gem "ratatui_ruby", "~> 0.10.2"
 
 gem "irb"
 gem "rake", "~> 13.0"
@@ -25,6 +25,7 @@ gem "flog", "4.8.0"
 gem "nokogiri" # For RDoc sidebar post-processing
 gem "faker"    # For realistic example data
 gem "steep"
+gem "debug"
 
 group :development do
   gem "ratatui_ruby-devtools"

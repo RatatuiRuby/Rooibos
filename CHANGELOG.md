@@ -45,9 +45,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dependencies**: Added `concurrent-ruby` (~> 1.3) and `concurrent-ruby-edge` (~> 0.7) for robust concurrency primitives.
 
+- **Tea.normalize_init Helper**: New `RatatuiRuby::Tea.normalize_init(result)` normalizes Init callable returns. Accepts the output of a `Fragment.Init` callable and always returns `[model, command]`. Use when composing child fragment initialization in parent fragments.
+
 ### Changed
 
 - **Terminology: "Bag" → "Fragment"**: Renamed Fractal Architecture units from "bags" to "fragments" throughout the codebase. A fragment is a module containing `Model`, `INITIAL`, `UPDATE`, and `VIEW` constants. Parent fragments compose child fragments via routing. The `examples/app_fractal_dashboard/bags/` directory is now `examples/app_fractal_dashboard/fragments/`. All API documentation, code comments, and examples updated to reflect this terminology change.
+
+- **Runtime API Signature (Breaking)**: `Tea.run` signature changed:
+  - Fragment parameter is now **positional** instead of keyword: `Tea.run(MyApp)` instead of `Tea.run(fragment: MyApp)`
+  - Removed `argv:` and `env:` parameters - Runtime now automatically uses `ARGV` and `ENV` globals
+  - Added `fps:` parameter (default 60) for configurable frame rate
+  - Renamed `init:` parameter to `command:` in explicit parameters API for clarity
+
+- **Fragment Convention Rename (Breaking)**: Fragment constants have new naming conventions:
+  - `INITIAL` constant → `Init` callable. The runtime calls `Init.()` to get the initial model.
+  - `UPDATE` constant → `Update` callable (capitalized).
+  - `VIEW` constant → `View` callable (capitalized).
+  - Init is now a lambda/callable instead of a frozen constant. This enables parameterized initialization and returning `[model, command]` tuples for initial commands.
+
+- **Internal Method Rename (Breaking)**: `Runtime.normalize_update_result` renamed to `Runtime.normalize_update_return` for clarity. Only affects code calling private Runtime internals.
+
+- **Command.custom Ractor Validation (Breaking)**: `Command.custom(callable)` now validates in debug mode that the callable is Ractor-shareable. Callables that capture mutable state will raise `Invariant`. Define callables at module level or use `Ractor.make_shareable`.
+
+- **Model Validation Timing (Breaking)**: Runtime now validates model Ractor-shareability **immediately after Init returns**, not just during the Update cycle. This catches mutable models earlier, enforcing immutability at startup. Models must be frozen (`.freeze`) or use immutable data structures (`Data.define`). This is a good breaking change that prevents subtle concurrency bugs.
 
 - **CancellationToken Replaced (Breaking)**: Custom commands now receive `Concurrent::Cancellation` instead of `CancellationToken`. The method to check cancellation changes from `token.cancelled?` (British) to `token.canceled?` (American).
 

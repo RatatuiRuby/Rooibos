@@ -11,7 +11,7 @@ class TestRouterDsl < Minitest::Test
   # Fake child module for testing
   module FakeChild
     INITIAL = :child_initial
-    UPDATE = -> (msg, model) { [model, nil] }
+    Update = -> (msg, model) { [model, nil] }
   end
 
   # route registers a child with a prefix.
@@ -57,7 +57,7 @@ class TestRouterDsl < Minitest::Test
     end
 
     update = test_class.from_router
-    model = {}.freeze
+    model = Ractor.make_shareable({}, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "q")
 
     update.call(event, model)
@@ -80,7 +80,7 @@ class TestRouterDsl < Minitest::Test
     end
 
     update = test_class.from_router
-    model = {}.freeze
+    model = Ractor.make_shareable({}, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "up")
 
     update.call(event, model)
@@ -103,7 +103,7 @@ class TestRouterDsl < Minitest::Test
     end
 
     update = test_class.from_router
-    model = {}.freeze
+    model = Ractor.make_shareable({}, copy: true)
 
     # Test scroll up
     scroll_up_event = RatatuiRuby::Event::Mouse.new(kind: "scroll_up", button: "left", x: 0, y: 0)
@@ -131,7 +131,7 @@ class TestRouterDsl < Minitest::Test
     end
 
     update = test_class.from_router
-    model = {}.freeze
+    model = Ractor.make_shareable({}, copy: true)
     scroll_up_event = RatatuiRuby::Event::Mouse.new(kind: "scroll_up", button: "left", x: 0, y: 0)
 
     update.call(scroll_up_event, model)
@@ -187,7 +187,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { allowed: false }.freeze
+    model = Ractor.make_shareable({ allowed: false }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
 
     _new_model, _cmd = update.call(event, model)
@@ -210,7 +210,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { allowed: true }.freeze
+    model = Ractor.make_shareable({ allowed: true }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
 
     _new_model, _cmd = update.call(event, model)
@@ -233,7 +233,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { allowed: false }.freeze
+    model = Ractor.make_shareable({ allowed: false }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
 
     _new_model, _cmd = update.call(event, model)
@@ -256,7 +256,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { blocked: false }.freeze
+    model = Ractor.make_shareable({ blocked: false }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
 
     _new_model, _cmd = update.call(event, model)
@@ -279,14 +279,14 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { allowed: false }.freeze
+    model = Ractor.make_shareable({ allowed: false }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
 
     _new_model, _cmd = update.call(event, model)
 
     refute handler_called, "Handler should not be called when only: guard returns false"
 
-    model = { allowed: true }.freeze
+    model = Ractor.make_shareable({ allowed: true }, copy: true)
     _new_model, _cmd = update.call(event, model)
     assert handler_called, "Handler should be called when only: guard returns true"
   end
@@ -306,14 +306,14 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { blocked: true }.freeze
+    model = Ractor.make_shareable({ blocked: true }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
 
     _new_model, _cmd = update.call(event, model)
 
     refute handler_called, "Handler should not be called when skip: guard returns true"
 
-    model = { blocked: false }.freeze
+    model = Ractor.make_shareable({ blocked: false }, copy: true)
     _new_model, _cmd = update.call(event, model)
     assert handler_called, "Handler should be called when skip: guard returns false"
   end
@@ -333,14 +333,14 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { allowed: false }.freeze
+    model = Ractor.make_shareable({ allowed: false }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
 
     _new_model, _cmd = update.call(event, model)
 
     refute handler_called, "Handler should not be called when guard: guard returns false"
 
-    model = { allowed: true }.freeze
+    model = Ractor.make_shareable({ allowed: true }, copy: true)
     _new_model, _cmd = update.call(event, model)
     assert handler_called, "Handler should be called when guard: guard returns true"
   end
@@ -360,14 +360,14 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { blocked: true }.freeze
+    model = Ractor.make_shareable({ blocked: true }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
 
     _new_model, _cmd = update.call(event, model)
 
     refute handler_called, "Handler should not be called when except: guard returns true"
 
-    model = { blocked: false }.freeze
+    model = Ractor.make_shareable({ blocked: false }, copy: true)
     _new_model, _cmd = update.call(event, model)
     assert handler_called, "Handler should be called when except: guard returns false"
   end
@@ -389,7 +389,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { allowed: false }.freeze
+    model = Ractor.make_shareable({ allowed: false }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
     _new_model, _cmd = update.call(event, model)
     refute handler_called, "Handler should not be called when nested only: guard returns false"
@@ -411,7 +411,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { allowed: false }.freeze
+    model = Ractor.make_shareable({ allowed: false }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
     # This should fail if when: raises ArgumentError or is ignored
     begin
@@ -455,7 +455,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { allowed: false }.freeze
+    model = Ractor.make_shareable({ allowed: false }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
     _new_model, _cmd = update.call(event, model)
     refute handler_called, "Handler should not be called when nested only if: guard returns false"
@@ -477,7 +477,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { allowed: false }.freeze
+    model = Ractor.make_shareable({ allowed: false }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
     _new_model, _cmd = update.call(event, model)
     refute handler_called, "Handler should not be called when nested only only: guard returns false"
@@ -501,7 +501,7 @@ class TestRouterDsl < Minitest::Test
     update = test_class.from_router
 
     # When blocked is true, handler should NOT be called
-    model = { blocked: true }.freeze
+    model = Ractor.make_shareable({ blocked: true }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
     _new_model, _cmd = update.call(event, model)
     refute handler_called, "Handler should be skipped when skip when: guard returns true"
@@ -523,7 +523,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { blocked: true }.freeze
+    model = Ractor.make_shareable({ blocked: true }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
     _new_model, _cmd = update.call(event, model)
     refute handler_called, "Handler should be skipped when skip if: guard returns true"
@@ -545,7 +545,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { blocked: true }.freeze
+    model = Ractor.make_shareable({ blocked: true }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
     _new_model, _cmd = update.call(event, model)
     refute handler_called, "Handler should be skipped when skip skip: guard returns true"
@@ -585,7 +585,7 @@ class TestRouterDsl < Minitest::Test
 
     update = test_class.from_router
 
-    model = { blocked: true }.freeze
+    model = Ractor.make_shareable({ blocked: true }, copy: true)
     event = RatatuiRuby::Event::Key.new(code: "x")
     _new_model, _cmd = update.call(event, model)
     refute handler_called, "Handler should be skipped when skip guard: guard returns true"

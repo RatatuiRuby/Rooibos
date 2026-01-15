@@ -16,10 +16,10 @@ module DashboardManual
 
   # Shared with other UPDATE variants
   Model = DashboardBase::Model
-  INITIAL = DashboardBase::INITIAL
-  VIEW = DashboardBase::VIEW
+  Init = DashboardBase::Init
+  View = DashboardBase::View
 
-  UPDATE = lambda do |message, model|
+  Update = -> (message, model) do
     # Global Force Quit
     return [model, RatatuiRuby::Tea::Command.exit] if message.respond_to?(:ctrl_c?) && message.ctrl_c?
 
@@ -29,18 +29,18 @@ module DashboardManual
     case message
     # Route command results to panels
     in [:stats, *rest]
-      new_panel, command = StatsPanel::UPDATE.call(rest, model.stats)
+      new_panel, command = StatsPanel::Update.call(rest, model.stats)
       mapped_command = command ? Command.map(command) { |child_result| [:stats, *child_result] } : nil
       return [model.with(stats: new_panel), mapped_command]
 
     in [:network, *rest]
-      new_panel, command = NetworkPanel::UPDATE.call(rest, model.network)
+      new_panel, command = NetworkPanel::Update.call(rest, model.network)
       mapped_command = command ? Command.map(command) { |child_result| [:network, *child_result] } : nil
       return [model.with(network: new_panel), mapped_command]
 
     in [:shell_output, *rest]
       # Route streaming command output to modal
-      new_modal, command = CustomShellModal::UPDATE.call(message, model.shell_modal)
+      new_modal, command = CustomShellModal::Update.call(message, model.shell_modal)
       return [model.with(shell_modal: new_modal), command]
     else
       nil # Fall through to input handling
@@ -48,7 +48,7 @@ module DashboardManual
 
     # Modal intercepts user input (not command results)
     if CustomShellModal.active?(model.shell_modal)
-      new_modal, command = CustomShellModal::UPDATE.call(message, model.shell_modal)
+      new_modal, command = CustomShellModal::Update.call(message, model.shell_modal)
       return [model.with(shell_modal: new_modal), command]
     end
 

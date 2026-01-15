@@ -5,14 +5,18 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 #++
 
+require "ratatui_ruby/tea"
 # Text input fragment for custom shell command modal.
 #
 # Handles text entry. Sets cancelled: or submitted: in model for parent to detect.
 module CustomShellInput
   Model = Data.define(:text, :cancelled, :submitted)
-  INITIAL = Ractor.make_shareable(Model.new(text: "", cancelled: false, submitted: false))
 
-  VIEW = lambda do |model, tui|
+  Init = -> do
+    Ractor.make_shareable(Model.new(text: "", cancelled: false, submitted: false))
+  end
+
+  View = -> (model, tui) do
     content = if model.text.empty?
       tui.paragraph(text: tui.text_span(content: "Type a command...", style: { fg: :dark_gray }))
     else
@@ -50,7 +54,7 @@ module CustomShellInput
     )
   end
 
-  UPDATE = lambda do |message, model|
+  Update = -> (message, model) do
     case message
     in _ if message.respond_to?(:esc?) && message.esc?
       [model.with(cancelled: true), nil]

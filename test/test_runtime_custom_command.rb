@@ -11,7 +11,7 @@ require "ratatui_ruby/test_helper"
 class TestRuntimeCustomCommand < Minitest::Test
   include RatatuiRuby::TestHelper
 
-  def test_normalize_update_result_recognizes_custom_command
+  def test_normalize_update_return_recognizes_custom_command
     command_class = Class.new do
       include RatatuiRuby::Tea::Command::Custom
     end
@@ -21,7 +21,7 @@ class TestRuntimeCustomCommand < Minitest::Test
 
     # Simulate update returning [model, custom_command]
     result = [:new_model, command]
-    normalized = RatatuiRuby::Tea::Runtime.__send__(:normalize_update_result, result, previous_model)
+    normalized = RatatuiRuby::Tea::Runtime.__send__(:normalize_update_return, result, previous_model)
 
     assert_equal :new_model, normalized[0], "Model should be extracted"
     assert_equal command, normalized[1], "Custom command should be recognized as command"

@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
+require "ratatui_ruby/tea"
 require_relative "ping"
 require_relative "uptime"
 
@@ -12,29 +13,30 @@ require_relative "uptime"
 module NetworkPanel
   Model = Data.define(:ping, :uptime)
 
-  INITIAL = Model.new(
-    ping: Ping::INITIAL,
-    uptime: Uptime::INITIAL
-  )
+  Init = -> do
+    ping, = RatatuiRuby::Tea.normalize_init(Ping::Init.())
+    uptime, = RatatuiRuby::Tea.normalize_init(Uptime::Init.())
+    Model.new(ping:, uptime:)
+  end
 
-  VIEW = lambda do |model, tui, disabled: false|
+  View = -> (model, tui, disabled: false) do
     tui.layout(
       direction: :horizontal,
       constraints: [tui.constraint_percentage(50), tui.constraint_percentage(50)],
       children: [
-        Ping::VIEW.call(model.ping, tui, disabled:),
-        Uptime::VIEW.call(model.uptime, tui, disabled:),
+        Ping::View.call(model.ping, tui, disabled:),
+        Uptime::View.call(model.uptime, tui, disabled:),
       ]
     )
   end
 
-  UPDATE = lambda do |message, model|
+  Update = -> (message, model) do
     case message
     in [:ping, *rest]
-      new_child, command = Ping::UPDATE.call(rest, model.ping)
+      new_child, command = Ping::Update.call(rest, model.ping)
       [model.with(ping: new_child), command]
     in [:uptime, *rest]
-      new_child, command = Uptime::UPDATE.call(rest, model.uptime)
+      new_child, command = Uptime::Update.call(rest, model.uptime)
       [model.with(uptime: new_child), command]
     else
       [model, nil]

@@ -70,7 +70,7 @@ gems:
   source:
     type: rubygems
 - name: ratatui_ruby
-  version: 0.10.1
+  version: 0.10.2
   source:
     type: rubygems
 - name: ratatui_ruby-devtools

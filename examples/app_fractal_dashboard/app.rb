@@ -60,8 +60,4 @@ dashboard = case mode
 end
 
 puts "Running with #{mode} UPDATE..."
-RatatuiRuby::Tea.run(
-  model: dashboard::INITIAL,
-  view: dashboard::VIEW,
-  update: dashboard::UPDATE
-)
+RatatuiRuby::Tea.run(fragment: dashboard)

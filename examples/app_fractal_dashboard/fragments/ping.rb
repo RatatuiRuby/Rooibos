@@ -5,16 +5,20 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
+require "ratatui_ruby/tea"
 # Pings localhost to check network connectivity.
 # A fragment for pinging localhost.
 module Ping
   Command = RatatuiRuby::Tea::Command
 
   Model = Data.define(:output, :loading)
-  INITIAL = Model.new(output: "Press 'p' for ping", loading: false)
 
-  VIEW = lambda do |model, tui, disabled: false|
-    text_style = if disabled && model.output == INITIAL.output
+  Init = -> do
+    Model.new(output: "Press 'p' for ping", loading: false)
+  end
+
+  View = -> (model, tui, disabled: false) do
+    text_style = if disabled && model.output == Init.().output
       tui.style(fg: :dark_gray)
     else
       nil
@@ -26,7 +30,7 @@ module Ping
     )
   end
 
-  UPDATE = lambda do |message, model|
+  Update = -> (message, model) do
     case message
     in [{ type: :system, envelope: :ping, status: 0, stdout: }]
       [model.with(output: Ractor.make_shareable(stdout.strip), loading: false), nil]
@@ -38,6 +42,6 @@ module Ping
   end
 
   def self.fetch_command
-    Command.system("ping -c 1 localhost", :ping)
+    Command.system("ping -c 3 8.8.8.8", :ping)
   end
 end

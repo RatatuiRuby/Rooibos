@@ -11,6 +11,9 @@ require "ratatui_ruby/test_helper"
 class TestRuntime < Minitest::Test
   include RatatuiRuby::TestHelper
 
+  # Shareable command callable for testing init commands
+  INIT_COMPLETE_COMMAND = Ractor.make_shareable(-> (out, _token) { out.put(:init_complete) })
+
   private def ractor_error_pattern
     /ractor|frozen|shareable/i
   end
@@ -23,8 +26,22 @@ class TestRuntime < Minitest::Test
     assert_respond_to RatatuiRuby::Tea::Runtime, :run
   end
 
+  def test_run_accepts_fps_parameter
+    model = Ractor.make_shareable({ count: 0 }, copy: true)
+    view = -> (_m, tui) { tui.clear }
+    update = -> (_msg, _m) { RatatuiRuby::Tea::Command.exit }
+
+    # Verify it runs and returns the model
+    result = with_test_terminal do
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:, fps: 30)
+    end
+
+    assert_equal model, result
+  end
+
   def test_view_receives_model_and_tui
-    model = { text: "hello" }.freeze
+    model = Ractor.make_shareable({ text: "hello" }, copy: true)
     view_args = nil
 
     view = -> (m, t) { view_args = [m, t]; t.clear }
@@ -39,8 +56,59 @@ class TestRuntime < Minitest::Test
     assert_kind_of RatatuiRuby::TUI, view_args[1], "view should receive TUI as second arg"
   end
 
+  def test_init_callable_object
+    # Init is an object responding to call (but not a Proc/Method)
+    callable_init = Object.new
+    def callable_init.call
+      [Ractor.make_shareable({ count: 0 }, copy: true), nil]
+    end
+
+    fragment = Module.new
+    fragment.const_set(:Init, callable_init)
+    fragment.const_set(:Update, -> (_msg, _m) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:View, -> (_m, tui) { tui.clear })
+
+    # specific verification that it runs without raising and returns the correct model
+    result = with_test_terminal do
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(fragment)
+    end
+
+    assert_equal({ count: 0 }, result)
+  end
+
+  def test_init_invalid_callable
+    # Init does not respond to call
+    fragment = Module.new
+    fragment.const_set(:Init, Object.new)
+    fragment.const_set(:Update, -> (_msg, _m) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:View, -> (_m, tui) { tui.clear })
+
+    error = assert_raises(RatatuiRuby::Error::Invariant) do
+      with_test_terminal do
+        RatatuiRuby::Tea::Runtime.run(fragment)
+      end
+    end
+    assert_match(/Fragment::Init must respond to :call/, error.message)
+  end
+
+  def test_model_invalid_new
+    # Model does not respond to new
+    fragment = Module.new
+    fragment.const_set(:Model, Object.new) # Object.new returns an instance, which doesn't have .new
+    fragment.const_set(:Update, -> (_msg, _m) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:View, -> (_m, tui) { tui.clear })
+
+    error = assert_raises(RatatuiRuby::Error::Invariant) do
+      with_test_terminal do
+        RatatuiRuby::Tea::Runtime.run(fragment)
+      end
+    end
+    assert_match(/Fragment::Model must respond to :new/, error.message)
+  end
+
   def test_update_can_return_plain_model
-    model = { count: 0 }.freeze
+    model = Ractor.make_shareable({ count: 0 }, copy: true)
     call_count = 0
 
     view = -> (_m, tui) { tui.clear }
@@ -87,7 +155,7 @@ class TestRuntime < Minitest::Test
   end
 
   def test_update_can_return_command_only
-    model = { count: 0 }.freeze
+    model = Ractor.make_shareable({ count: 0 }, copy: true)
     received_model = nil
 
     view = -> (m, tui) { received_model = m; tui.clear }
@@ -102,7 +170,7 @@ class TestRuntime < Minitest::Test
   end
 
   def test_update_can_return_nil
-    model = { count: 0 }.freeze
+    model = Ractor.make_shareable({ count: 0 }, copy: true)
     received_model = nil
     call_count = 0
 
@@ -122,7 +190,7 @@ class TestRuntime < Minitest::Test
   end
 
   def test_view_returning_nil_raises_error
-    model = { text: "hello" }.freeze
+    model = Ractor.make_shareable({ text: "hello" }, copy: true)
 
     view = -> (_m, _t) { nil }
     update = -> (_msg, _m) { RatatuiRuby::Tea::Command.exit }
@@ -138,7 +206,7 @@ class TestRuntime < Minitest::Test
   end
 
   def test_view_returning_clear_renders_empty_screen
-    model = { text: "hello" }.freeze
+    model = Ractor.make_shareable({ text: "hello" }, copy: true)
     view_called = false
 
     view = -> (_m, tui) { view_called = true; tui.clear }
@@ -185,7 +253,7 @@ class TestRuntime < Minitest::Test
   end
 
   def test_update_returning_mutable_model_raises_error
-    model = { count: 0 }.freeze
+    model = Ractor.make_shareable({ count: 0 }, copy: true)
 
     view = -> (_m, tui) { tui.clear }
     update = -> (_msg, _m) { { count: 1 } } # Returns mutable hash - NOT frozen
@@ -202,7 +270,7 @@ class TestRuntime < Minitest::Test
   end
 
   def test_update_returning_frozen_model_succeeds
-    model = { count: 0 }.freeze
+    model = Ractor.make_shareable({ count: 0 }, copy: true)
     final_model = nil
 
     view = -> (m, tui) { final_model = m; tui.clear }
@@ -220,7 +288,7 @@ class TestRuntime < Minitest::Test
   end
 
   def test_init_triggers_update_before_first_event
-    model = { initialized: false }.freeze
+    model = Ractor.make_shareable({ initialized: false }, copy: true)
     init_ran = false
 
     view = -> (_m, tui) { tui.clear }
@@ -228,25 +296,25 @@ class TestRuntime < Minitest::Test
       case msg
       when :init_complete
         init_ran = true
-        [{ initialized: true }.freeze, nil]
+        [Ractor.make_shareable({ initialized: true }, copy: true), nil]
       else
         [m, RatatuiRuby::Tea::Command.exit]
       end
     end
 
-    # init: is a Cmd that returns a message
-    init_cmd = -> { :init_complete }
+    # command: is a Cmd that returns a message
+    init_cmd = RatatuiRuby::Tea::Command.custom(INIT_COMPLETE_COMMAND)
 
     with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:, init: init_cmd)
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:, command: init_cmd)
     end
 
     assert init_ran, "init command should trigger update with :init_complete message"
   end
 
   def test_update_receives_message_from_successful_command
-    model = { output: nil }.freeze
+    model = Ractor.make_shareable({ output: nil }, copy: true)
     received_stdout = nil
 
     view = -> (_m, tui) { tui.clear }
@@ -277,7 +345,7 @@ class TestRuntime < Minitest::Test
   end
 
   def test_update_receives_message_from_failed_command
-    model = { error: nil }.freeze
+    model = Ractor.make_shareable({ error: nil }, copy: true)
     received_stderr = nil
 
     view = -> (_m, tui) { tui.clear }
@@ -308,7 +376,7 @@ class TestRuntime < Minitest::Test
 
   def test_runtime_executes_command_system_success_with_stderr_noise
     # Some programs write output to stdout AND noise/warnings to stderr on success
-    model = { output: nil, noise: nil }.freeze
+    model = Ractor.make_shareable({ output: nil, noise: nil }, copy: true)
     received_stdout = nil
     received_stderr = nil
 
@@ -339,7 +407,7 @@ class TestRuntime < Minitest::Test
   end
 
   def test_runtime_dispatches_mapped_command
-    model = { output: nil }.freeze
+    model = Ractor.make_shareable({ output: nil }, copy: true)
     received_msg = nil
 
     view = -> (_m, tui) { tui.clear }
@@ -378,7 +446,7 @@ class TestRuntime < Minitest::Test
   def test_sync_event_waits_for_pending_threads
     # When the runtime sees a Sync event, it should wait for all pending
     # threads to complete and process their results before continuing.
-    model = { result: nil }.freeze
+    model = Ractor.make_shareable({ result: nil }, copy: true)
     result_seen_before_quit = nil
 
     view = -> (_m, tui) { tui.clear }

@@ -51,11 +51,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
     with_test_terminal do
       inject_key(:q)
 
-      RatatuiRuby::Tea.run(
-        model: DashboardManual::INITIAL,
-        view: DashboardManual::VIEW,
-        update: DashboardManual::UPDATE
-      )
+      RatatuiRuby::Tea.run(DashboardManual)
 
       assert_snapshots("initial_view")
     end
@@ -68,11 +64,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
         inject_sync
         inject_key(:q)
 
-        RatatuiRuby::Tea.run(
-          model: DashboardManual::INITIAL,
-          view: DashboardManual::VIEW,
-          update: DashboardManual::UPDATE
-        )
+        RatatuiRuby::Tea.run(DashboardManual)
 
         assert_snapshots("after_system_info")
       end
@@ -86,11 +78,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
         inject_sync
         inject_key(:q)
 
-        RatatuiRuby::Tea.run(
-          model: DashboardManual::INITIAL,
-          view: DashboardManual::VIEW,
-          update: DashboardManual::UPDATE
-        )
+        RatatuiRuby::Tea.run(DashboardManual)
 
         assert_snapshots("after_disk_usage")
       end
@@ -104,11 +92,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
         inject_sync
         inject_key(:q)
 
-        RatatuiRuby::Tea.run(
-          model: DashboardManual::INITIAL,
-          view: DashboardManual::VIEW,
-          update: DashboardManual::UPDATE
-        )
+        RatatuiRuby::Tea.run(DashboardManual)
 
         assert_snapshots("after_ping")
       end
@@ -122,11 +106,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
         inject_sync
         inject_key(:q)
 
-        RatatuiRuby::Tea.run(
-          model: DashboardManual::INITIAL,
-          view: DashboardManual::VIEW,
-          update: DashboardManual::UPDATE
-        )
+        RatatuiRuby::Tea.run(DashboardManual)
 
         assert_snapshots("after_uptime")
       end
@@ -138,11 +118,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
     manual_content = nil
     with_test_terminal do
       inject_key(:q)
-      RatatuiRuby::Tea.run(
-        model: DashboardManual::INITIAL,
-        view: DashboardManual::VIEW,
-        update: DashboardManual::UPDATE
-      )
+      RatatuiRuby::Tea.run(DashboardManual)
       manual_content = buffer_content
     end
 
@@ -151,9 +127,9 @@ class TestFractalDashboardSnapshots < Minitest::Test
     with_test_terminal do
       inject_key(:q)
       RatatuiRuby::Tea.run(
-        model: DashboardHelpers::INITIAL,
-        view: DashboardHelpers::VIEW,
-        update: DashboardHelpers::UPDATE
+        model: DashboardHelpers::Init.(),
+        view: DashboardHelpers::View,
+        update: DashboardHelpers::Update
       )
       helpers_content = buffer_content
     end
@@ -163,9 +139,9 @@ class TestFractalDashboardSnapshots < Minitest::Test
     with_test_terminal do
       inject_key(:q)
       RatatuiRuby::Tea.run(
-        model: DashboardRouter::INITIAL,
-        view: DashboardRouter::VIEW,
-        update: DashboardRouter::UPDATE
+        model: DashboardRouter::Init.(),
+        view: DashboardRouter::View,
+        update: DashboardRouter::Update
       )
       router_content = buffer_content
     end
@@ -181,11 +157,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:esc)      # Cancel modal
       inject_key(:q)        # Quit
 
-      RatatuiRuby::Tea.run(
-        model: DashboardManual::INITIAL,
-        view: DashboardManual::VIEW,
-        update: DashboardManual::UPDATE
-      )
+      RatatuiRuby::Tea.run(DashboardManual)
 
       # Should be back to initial view (ESC dismissed modal)
       assert_snapshots("initial_view")
@@ -198,11 +170,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:esc)      # Cancel modal immediately
       inject_key(:q)        # Quit
 
-      RatatuiRuby::Tea.run(
-        model: DashboardManual::INITIAL,
-        view: DashboardManual::VIEW,
-        update: DashboardManual::UPDATE
-      )
+      RatatuiRuby::Tea.run(DashboardManual)
 
       # If we got here without error, modal opened and closed successfully
       assert true
@@ -219,11 +187,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:esc)      # Cancel
       inject_key(:q)        # Quit
 
-      RatatuiRuby::Tea.run(
-        model: DashboardManual::INITIAL,
-        view: DashboardManual::VIEW,
-        update: DashboardManual::UPDATE
-      )
+      RatatuiRuby::Tea.run(DashboardManual)
 
       # Should be back to initial view
       assert_snapshots("initial_view")
@@ -237,11 +201,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:enter)    # Enter on empty = cancel
       inject_key(:q)        # Quit
 
-      RatatuiRuby::Tea.run(
-        model: DashboardManual::INITIAL,
-        view: DashboardManual::VIEW,
-        update: DashboardManual::UPDATE
-      )
+      RatatuiRuby::Tea.run(DashboardManual)
 
       # Should be back to initial view
       assert_snapshots("initial_view")
@@ -251,8 +211,8 @@ class TestFractalDashboardSnapshots < Minitest::Test
   def test_modal_input_view
     with_test_terminal do
       # Start with modal open
-      start_model = DashboardManual::INITIAL.with(
-        shell_modal: CustomShellModal::INITIAL.with(mode: :input)
+      start_model = DashboardManual::Init.().with(
+        shell_modal: CustomShellModal::Init.().with(mode: :input)
       )
 
       # 1. Render modal (captured)
@@ -263,8 +223,8 @@ class TestFractalDashboardSnapshots < Minitest::Test
 
       RatatuiRuby::Tea.run(
         model: start_model,
-        view: DashboardManual::VIEW,
-        update: DashboardManual::UPDATE
+        view: DashboardManual::View,
+        update: DashboardManual::Update
       )
 
       assert_snapshots("modal_input")
@@ -274,8 +234,8 @@ class TestFractalDashboardSnapshots < Minitest::Test
   def test_modal_typing_view
     with_test_terminal do
       # Start with modal open
-      start_model = DashboardManual::INITIAL.with(
-        shell_modal: CustomShellModal::INITIAL.with(mode: :input)
+      start_model = DashboardManual::Init.().with(
+        shell_modal: CustomShellModal::Init.().with(mode: :input)
       )
 
       # 1. Type "ls -la"
@@ -293,8 +253,8 @@ class TestFractalDashboardSnapshots < Minitest::Test
 
       RatatuiRuby::Tea.run(
         model: start_model,
-        view: DashboardManual::VIEW,
-        update: DashboardManual::UPDATE
+        view: DashboardManual::View,
+        update: DashboardManual::Update
       )
 
       assert_snapshots("modal_typing")
@@ -310,15 +270,15 @@ class TestFractalDashboardSnapshots < Minitest::Test
         CustomShellOutput::Chunk.new(stream: :stdout, text: "drwxr-xr-x  3 kerrick  staff  96 Jan  1 12:00 .\n"),
       ].freeze)
 
-      output_model = CustomShellOutput::INITIAL.with(
+      output_model = CustomShellOutput::Init.().with(
         command: "ls -la",
         chunks:,
         running: false,
         exit_status: 1
       )
 
-      start_model = DashboardManual::INITIAL.with(
-        shell_modal: CustomShellModal::INITIAL.with(
+      start_model = DashboardManual::Init.().with(
+        shell_modal: CustomShellModal::Init.().with(
           mode: :output,
           output: output_model
         )
@@ -332,8 +292,8 @@ class TestFractalDashboardSnapshots < Minitest::Test
 
       RatatuiRuby::Tea.run(
         model: start_model,
-        view: DashboardManual::VIEW,
-        update: DashboardManual::UPDATE
+        view: DashboardManual::View,
+        update: DashboardManual::Update
       )
 
       assert_snapshots("modal_output")

@@ -13,9 +13,12 @@ require "ratatui_ruby/tea"
 class VerifyReadmeUsage
   # [SYNC:START:mvu]
   Model = Data.define(:text)
-  MODEL = Model.new(text: "Hello, Ratatui! Press 'q' to quit.")
 
-  VIEW = -> (model, tui) do
+  Init = -> do
+    Model.new(text: "Hello, Ratatui! Press 'q' to quit.")
+  end
+
+  View = -> (model, tui) do
     tui.paragraph(
       text: model.text,
       alignment: :center,
@@ -27,7 +30,7 @@ class VerifyReadmeUsage
     )
   end
 
-  UPDATE = -> (msg, model) do
+  Update = -> (msg, model) do
     if msg.q? || msg.ctrl_c?
       RatatuiRuby::Tea::Command.exit
     else
@@ -36,7 +39,7 @@ class VerifyReadmeUsage
   end
 
   def run
-    RatatuiRuby::Tea.run(model: MODEL, view: VIEW, update: UPDATE)
+    RatatuiRuby::Tea.run(VerifyReadmeUsage)
   end
   # [SYNC:END:mvu]
 end

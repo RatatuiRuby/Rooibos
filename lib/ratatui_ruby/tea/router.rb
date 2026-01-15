@@ -173,7 +173,7 @@ module RatatuiRuby
         def call(message, model)
           # 1. Try routing prefixed messages to child fragments
           @routes.each do |prefix, fragment|
-            fragment_update = fragment.const_get(:UPDATE)
+            fragment_update = fragment.const_get(:Update)
             result = Tea.delegate(message, prefix, fragment_update, model.public_send(prefix))
             if result
               new_fragment_model, command = result

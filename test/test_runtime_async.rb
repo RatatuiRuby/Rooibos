@@ -39,7 +39,6 @@ class TestRuntimeAsync < Minitest::Test
 
       new_events = (m[:events] + [clean_msg]).freeze
 
-      puts "DEBUG: Processing msg: #{clean_msg}"
       case clean_msg
       when :start_cmd
         [m.merge(events: new_events).freeze, long_running_cmd]

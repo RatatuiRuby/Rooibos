@@ -1,11 +1,4 @@
 PATH
-  remote: ../ratatui_ruby
-  specs:
-    ratatui_ruby (0.10.1)
-      ostruct (~> 0.6)
-      rb_sys (~> 0.9)
-
-PATH
   remote: .
   specs:
     ratatui_ruby-tea (0.3.1)
@@ -50,6 +43,9 @@ GEM
     connection_pool (3.0.2)
     csv (3.3.5)
     date (3.5.1)
+    debug (1.11.1)
+      irb (~> 1.10)
+      reline (>= 0.3.8)
     descendants_tracker (0.0.4)
       thread_safe (~> 0.3, >= 0.3.1)
     docile (1.4.1)
@@ -153,6 +149,9 @@ GEM
     rainbow (3.1.1)
     rake (13.3.1)
     rake-compiler-dock (1.11.0)
+    ratatui_ruby (0.10.2)
+      ostruct (~> 0.6)
+      rb_sys (~> 0.9)
     ratatui_ruby-devtools (0.1.0)
       inch (>= 0.8)
       minitest (~> 5.0)
@@ -258,9 +257,7 @@ GEM
     tty-which (0.5.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
-    unicode-display_width (3.2.0)
-      unicode-emoji (~> 4.1)
-    unicode-emoji (4.2.0)
+    unicode-display_width (2.6.0)
     uri (1.1.1)
     virtus (2.0.0)
       axiom-types (~> 0.1)
@@ -274,6 +271,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  debug
   faker (~> 3.5, >= 0)
   flog (= 4.8.0)
   inch (~> 0.4)
@@ -281,7 +279,7 @@ DEPENDENCIES
   minitest (~> 5.16)
   nokogiri
   rake (~> 13.0)
-  ratatui_ruby!
+  ratatui_ruby (~> 0.10.2)
   ratatui_ruby-devtools
   ratatui_ruby-tea!
   rdoc (~> 7.0)
@@ -304,6 +302,7 @@ CHECKSUMS
   connection_pool (3.0.2) sha256=33fff5ba71a12d2aa26cb72b1db8bba2a1a01823559fb01d29eb74c286e62e0a
   csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
   date (3.5.1) sha256=750d06384d7b9c15d562c76291407d89e368dda4d4fff957eb94962d325a0dc0
+  debug (1.11.1) sha256=2e0b0ac6119f2207a6f8ac7d4a73ca8eb4e440f64da0a3136c30343146e952b6
   descendants_tracker (0.0.4) sha256=e9c41dd4cfbb85829a9301ea7e7c48c2a03b26f09319db230e6479ccdc780897
   docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
   drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
@@ -353,7 +352,7 @@ CHECKSUMS
   rainbow (3.1.1) sha256=039491aa3a89f42efa1d6dec2fc4e62ede96eb6acd95e52f1ad581182b79bc6a
   rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
   rake-compiler-dock (1.11.0) sha256=eab51f2cd533eb35cea6b624a75281f047123e70a64c58b607471bb49428f8c2
-  ratatui_ruby (0.10.1)
+  ratatui_ruby (0.10.2) sha256=6002eb43158e95365182dd82c2ffdac81d0c0a3147c38318ad7af31ab5f3cbb6
   ratatui_ruby-devtools (0.1.0) sha256=be259bbd30fa9ccdd0febc00830d942845997a87c02de876e4c3d99f4839baf6
   ratatui_ruby-tea (0.3.1)
   rb-fsevent (0.11.2) sha256=43900b972e7301d6570f64b850a5aa67833ee7d87b458ee92805d56b7318aefe
@@ -388,8 +387,7 @@ CHECKSUMS
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
   tty-which (0.5.0) sha256=5824055f0d6744c97e7c4426544f01d519c40d1806ef2ef47d9854477993f466
   tzinfo (2.0.6) sha256=8daf828cc77bcf7d63b0e3bdb6caa47e2272dcfaf4fbfe46f8c3a9df087a829b
-  unicode-display_width (3.2.0) sha256=0cdd96b5681a5949cdbc2c55e7b420facae74c4aaf9a9815eee1087cb1853c42
-  unicode-emoji (4.2.0) sha256=519e69150f75652e40bf736106cfbc8f0f73aa3fb6a65afe62fefa7f80b0f80f
+  unicode-display_width (2.6.0) sha256=12279874bba6d5e4d2728cef814b19197dbb10d7a7837a869bab65da943b7f5a
   uri (1.1.1) sha256=379fa58d27ffb1387eaada68c749d1426738bd0f654d812fcc07e7568f5c57c6
   virtus (2.0.0) sha256=8841dae4eb7fcc097320ba5ea516bf1839e5d056c61ee27138aa4bddd6e3d1c2
   yard (0.9.38) sha256=721fb82afb10532aa49860655f6cc2eaa7130889df291b052e1e6b268283010f

@@ -5,16 +5,20 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
+require "ratatui_ruby/tea"
 # Fetches and displays disk usage via +df -h+.
 # A fragment for fetching and displaying disk usage.
 module DiskUsage
   Command = RatatuiRuby::Tea::Command
 
   Model = Data.define(:output, :loading)
-  INITIAL = Model.new(output: "Press 'd' for disk usage", loading: false)
 
-  VIEW = lambda do |model, tui, disabled: false|
-    text_style = if disabled && model.output == INITIAL.output
+  Init = -> do
+    Model.new(output: "Press 'd' for disk usage", loading: false)
+  end
+
+  View = -> (model, tui, disabled: false) do
+    text_style = if disabled && model.output == Init.().output
       tui.style(fg: :dark_gray)
     else
       nil
@@ -26,11 +30,10 @@ module DiskUsage
     )
   end
 
-  UPDATE = lambda do |message, model|
+  Update = -> (message, model) do
     case message
     in [{ type: :system, envelope: :disk_usage, status: 0, stdout: }]
-      lines = Ractor.make_shareable(stdout.lines.first(4).join.strip)
-      [model.with(output: lines, loading: false), nil]
+      [model.with(output: Ractor.make_shareable(stdout.strip), loading: false), nil]
     in [{ type: :system, envelope: :disk_usage, stderr: }]
       [model.with(output: Ractor.make_shareable("Error: #{stderr.strip}"), loading: false), nil]
     else
@@ -39,6 +42,6 @@ module DiskUsage
   end
 
   def self.fetch_command
-    Command.system("df -h", :disk_usage)
+    Command.system("df -h /", :disk_usage)
   end
 end

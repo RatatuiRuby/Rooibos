@@ -10,7 +10,7 @@ require_relative "../examples/app_fractal_dashboard/dashboard/update_manual"
 
 class TestFractalDashboard < Minitest::Test
   def test_update_routes_stats_panel_message
-    model = DashboardManual::INITIAL
+    model = DashboardManual::Init.()
     batch = RatatuiRuby::Tea::Message::System::Batch.new(
       envelope: :system_info,
       stdout: "Darwin\n",
@@ -19,7 +19,7 @@ class TestFractalDashboard < Minitest::Test
     )
     msg = [:stats, :system_info, batch]
 
-    result = DashboardManual::UPDATE.call(msg, model)
+    result = DashboardManual::Update.call(msg, model)
 
     new_model, cmd = result
     assert_equal "Darwin", new_model.stats.system_info.output
@@ -27,7 +27,7 @@ class TestFractalDashboard < Minitest::Test
   end
 
   def test_update_routes_network_panel_message
-    model = DashboardManual::INITIAL
+    model = DashboardManual::Init.()
     batch = RatatuiRuby::Tea::Message::System::Batch.new(
       envelope: :ping,
       stdout: "PING localhost\n",
@@ -36,7 +36,7 @@ class TestFractalDashboard < Minitest::Test
     )
     msg = [:network, :ping, batch]
 
-    result = DashboardManual::UPDATE.call(msg, model)
+    result = DashboardManual::Update.call(msg, model)
 
     new_model, cmd = result
     assert_equal "PING localhost", new_model.network.ping.output
@@ -44,10 +44,10 @@ class TestFractalDashboard < Minitest::Test
   end
 
   def test_s_key_triggers_mapped_system_info_command
-    model = DashboardManual::INITIAL
+    model = DashboardManual::Init.()
     msg = RatatuiRuby::Event::Key.new(code: "s", modifiers: [])
 
-    result = DashboardManual::UPDATE.call(msg, model)
+    result = DashboardManual::Update.call(msg, model)
 
     new_model, cmd = result
     assert new_model.stats.system_info.loading, "Should set loading state"
@@ -57,10 +57,10 @@ class TestFractalDashboard < Minitest::Test
   end
 
   def test_p_key_triggers_mapped_ping_command
-    model = DashboardManual::INITIAL
+    model = DashboardManual::Init.()
     msg = RatatuiRuby::Event::Key.new(code: "p", modifiers: [])
 
-    result = DashboardManual::UPDATE.call(msg, model)
+    result = DashboardManual::Update.call(msg, model)
 
     new_model, cmd = result
     assert new_model.network.ping.loading, "Should set loading state"

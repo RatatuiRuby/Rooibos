@@ -8,54 +8,62 @@
 require_relative "custom_shell_input"
 require_relative "custom_shell_output"
 
-# Parent coordinator fragment for custom shell modal.
-#
-# Routes to active child (input or output). Checks child model state for transitions.
+# Modal overlay for custom shell command execution.
 module CustomShellModal
   Command = RatatuiRuby::Tea::Command
 
   Model = Data.define(:mode, :input, :output)
-  INITIAL = Ractor.make_shareable(Model.new(mode: :none, input: CustomShellInput::INITIAL, output: CustomShellOutput::INITIAL))
 
-  VIEW = lambda do |model, tui|
+  Init = -> do
+    input, = RatatuiRuby::Tea.normalize_init(CustomShellInput::Init.())
+    output, = RatatuiRuby::Tea.normalize_init(CustomShellOutput::Init.())
+    Ractor.make_shareable(Model.new(mode: :none, input:, output:))
+  end
+
+  View = -> (model, tui) do
     case model.mode
-    when :none then nil
-    when :input then CustomShellInput::VIEW.call(model.input, tui)
-    when :output then CustomShellOutput::VIEW.call(model.output, tui)
+    when :input
+      CustomShellInput::View.call(model.input, tui)
+    when :output
+      CustomShellOutput::View.call(model.output, tui)
+    else
+      nil
     end
   end
 
-  UPDATE = lambda do |message, model|
-    case model.mode
-    when :input
-      new_input, cmd = CustomShellInput::UPDATE.call(message, model.input)
+  Update = -> (message, model) do
+    case [model.mode, message]
+    in [:input, _]
+      # Delegate first, then check if user wants to close
+      new_input, _cmd = CustomShellInput::Update.call(message, model.input)
 
       if new_input.cancelled
-        [INITIAL, nil]
+        [Init.(), nil]
       elsif new_input.submitted
         shell_cmd = new_input.text
-        new_output = CustomShellOutput::INITIAL.with(command: shell_cmd, running: true)
+        new_output = CustomShellOutput::Init.().with(command: shell_cmd, running: true)
+        reset_input, = RatatuiRuby::Tea.normalize_init(CustomShellInput::Init.())
         [
-          model.with(mode: :output, input: CustomShellInput::INITIAL, output: new_output),
+          model.with(mode: :output, input: reset_input, output: new_output),
           Command.system(shell_cmd, :shell_output, stream: true),
-]
+        ]
       else
-        [model.with(input: new_input), cmd]
+        [model.with(input: new_input), nil]
       end
 
-    when :output
-      # Route streaming messages (strip :shell_output prefix)
-      routed = case message
-               in [:shell_output, *rest] then rest
-               else message
-      end
-
-      new_output, cmd = CustomShellOutput::UPDATE.call(routed, model.output)
-
-      if new_output.dismissed
-        [INITIAL, nil]
+    in [:output, _]
+      # Delegate first, then check if user wants to close
+      case message
+      in RatatuiRuby::Event::Key if message.ctrl_c?
+        [Init.(), nil]
       else
-        [model.with(output: new_output), cmd]
+        new_output, _cmd = CustomShellOutput::Update.call(message, model.output)
+
+        if new_output.dismissed
+          [Init.(), nil]
+        else
+          [model.with(output: new_output), nil]
+        end
       end
 
     else
@@ -64,7 +72,8 @@ module CustomShellModal
   end
 
   def self.open
-    INITIAL.with(mode: :input, input: CustomShellInput::INITIAL)
+    input, = RatatuiRuby::Tea.normalize_init(CustomShellInput::Init.())
+    Init.().with(mode: :input, input:)
   end
 
   def self.active?(model)

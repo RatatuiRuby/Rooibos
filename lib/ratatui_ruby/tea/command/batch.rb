@@ -35,9 +35,10 @@ module RatatuiRuby
       #       [model.with(msg => data), nil]
       #     end
       #   end
-      Batch = Data.define(:commands) do
+      class Batch < Data.define(:commands) do
         include Custom
 
+        # Initialize
         def self.new(*args)
           # DWIM: accept (cmd1, cmd2) or ([cmd1, cmd2])
           commands = (args.size == 1 && args.first.is_a?(Array)) ? args.first : args
@@ -57,6 +58,7 @@ module RatatuiRuby
           instance
         end
 
+        # Call it
         def call(out, token)
           futures = commands.map do |command|
             Concurrent::Promises.future { command.call(out, token) }
@@ -70,6 +72,7 @@ module RatatuiRuby
 
           out.put(Command.cancel(self)) if token.canceled?
         end
+      end
       end
     end
   end

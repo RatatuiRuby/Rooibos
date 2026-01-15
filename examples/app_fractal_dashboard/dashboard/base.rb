@@ -9,22 +9,21 @@ require_relative "../fragments/stats_panel"
 require_relative "../fragments/network_panel"
 require_relative "../fragments/custom_shell_modal"
 
-# Shared Model, INITIAL, and VIEW for the Dashboard.
-#
-# This module is extended by the three UPDATE variants to demonstrate
-# the progression from verbose manual routing to declarative DSL.
+# Shared Model, Init, and View for the Dashboard.
+# Each Dashboard variation (Manual, Router, Helpers) provides its own Update.
 module DashboardBase
   Command = RatatuiRuby::Tea::Command
 
   Model = Data.define(:stats, :network, :shell_modal)
 
-  INITIAL = Model.new(
-    stats: StatsPanel::INITIAL,
-    network: NetworkPanel::INITIAL,
-    shell_modal: CustomShellModal::INITIAL
-  )
+  Init = -> do
+    stats, = RatatuiRuby::Tea.normalize_init(StatsPanel::Init.())
+    network, = RatatuiRuby::Tea.normalize_init(NetworkPanel::Init.())
+    shell_modal, = RatatuiRuby::Tea.normalize_init(CustomShellModal::Init.())
+    Model.new(stats:, network:, shell_modal:)
+  end
 
-  VIEW = lambda do |model, tui|
+  View = -> (model, tui) do
     modal_active = CustomShellModal.active?(model.shell_modal)
     hotkey, label_style = if modal_active
       [tui.style(fg: :dark_gray), tui.style(fg: :dark_gray)]
@@ -57,14 +56,14 @@ module DashboardBase
       direction: :vertical,
       constraints: [tui.constraint_fill(1), tui.constraint_fill(1), tui.constraint_length(3)],
       children: [
-        StatsPanel::VIEW.call(model.stats, tui, disabled: modal_active),
-        NetworkPanel::VIEW.call(model.network, tui, disabled: modal_active),
+        StatsPanel::View.call(model.stats, tui, disabled: modal_active),
+        NetworkPanel::View.call(model.network, tui, disabled: modal_active),
         controls,
       ]
     )
 
     # Compose modal overlay if active
-    modal_widget = CustomShellModal::VIEW.call(model.shell_modal, tui)
+    modal_widget = CustomShellModal::View.call(model.shell_modal, tui)
     if modal_widget
       tui.overlay(layers: [dashboard, modal_widget])
     else

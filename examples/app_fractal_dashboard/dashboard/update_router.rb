@@ -16,10 +16,10 @@ module DashboardRouter
 
   Command = RatatuiRuby::Tea::Command
 
-  # Shared with other UPDATE variants
+  # Shared with other Update variants
   Model = DashboardBase::Model
-  INITIAL = DashboardBase::INITIAL
-  VIEW = DashboardBase::VIEW
+  Init = DashboardBase::Init
+  View = DashboardBase::View
 
   route :stats, to: StatsPanel
   route :network, to: NetworkPanel
@@ -39,5 +39,5 @@ module DashboardRouter
     end
   end
 
-  UPDATE = from_router
+  Update = from_router
 end

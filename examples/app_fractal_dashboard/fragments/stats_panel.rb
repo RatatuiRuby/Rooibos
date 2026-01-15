@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
+require "ratatui_ruby/tea"
 require_relative "system_info"
 require_relative "disk_usage"
 
@@ -12,29 +13,30 @@ require_relative "disk_usage"
 module StatsPanel
   Model = Data.define(:system_info, :disk_usage)
 
-  INITIAL = Model.new(
-    system_info: SystemInfo::INITIAL,
-    disk_usage: DiskUsage::INITIAL
-  )
+  Init = -> do
+    system_info, = RatatuiRuby::Tea.normalize_init(SystemInfo::Init.())
+    disk_usage, = RatatuiRuby::Tea.normalize_init(DiskUsage::Init.())
+    Model.new(system_info:, disk_usage:)
+  end
 
-  VIEW = lambda do |model, tui, disabled: false|
+  View = -> (model, tui, disabled: false) do
     tui.layout(
       direction: :horizontal,
       constraints: [tui.constraint_percentage(50), tui.constraint_percentage(50)],
       children: [
-        SystemInfo::VIEW.call(model.system_info, tui, disabled:),
-        DiskUsage::VIEW.call(model.disk_usage, tui, disabled:),
+        SystemInfo::View.call(model.system_info, tui, disabled:),
+        DiskUsage::View.call(model.disk_usage, tui, disabled:),
       ]
     )
   end
 
-  UPDATE = lambda do |message, model|
+  Update = -> (message, model) do
     case message
     in [:system_info, *rest]
-      new_child, command = SystemInfo::UPDATE.call(rest, model.system_info)
+      new_child, command = SystemInfo::Update.call(rest, model.system_info)
       [model.with(system_info: new_child), command]
     in [:disk_usage, *rest]
-      new_child, command = DiskUsage::UPDATE.call(rest, model.disk_usage)
+      new_child, command = DiskUsage::Update.call(rest, model.disk_usage)
       [model.with(disk_usage: new_child), command]
     else
       [model, nil]

@@ -152,6 +152,7 @@ class TestRuntimeTimer < Minitest::Test
 
     # Cooperative cancellation sends Command.cancel(self); thread-kill sends nothing
     cancel_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Cancel) }
-    assert_same original_cmd, cancel_msg.handle
+    refute_nil cancel_msg, "Should receive a Cancel message"
+    assert_same original_cmd, cancel_msg.handle, "Cancel sentinel wraps the original command as .handle"
   end
 end

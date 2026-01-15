@@ -17,10 +17,10 @@ module DashboardHelpers
 
   # Shared with other UPDATE variants
   Model = DashboardBase::Model
-  INITIAL = DashboardBase::INITIAL
-  VIEW = DashboardBase::VIEW
+  Init = DashboardBase::Init
+  View = DashboardBase::View
 
-  UPDATE = lambda do |message, model|
+  Update = -> (message, model) do
     # Global Force Quit
     return [model, RatatuiRuby::Tea::Command.exit] if message.respond_to?(:ctrl_c?) && message.ctrl_c?
 
@@ -29,25 +29,25 @@ module DashboardHelpers
     # modal is active. Only user input (keys/mouse) should be blocked.
 
     # Route streaming command output to modal
-    if (result = Tea.delegate(message, :shell_output, CustomShellModal::UPDATE, model.shell_modal))
+    if (result = Tea.delegate(message, :shell_output, CustomShellModal::Update, model.shell_modal))
       new_modal, command = result
       return [model.with(shell_modal: new_modal), command]
     end
 
     # Route to child fragments
-    if (result = Tea.delegate(message, :stats, StatsPanel::UPDATE, model.stats))
+    if (result = Tea.delegate(message, :stats, StatsPanel::Update, model.stats))
       new_child, command = result
       return [model.with(stats: new_child), command && Tea.route(command, :stats)]
     end
 
-    if (result = Tea.delegate(message, :network, NetworkPanel::UPDATE, model.network))
+    if (result = Tea.delegate(message, :network, NetworkPanel::Update, model.network))
       new_child, command = result
       return [model.with(network: new_child), command && Tea.route(command, :network)]
     end
 
     # Modal intercepts user input (not command results)
     if CustomShellModal.active?(model.shell_modal)
-      new_modal, command = CustomShellModal::UPDATE.call(message, model.shell_modal)
+      new_modal, command = CustomShellModal::Update.call(message, model.shell_modal)
       return [model.with(shell_modal: new_modal), command]
     end
 

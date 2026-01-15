@@ -5,16 +5,20 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
+require "ratatui_ruby/tea"
 # Fetches and displays system information via +uname -a+.
 # A fragment for fetching and displaying system information.
 module SystemInfo
   Command = RatatuiRuby::Tea::Command
 
   Model = Data.define(:output, :loading)
-  INITIAL = Model.new(output: "Press 's' for system info", loading: false)
 
-  VIEW = lambda do |model, tui, disabled: false|
-    text_style = if disabled && model.output == INITIAL.output
+  Init = -> do
+    Model.new(output: "Press 's' for system info", loading: false)
+  end
+
+  View = -> (model, tui, disabled: false) do
+    text_style = if disabled && model.output == Init.().output
       tui.style(fg: :dark_gray)
     else
       nil
@@ -26,7 +30,7 @@ module SystemInfo
     )
   end
 
-  UPDATE = lambda do |message, model|
+  Update = -> (message, model) do
     case message
     in [{ type: :system, envelope: :system_info, status: 0, stdout: }]
       [model.with(output: Ractor.make_shareable(stdout.strip), loading: false), nil]

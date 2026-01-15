@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 #++
 
+require "ratatui_ruby/tea"
 # Streaming output fragment for custom shell command modal.
 #
 # Displays interleaved stdout/stderr. Border color reflects exit status.
@@ -12,9 +13,12 @@
 module CustomShellOutput
   Chunk = Data.define(:stream, :text)
   Model = Data.define(:command, :chunks, :running, :exit_status, :dismissed)
-  INITIAL = Ractor.make_shareable(Model.new(command: "", chunks: [].freeze, running: false, exit_status: nil, dismissed: false))
 
-  VIEW = lambda do |model, tui|
+  Init = -> do
+    Ractor.make_shareable(Model.new(command: "", chunks: [].freeze, running: false, exit_status: nil, dismissed: false))
+  end
+
+  View = -> (model, tui) do
     # Build styled spans from chunks
     spans = if model.chunks.empty? && model.running
       [tui.text_span(content: "Running...", style: tui.style(fg: :dark_gray))]
@@ -56,7 +60,7 @@ module CustomShellOutput
     )
   end
 
-  UPDATE = lambda do |message, model|
+  Update = -> (message, model) do
     case message
     in [:stdout, chunk]
       new_chunks = Ractor.make_shareable([*model.chunks, Chunk.new(stream: :stdout, text: chunk)].freeze)

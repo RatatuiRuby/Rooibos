@@ -5,16 +5,20 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
+require "ratatui_ruby/tea"
 # Displays system uptime.
 # A fragment for displaying system uptime.
 module Uptime
   Command = RatatuiRuby::Tea::Command
 
   Model = Data.define(:output, :loading)
-  INITIAL = Model.new(output: "Press 'u' for uptime", loading: false)
 
-  VIEW = lambda do |model, tui, disabled: false|
-    text_style = if disabled && model.output == INITIAL.output
+  Init = -> do
+    Model.new(output: "Press 'u' for uptime", loading: false)
+  end
+
+  View = -> (model, tui, disabled: false) do
+    text_style = if disabled && model.output == Init.().output
       tui.style(fg: :dark_gray)
     else
       nil
@@ -26,7 +30,7 @@ module Uptime
     )
   end
 
-  UPDATE = lambda do |message, model|
+  Update = -> (message, model) do
     case message
     in [{ type: :system, envelope: :uptime, status: 0, stdout: }]
       [model.with(output: Ractor.make_shareable(stdout.strip), loading: false), nil]

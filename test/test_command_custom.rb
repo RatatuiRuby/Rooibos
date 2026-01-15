@@ -6,8 +6,11 @@
 #++
 
 require "test_helper"
+require "ratatui_ruby/test_helper"
 
 class TestCommandCustom < Minitest::Test
+  include RatatuiRuby::TestHelper
+
   def test_tea_command_returns_true
     klass = Class.new do
       include RatatuiRuby::Tea::Command::Custom
@@ -34,5 +37,34 @@ class TestCommandCustom < Minitest::Test
     end
 
     assert_equal Float::INFINITY, klass.new.tea_cancellation_grace_period
+  end
+
+  ShareableProc = Ractor.make_shareable(-> (_out, _token) { :test_message })
+  def test_command_custom_is_ractor_shareable
+    # App developers should not need to manually wrap Command.custom with Ractor.make_shareable
+    cmd = RatatuiRuby::Tea::Command.custom(ShareableProc)
+
+    assert Ractor.shareable?(cmd), "Command.custom should return a Ractor-shareable object automatically"
+  end
+
+  MutableString = String.new
+  class NonShareableCommand
+    include RatatuiRuby::Tea::Command::Custom
+    Closure = -> (out, token) { MutableString << "test" }
+    def call(out, token)
+      Closure.call(out, token)
+    end
+  end
+
+  NonShareableProcThatCanBeMadeShareable = -> (_out, _token) { :test_message }
+  def test_command_custom_raises_invariant_error_in_debug_mode_if_not_already_ractor_shareable
+    # Create proc dynamically so it's not already shareable
+    non_shareable_proc = -> (_out, _token) { :test_message }
+
+    error = assert_raises(RatatuiRuby::Error::Invariant) do
+      RatatuiRuby::Tea::Command.custom(non_shareable_proc)
+    end
+
+    assert_match(/ractor-shareable/i, error.message)
   end
 end

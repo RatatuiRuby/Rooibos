@@ -39,7 +39,14 @@ module RatatuiRuby
       # Sentinel value for application termination.
       #
       # The runtime detects this before dispatching. It breaks the loop immediately.
-      Exit = Data.define
+      class Exit < Data.define
+        include Custom
+
+        # Stub - Exit is a sentinel handled by runtime before dispatch.
+        def call(_out, _token)
+          raise "Exit command should never be dispatched"
+        end
+      end
 
       # Creates a quit command.
       #
@@ -86,7 +93,14 @@ module RatatuiRuby
       #
       # This type carries the handle (command object) to cancel. The runtime pattern-matches
       # on <tt>Command::Cancel</tt> and signals the token.
-      Cancel = Data.define(:handle)
+      class Cancel < Data.define(:handle)
+        include Custom
+
+        # Stub - Cancel is a sentinel handled by runtime before dispatch.
+        def call(_out, _token)
+          raise "Cancel command should never be dispatched"
+        end
+      end
 
       # Request cancellation of a running command.
       #
@@ -108,16 +122,33 @@ module RatatuiRuby
         Cancel.new(handle:)
       end
 
-      # Sentinel value for command errors.
+      # Error message from a failed command.
       #
-      # Commands run in threads. Exceptions bubble up silently. The update function
-      # never sees them, and backtraces in STDERR corrupt the TUI display.
+      # Commands run in background threads. Exceptions bubble up silently.
+      # Your update function never sees them. Backtraces in STDERR corrupt the TUI.
       #
-      # The runtime catches exceptions and pushes <tt>Error</tt> to the queue.
-      # Pattern match on it in your update function.
+      # The runtime catches exceptions and wraps them in Error messages.
+      # Pattern match on Error in your update function. Display the error, log it, or recover.
       #
-      # Analogous to <tt>Exit</tt> and <tt>Cancel</tt>.
-      Error = Data.define(:command, :exception)
+      # Use it to surface failures from HTTP requests, file I/O, or external processes.
+      #
+      # === Examples
+      #
+      #   Update = ->(message, model) {
+      #     case message
+      #     in Command::Error[command:, exception:]
+      #       # Show error toast
+      #       [model.with(error: exception.message), nil]
+      #     in Command::Error[command: Command::Http, exception:]
+      #       # Retry HTTP request
+      #       [model, command]
+      #     in Command::Error
+      #       # Log and continue
+      #       warn "Command failed: #{message.exception}"
+      #       [model, nil]
+      #     end
+      #   }
+      class Error < Data.define(:command, :exception); end
 
       # Creates an error sentinel.
       #
@@ -164,16 +195,8 @@ module RatatuiRuby
       # - <tt>[tag, :error, {message:}]</tt> if the command cannot start
       #
       # The <tt>status</tt> is the integer exit code (0 = success).
-      System = Data.define(:command, :tag, :stream) do
-        # Command identification — runtime uses this to dispatch as a command.
-        def tea_command?
-          true
-        end
-
-        # Grace period for cleanup after cancellation.
-        def tea_cancellation_grace_period
-          0.1
-        end
+      class System < Data.define(:command, :tag, :stream)
+        include Custom
 
         # Returns true if streaming mode is enabled.
         def stream?
@@ -341,11 +364,8 @@ module RatatuiRuby
       # adds its routing prefix. Clean separation. No coupling.
       #
       # Use it to compose child fragments that return their own commands.
-      Mapped = Data.define(:inner_command, :mapper) do
-        # Command identification for runtime dispatch.
-        def tea_command?
-          true
-        end
+      class Mapped < Data.define(:inner_command, :mapper)
+        include Custom
 
         # Grace period delegates to inner command.
         def tea_cancellation_grace_period
@@ -397,6 +417,10 @@ module RatatuiRuby
       # Reusable procs and lambdas share identity. Dispatch them twice, and
       # +Command.cancel+ would cancel both. Wrap them to get distinct handles.
       #
+      # The callable must be Ractor-shareable (cannot capture mutable state).
+      # Create resources like database connections inside the callable, not in
+      # the closure. See the Custom Commands guide for details.
+      #
       # [callable] Proc, lambda, or any object responding to +call(out, token)+.
       #            If omitted, the block is used.
       # [grace_period] Cleanup time override. Default: 2.0 seconds.
@@ -414,7 +438,21 @@ module RatatuiRuby
       #     end
       #   end
       def self.custom(callable = nil, grace_period: nil, &block)
-        Wrapped.new(callable: callable || block, grace_period:)
+        c = callable || block
+
+        # Debug mode: validate that callable can be made shareable (fail fast)
+        if RatatuiRuby::Debug.enabled?
+          begin
+            c = Ractor.make_shareable(c)
+          rescue Ractor::IsolationError
+            raise RatatuiRuby::Error::Invariant,
+              "Command.custom requires a Ractor-shareable callable. " \
+                "#{c.class} is not shareable. Use Ractor.make_shareable or define at top-level."
+          end
+        end
+        # Production mode: skip validation (Ractors not yet used, avoid overhead)
+
+        Wrapped.new(callable: c, grace_period:)
       end
 
       # Creates a one-shot timer command.
@@ -495,10 +533,16 @@ module RatatuiRuby
       end
 
       # :nodoc:
-      Wrapped = Data.define(:callable, :grace_period) do
+      class Wrapped < Data.define(:callable, :grace_period)
         include Custom
-        def tea_cancellation_grace_period = grace_period || super
-        def call(out, token) = callable.call(out, token)
+        def tea_cancellation_grace_period
+          grace_period || super
+        end
+
+        # :nodoc:
+        def call(out, token)
+          callable.call(out, token)
+        end
       end
       private_constant :Wrapped
     end

@@ -76,15 +76,15 @@ module RatatuiRuby
       # SPDX-SnippetEnd
       #++
       class Outlet
-        # Creates an outlet for the given channel.
+        # Creates an outlet for the given message queue.
         #
-        # The runtime provides the channel and lifecycle. Custom commands receive
+        # The runtime provides the message queue and lifecycle. Custom commands receive
         # the outlet as their first argument.
         #
-        # [channel] A <tt>Concurrent::Promises::Channel</tt> or compatible object.
+        # [message_queue] A <tt>Concurrent::Promises::Channel</tt> or compatible object.
         # [lifecycle] A <tt>Lifecycle</tt> for managing nested command execution.
-        def initialize(channel, lifecycle:)
-          @channel = channel
+        def initialize(message_queue, lifecycle:)
+          @message_queue = message_queue
           @live = lifecycle
         end
 
@@ -117,7 +117,7 @@ module RatatuiRuby
                 "Use Ractor.make_shareable or Object#freeze."
           end
 
-          @channel.push(message)
+          @message_queue.push(message)
         end
 
         # Runs a child command synchronously within a custom command.

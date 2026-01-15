@@ -56,7 +56,7 @@ class TestUpdateHelpers < Minitest::Test
         [model, nil]
       end
     end
-    child_model = { output: "initial" }.freeze
+    child_model = Ractor.make_shareable({ output: "initial" }, copy: true)
 
     # Message with :stats prefix
     batch_msg = RatatuiRuby::Tea::Message::System::Batch.new(
@@ -75,7 +75,7 @@ class TestUpdateHelpers < Minitest::Test
   # When prefix doesn't match, delegate returns nil so caller can try other routes.
   def test_delegate_returns_nil_for_non_matching_prefix
     child_update = -> (message, model) { [model, nil] }
-    child_model = { output: "initial" }.freeze
+    child_model = Ractor.make_shareable({ output: "initial" }, copy: true)
 
     # Message has :network prefix, but we're checking for :stats
     message = [:network, :ping, { stdout: "ok" }]
@@ -89,7 +89,7 @@ class TestUpdateHelpers < Minitest::Test
   def test_delegate_wraps_child_command_with_prefix
     inner_command = RatatuiRuby::Tea::Command.system("ls", :files)
     child_update = -> (message, model) { [model.merge(updated: true).freeze, inner_command] }
-    child_model = { updated: false }.freeze
+    child_model = Ractor.make_shareable({ updated: false }, copy: true)
 
     message = [:stats, :refresh]
 
