@@ -20,7 +20,7 @@ Mailing List: Announcements](https://img.shields.io/badge/mailing_list-announcem
 **ratatui_ruby** is a community wrapper that is not affiliated with [the Ratatui team](https://github.com/orgs/ratatui/people).
 
 > [!WARNING]
-> **ratatui_ruby-tea** is currently in **PRE-RELEASE**. The API will change rapidly, even between minor and patch versions.
+> **ratatui_ruby-tea** is currently in **ALPHA**. The API may change with minor versions.
 
 **[Why RatatuiRuby?](https://man.sr.ht/~kerrick/ratatui_ruby/why.md)** — Native Rust performance, zero runtime overhead, and Ruby's expressiveness. [See how we compare](https://man.sr.ht/~kerrick/ratatui_ruby/why.md) to CharmRuby, raw Rust, and Go.
 
