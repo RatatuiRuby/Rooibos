@@ -20,8 +20,8 @@ class TestSystemBatchMessage < Minitest::Test
       case msg
       when RatatuiRuby::Event::Key
         case msg.code
-        when "s" then [m, RatatuiRuby::Tea::Command.system("echo hello", :build)]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "s" then [m, Rooibos::Command.system("echo hello", :build)]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -38,12 +38,12 @@ class TestSystemBatchMessage < Minitest::Test
         inject_key("s")
         inject_sync
         inject_key("q")
-        RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
     # Should receive Message::System::Batch, not array
-    batch_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::System::Batch) }
+    batch_msg = messages.find { |m| m.is_a?(Rooibos::Message::System::Batch) }
     refute_nil batch_msg, "Should receive System::Batch message"
     assert_equal :build, batch_msg.envelope
     assert_equal "hello\n", batch_msg.stdout

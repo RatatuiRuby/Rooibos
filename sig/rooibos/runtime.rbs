@@ -1,0 +1,75 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  # MVU runtime event loop.
+  class Runtime
+  # Active command tracking entry.
+  type active_entry = { future: Concurrent::Promises::Future[void], origin: Concurrent::Promises::ResolvableEvent }
+
+  # Widget type accepted by view functions.
+  type renderable = RatatuiRuby::_CustomWidget | RatatuiRuby::widget
+
+  # Duck type for update result that can be normalized.
+  # Steep needs a union type (not interface) for is_a? narrowing.
+  type update_result = [Object, Command::execution?] | Command::execution | Object
+
+  # Duck type for init result that can be normalized.
+  type init_result = [Object, Command::execution?] | Command::execution | Object
+
+  # Duck type for values that can be queried for command-ness.
+  interface _MaybeCommand
+    def nil?: () -> bool
+    def class: () -> Class
+    def respond_to?: (Symbol, ?bool) -> bool
+    def rooibos_command?: () -> bool
+  end
+
+  # Starts the MVU event loop (positional fragment).
+  def self.run: [Model] (
+    ?Module? root_fragment,
+    ?fps: Integer
+  ) -> Model
+
+  # Starts the MVU event loop (explicit parameters).
+  | [Model] (
+    ?Module? root_fragment,
+    ?fps: Integer,
+    model: Model,
+    view: ^(Model, RatatuiRuby::TUI) -> renderable,
+    update: ^(RatatuiRuby::Event, Model) -> update_result?,
+    ?command: Command::execution?
+  ) -> Model
+
+  # Starts the MVU event loop (explicit parameters without fps).
+  | [Model] (
+    ?Module? root_fragment,
+    model: Model,
+    view: ^(Model, RatatuiRuby::TUI) -> renderable,
+    update: ^(RatatuiRuby::Event, Model) -> update_result?,
+    ?command: Command::execution?
+  ) -> Model
+
+  # Normalizes Init callable return value to [model, command] tuple.
+  def self.normalize_init: [Model] (init_result result) -> [Model?, Command::execution?]
+  QUIT: Object
+
+  private
+
+  def self.validate_view_return!: (renderable? widget) -> void
+  def self.normalize_update_return: [Model] (update_result? result, Model? previous_model) -> [Model?, Command::execution?]
+  def self.validate_ractor_shareable!: [T] (T object, String name) -> void
+  def self.fragment_from_kwargs: (Module? root_fragment, ?model: untyped, ?view: untyped, ?update: untyped, ?command: untyped) -> Module
+  def self.fragment_invariant!: (String param) -> void
+  def self.init_callable: [Model] () -> ^() -> [Model?, Command::execution?]
+  def self.start_runtime: () -> untyped
+  def self.draw_view: () -> void
+  def self.handle_ratatui_event: () -> void
+  def self.handle_sync: () -> void
+  QUEUE_EMPTY: Object
+  def self.send_pending_messages: (?dispatch: bool) -> void
+  def self.dispatch_command: () -> void
+end
+end

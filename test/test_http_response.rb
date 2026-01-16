@@ -9,7 +9,7 @@ require "test_helper"
 
 class TestHttpResponse < Minitest::Test
   def test_http_predicate_returns_true
-    msg = RatatuiRuby::Tea::Message::HttpResponse.new(
+    msg = Rooibos::Message::HttpResponse.new(
       envelope: :users, status: 200, body: "", headers: {}, error: nil
     )
 
@@ -17,7 +17,7 @@ class TestHttpResponse < Minitest::Test
   end
 
   def test_success_predicate_for_2xx_status
-    msg = RatatuiRuby::Tea::Message::HttpResponse.new(
+    msg = Rooibos::Message::HttpResponse.new(
       envelope: :users, status: 200, body: "", headers: {}, error: nil
     )
 
@@ -25,7 +25,7 @@ class TestHttpResponse < Minitest::Test
   end
 
   def test_error_predicate_when_error_present
-    msg = RatatuiRuby::Tea::Message::HttpResponse.new(
+    msg = Rooibos::Message::HttpResponse.new(
       envelope: :users, status: nil, body: nil, headers: nil, error: "Connection failed"
     )
 
@@ -33,7 +33,7 @@ class TestHttpResponse < Minitest::Test
   end
 
   def test_deconstruct_keys_for_pattern_matching
-    msg = RatatuiRuby::Tea::Message::HttpResponse.new(
+    msg = Rooibos::Message::HttpResponse.new(
       envelope: :users, status: 200, body: '{"data":[]}', headers: {}, error: nil
     )
 

@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING: Rebrand to Rooibos**: The gem is now named `rooibos` and the module is top-level `Rooibos` instead of `RatatuiRuby::Tea`. Update your code, including:
+  - `require "ratatui_ruby/tea"` → `require "rooibos"`
+  - `RatatuiRuby::Tea::*` → `Rooibos::*`
+  - If you need a full migration guide, reach out to [the mailing list](https://lists.sr.ht/~kerrick/ratatui_ruby-discuss)
+
 ### Fixed
 
 ### Removed
@@ -55,14 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dependencies**: Added `concurrent-ruby` (~> 1.3) and `concurrent-ruby-edge` (~> 0.7) for robust concurrency primitives.
 
-- **Tea.normalize_init Helper**: New `RatatuiRuby::Tea.normalize_init(result)` normalizes Init callable returns. Accepts the output of a `Fragment.Init` callable and always returns `[model, command]`. Use when composing child fragment initialization in parent fragments.
+- **Rooibos.normalize_init Helper**: New `Rooibos.normalize_init(result)` normalizes Init callable returns. Accepts the output of a `Fragment.Init` callable and always returns `[model, command]`. Use when composing child fragment initialization in parent fragments.
 
 ### Changed
 
 - **Terminology: "Bag" → "Fragment"**: Renamed Fractal Architecture units from "bags" to "fragments" throughout the codebase. A fragment is a module containing `Model`, `INITIAL`, `UPDATE`, and `VIEW` constants. Parent fragments compose child fragments via routing. The `examples/app_fractal_dashboard/bags/` directory is now `examples/app_fractal_dashboard/fragments/`. All API documentation, code comments, and examples updated to reflect this terminology change.
 
-- **Runtime API Signature (Breaking)**: `Tea.run` signature changed:
-  - Fragment parameter is now **positional** instead of keyword: `Tea.run(MyApp)` instead of `Tea.run(fragment: MyApp)`
+- **Runtime API Signature (Breaking)**: `Rooibos.run` signature changed:
+  - Fragment parameter is now **positional** instead of keyword: `Rooibos.run(MyApp)` instead of `Rooibos.run(fragment: MyApp)`
   - Removed `argv:` and `env:` parameters - Runtime now automatically uses `ARGV` and `ENV` globals
   - Added `fps:` parameter (default 60) for configurable frame rate
   - Renamed `init:` parameter to `command:` in explicit parameters API for clarity
@@ -102,17 +107,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **CancellationToken**: Cooperative cancellation mechanism for long-running custom commands. Commands check `cancelled?` periodically and stop gracefully when `cancel!` is called. Includes `CancellationToken::NONE` null object for commands that ignore cancellation.
 
-- **Command::Custom Mixin**: Include in your class to mark it as a custom command. Provides `tea_command?` brand predicate and `tea_cancellation_grace_period` (default 2.0 seconds) for configuring cleanup time after cancellation.
+- **Command::Custom Mixin**: Include in your class to mark it as a custom command. Provides `rooibos_command?` brand predicate and `rooibos_cancellation_grace_period` (default 2.0 seconds) for configuring cleanup time after cancellation.
 
 - **Command::Outlet**: Messaging gateway for custom commands. Use `put(tag, *payload)` to send results back to the update function. Validates Ractor-shareability in debug mode.
 
-- **Custom Command Dispatch**: Runtime now dispatches custom commands (objects with `tea_command?` returning true) in background threads. Commands receive an `Outlet` for messaging and a `CancellationToken` for cooperative shutdown.
+- **Custom Command Dispatch**: Runtime now dispatches custom commands (objects with `rooibos_command?` returning true) in background threads. Commands receive an `Outlet` for messaging and a `CancellationToken` for cooperative shutdown.
 
 - **Command.custom Factory**: Wraps lambdas/procs to give them unique identity for dispatch tracking. Each `Command.custom(callable)` call produces a distinct wrapper, enabling targeted cancellation. Accepts optional `grace_period:` to override the default 2.0 second cleanup window.
 
 - **Command.cancel Factory**: Request cancellation of a running command. Returns a `Command::Cancel` sentinel that the runtime routes to the appropriate command's CancellationToken.
 
-- **Runtime Cancellation Dispatch**: The runtime now handles `Command::Cancel` by signaling the target command's `CancellationToken`, enabling cooperative cancellation of long-running commands. Respects `tea_cancellation_grace_period`: waits for the grace period, then force-kills unresponsive threads. Use `Float::INFINITY` to never force-kill.
+- **Runtime Cancellation Dispatch**: The runtime now handles `Command::Cancel` by signaling the target command's `CancellationToken`, enabling cooperative cancellation of long-running commands. Respects `rooibos_cancellation_grace_period`: waits for the grace period, then force-kills unresponsive threads. Use `Float::INFINITY` to never force-kill.
 
 - **Graceful Shutdown**: On exit, runtime signals all active commands then respects each command's grace period. Commands with `Float::INFINITY` grace are waited on indefinitely (user has SIGKILL). Final queue messages are processed before returning.
 
@@ -132,7 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Router DSL**: New `Tea::Router` module provides declarative routing for Fractal Architecture:
+- **Router DSL**: New `Rooibos::Router` module provides declarative routing for Fractal Architecture:
   - `route :prefix, to: ChildBag` — declares a child bag route
   - `keymap { key "q", -> { Command.exit } }` — declares keyboard handlers
   - `keymap { key "x", handler, when: -> (m) { m.ready? } }` — guards (also: `if:`, `only:`, `guard:`, `unless:`, `except:`, `skip:`)
@@ -142,12 +147,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `from_router` — generates an UPDATE lambda from routes and handlers
 
 - **Composition Helpers**: New helper methods for Fractal Architecture reduce boilerplate:
-  - `Tea.route(command, :prefix)` — wraps a command to route results to a child bag
-  - `Tea.delegate(message, :prefix, child_update, child_model)` — dispatches prefixed messages to child bags
+  - `Rooibos.route(command, :prefix)` — wraps a command to route results to a child bag
+  - `Rooibos.delegate(message, :prefix, child_update, child_model)` — dispatches prefixed messages to child bags
 
 - **Command Mapping**: `Command.map(inner_command, &mapper)` wraps a child command and transforms its result message. Essential for parent bags routing child command results.
 
-- **Shortcuts Module**: `require "ratatui_ruby/tea/shortcuts"` and `include Tea::Shortcuts` for short aliases:
+- **Shortcuts Module**: `require "rooibos/shortcuts"` and `include Rooibos::Shortcuts` for short aliases:
   - `Cmd.exit` — alias for `Command.exit`
   - `Cmd.sh(command, tag)` — alias for `Command.system`
   - `Cmd.map(command, &block)` — alias for `Command.map`
@@ -172,14 +177,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **The Elm Architecture (TEA)**: Implemented the core Model-View-Update (MVU) runtime. Use `RatatuiRuby::Tea.run(model, view: ..., update: ...)` to start an interactive application with predictable state management.
+- **The Elm Architecture (TEA)**: Implemented the core Model-View-Update (MVU) runtime. Use `Rooibos.run(model, view: ..., update: ...)` to start an interactive application with predictable state management.
 - **Async Command System**: Side effects (database, HTTP, shell) are executed asynchronously in a thread pool. Results are dispatched back to the main loop as messages, ensuring the UI never freezes.
 - **Ractor Safety Enforcement**: The runtime strictly enforces that all `Model` and `Message` objects are Ractor-shareable (deeply frozen). This guarantees thread safety by design and prepares for future parallelism.
 - **Flexible Update Returns**: The `update` function supports multiple return signatures for developer ergonomics:
   - `[Model, Cmd]` — Standard tuple.
   - `Model` — Implicitly `[Model, Cmd::None]`.
   - `Cmd` — Implicitly `[CurrentModel, Cmd]`.
-- **Startup Commands**: `RatatuiRuby::Tea.run` accepts an `init:` parameter to dispatch an initial command immediately after startup, useful for loading initial data without blocking the first render.
+- **Startup Commands**: `Rooibos.run` accepts an `init:` parameter to dispatch an initial command immediately after startup, useful for loading initial data without blocking the first render.
 - **View Validation**: The `view` function must return a valid widget. Returning `nil` raises `RatatuiRuby::Error::Invariant` to catch bugs early.
 
 
@@ -187,12 +192,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **First Release**: Empty release of `ratatui_ruby-tea`, a Ruby implementation of The Elm Architecture (TEA) for `ratatui_ruby`. Scaffolding generated by `ratatui_ruby-devtools`.
+- **First Release**: Empty release of `rooibos`, a Ruby implementation of The Elm Architecture (TEA) for `ratatui_ruby`. Scaffolding generated by `ratatui_ruby-devtools`.
 
-[Unreleased]: https://git.sr.ht/~kerrick/ratatui_ruby-tea/refs/HEAD
-[0.4.0]: https://git.sr.ht/~kerrick/ratatui_ruby-tea/refs/v0.4.0
-[0.3.1]: https://git.sr.ht/~kerrick/ratatui_ruby-tea/refs/v0.3.1
-[0.3.0]: https://git.sr.ht/~kerrick/ratatui_ruby-tea/refs/v0.3.0
-[0.2.0]: https://git.sr.ht/~kerrick/ratatui_ruby-tea/refs/v0.2.0
-[0.2.0]: https://git.sr.ht/~kerrick/ratatui_ruby-tea/refs/v0.2.0
-[0.1.0]: https://git.sr.ht/~kerrick/ratatui_ruby-tea/refs/v0.1.0
+[Unreleased]: https://git.sr.ht/~kerrick/rooibos/refs/HEAD
+[0.4.0]: https://git.sr.ht/~kerrick/rooibos/refs/v0.4.0
+[0.3.1]: https://git.sr.ht/~kerrick/rooibos/refs/v0.3.1
+[0.3.0]: https://git.sr.ht/~kerrick/rooibos/refs/v0.3.0
+[0.2.0]: https://git.sr.ht/~kerrick/rooibos/refs/v0.2.0
+[0.2.0]: https://git.sr.ht/~kerrick/rooibos/refs/v0.2.0
+[0.1.0]: https://git.sr.ht/~kerrick/rooibos/refs/v0.1.0

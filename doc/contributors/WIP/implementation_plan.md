@@ -57,15 +57,15 @@ Init = -> { Command.exit }                      # Just command (edge case)
 
 #### Normalization Helper
 ```ruby
-module Tea
+module Rooibos
   # Normalize Init return to [model, command] tuple
-  # Uses DWIM logic like Update (tea_command? detection)
+  # Uses DWIM logic like Update (rooibos_command? detection)
   def self.normalize_init(result)
     case result
     when Command then [nil, result]           # Just command
     in [model, command] then [model, command] # Already tuple
     else
-      if result.respond_to?(:tea_command?) && result.tea_command?
+      if result.respond_to?(:rooibos_command?) && result.rooibos_command?
         [nil, result]                         # Command without array wrapper
       else
         [result, nil]                         # Just model
@@ -80,41 +80,43 @@ end
 ### Fractal Composition
 
 #### Parent Init Calls Child Init
+
 ```ruby
+
 module Dashboard
   Model = Data.define(:stats, :network, :theme)
-  
+
   Init = ->(theme: :dark, env: {}) do
     # Call child Inits with props
     stats_model, stats_cmd = StatsPanel::Init.(theme: theme)
     network_model, network_cmd = NetworkPanel::Init.(theme: theme)
-    
+
     model = Model.new(
-      stats: stats_model,
-      network: network_model,
-      theme: theme
+            stats: stats_model,
+            network: network_model,
+            theme: theme
     )
-    
+
     command = Command.batch(
-      Tea.route(stats_cmd, :stats),
-      Tea.route(network_cmd, :network)
+            Rooibos.route(stats_cmd, :stats),
+            Rooibos.route(network_cmd, :network)
     )
-    
+
     [model, command]
   end
-  
+
   # View composition - UNCHANGED (still manual)
   View = ->(model, tui) do
     tui.vertical_layout(
-      children: [
-        StatsPanel::View.call(model.stats, tui),
-        NetworkPanel::View.call(model.network, tui)
-      ]
+            children: [
+                    StatsPanel::View.call(model.stats, tui),
+                    NetworkPanel::View.call(model.network, tui)
+            ]
     )
   end
-  
+
   # Update routing - UNCHANGED (Router DSL)
-  include Tea::Router
+  include Rooibos::Router
   route :stats, to: StatsPanel
   route :network, to: NetworkPanel
   Update = from_router
@@ -128,32 +130,34 @@ end
 ### Runtime Integration
 
 #### Current API (Backward Compatible)
+
 ```ruby
 # Still works (old style)
-Tea.run(
-  model: MyApp::INITIAL,
-  view: MyApp::VIEW,
-  update: MyApp::UPDATE
+Rooibos.run(
+        model: MyApp::INITIAL,
+        view: MyApp::VIEW,
+        update: MyApp::UPDATE
 )
 ```
 
 #### New API (Fragment-First)
+
 ```ruby
 # New style (preferred)
-Tea.run(
-  fragment: MyApp,
-  argv: ARGV,
-  env: ENV
+Rooibos.run(
+        fragment: MyApp,
+        argv: ARGV,
+        env: ENV
 )
 
 # Equivalent to:
 # model, init_cmd = MyApp::Init.(argv: ARGV, env: ENV)
-# Tea.run(model: model, view: MyApp::View, update: MyApp::Update, init: init_cmd)
+# Rooibos.run(model: model, view: MyApp::View, update: MyApp::Update, init: init_cmd)
 ```
 
 #### Runtime Implementation
 ```ruby
-module RatatuiRuby::Tea
+module Rooibos
   def self.run(fragment: nil, model: nil, view: nil, update: nil, argv: [], env: {}, init: nil)
     if fragment
       # New style: fragment-first
@@ -194,13 +198,13 @@ Since the project has **zero external users**, we will make this a **breaking ch
 ## Implementation Checklist
 
 ### Core Implementation
-- [ ] **`Tea.normalize_init` helper**
-  - [ ] Implement DWIM logic with `tea_command?` detection
+- [ ] **`Rooibos.normalize_init` helper**
+  - [ ] Implement DWIM logic with `rooibos_command?` detection
   - [ ] Handle all return formats: model, command, `[model, cmd]`
   - [ ] Tests for all DWIM variants
   
 - [ ] **Runtime changes**
-  - [ ] Add `fragment:`, `argv:`, `env:` parameters to `Tea.run`
+  - [ ] Add `fragment:`, `argv:`, `env:` parameters to `Rooibos.run`
   - [ ] Auto-call `fragment::Init` when `fragment:` provided
   - [ ] Default `Init` to `-> { Model.new }` if not defined
   - [ ] Maintain backward compatibility with `model:`/`view:`/`update:` params
@@ -231,7 +235,7 @@ Since the project has **zero external users**, we will make this a **breaking ch
     - [ ] Document Init at non-root level (fractal composition)
     - [ ] Show parameterization with flags/props
     - [ ] Document DWIM return values
-    - [ ] Show Tea.normalize_init usage
+    - [ ] Show Rooibos.normalize_init usage
     - [ ] Multiple complete examples (simple, fractal, with commands)
     - [ ] Link to related concepts (Fragment, Model, Update, Command)
   - [ ] Create stubs for concept doc series (H1 + "TODO" only):
@@ -246,7 +250,7 @@ Since the project has **zero external users**, we will make this a **breaking ch
 - [ ] **Update design_for_v0.4.0.md**
   - [ ] Add Init Callable section
   - [ ] Document DWIM behavior
-  - [ ] Document `Tea.normalize_init` helper
+  - [ ] Document `Rooibos.normalize_init` helper
   - [ ] Add footnote on Iced pattern inspiration
   - [ ] Add footnote on OutMsg pattern (future consideration)
   
@@ -256,14 +260,14 @@ Since the project has **zero external users**, we will make this a **breaking ch
   - [ ] Common patterns
   
 - [ ] **Update RDoc**
-  - [ ] Document `Tea.normalize_init`
-  - [ ] Document new `Tea.run` signature
+  - [ ] Document `Rooibos.normalize_init`
+  - [ ] Document new `Rooibos.run` signature
   - [ ] Update Fragment examples throughout
 
 ### RBS Type Signatures
-- [ ] **Update Tea module RBS**
+- [ ] **Update Rooibos module RBS**
   ```ruby
-  module RatatuiRuby::Tea
+  module Rooibos
     def self.run: (
       ?fragment: Module,
       ?model: untyped,
@@ -279,13 +283,13 @@ Since the project has **zero external users**, we will make this a **breaking ch
   ```
 
 ### Testing
-- [ ] **Unit tests for `Tea.normalize_init`**
+- [ ] **Unit tests for `Rooibos.normalize_init`**
   - [ ] Returns `[model, nil]` for model-only
   - [ ] Returns `[nil, cmd]` for command-only
   - [ ] Returns `[model, cmd]` for tuple
-  - [ ] Handles `tea_command?` detection
+  - [ ] Handles `rooibos_command?` detection
   
-- [ ] **Integration tests for `Tea.run`**
+- [ ] **Integration tests for `Rooibos.run`**
   - [ ] Fragment-first API works
   - [ ] Old API still works (backward compat)
   - [ ] Init commands are dispatched
@@ -310,8 +314,8 @@ Since the project has **zero external users**, we will make this a **breaking ch
   - **Init Callable Pattern**: Fragments support `Init` callable for parameterized initialization
     - Returns `[model, command]` tuple (DWIM supported)
     - Accepts flags/props for parent-to-child data flow
-    - `Tea.normalize_init` helper for composing child Inits
-  - **Fragment-First Runtime API**: `Tea.run(fragment: MyApp, argv: ARGV, env: ENV)`
+    - `Rooibos.normalize_init` helper for composing child Inits
+  - **Fragment-First Runtime API**: `Rooibos.run(fragment: MyApp, argv: ARGV, env: ENV)`
   - **Concept Documentation**: Created `doc/init.md` and series stubs
   ```
 

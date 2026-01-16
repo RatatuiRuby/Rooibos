@@ -21,11 +21,11 @@ class TestFragmentFirstAPI < Minitest::Test
       fragment::Model.new(initialized: true)
     end)
     fragment.const_set(:View, -> (model, tui) { tui.clear })
-    fragment.const_set(:Update, -> (_msg, _model) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:Update, -> (_msg, _model) { Rooibos::Command.exit })
 
     with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea.run(fragment)
+      Rooibos.run(fragment)
     end
 
     assert init_called, "Fragment Init should have been called"
@@ -36,13 +36,13 @@ class TestFragmentFirstAPI < Minitest::Test
     fragment.const_set(:Model, Data.define(:value))
     fragment.const_set(:Init, -> { fragment::Model.new(value: 1) })
     fragment.const_set(:View, -> (model, tui) { tui.clear })
-    fragment.const_set(:Update, -> (_msg, _model) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:Update, -> (_msg, _model) { Rooibos::Command.exit })
 
     model = fragment::Model.new(value: 2)
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
       with_test_terminal do
-        RatatuiRuby::Tea.run(fragment, model:)
+        Rooibos.run(fragment, model:)
       end
     end
 
@@ -54,11 +54,11 @@ class TestFragmentFirstAPI < Minitest::Test
     fragment.const_set(:Model, Data.define(:value))
     fragment.const_set(:Init, -> { fragment::Model.new(value: 1) })
     fragment.const_set(:View, -> (model, tui) { tui.clear })
-    fragment.const_set(:Update, -> (_msg, _model) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:Update, -> (_msg, _model) { Rooibos::Command.exit })
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
       with_test_terminal do
-        RatatuiRuby::Tea.run(fragment, view: -> (_m, tui) { tui.clear })
+        Rooibos.run(fragment, view: -> (_m, tui) { tui.clear })
       end
     end
 
@@ -70,11 +70,11 @@ class TestFragmentFirstAPI < Minitest::Test
     fragment.const_set(:Model, Data.define(:value))
     fragment.const_set(:Init, -> { fragment::Model.new(value: 1) })
     fragment.const_set(:View, -> (model, tui) { tui.clear })
-    fragment.const_set(:Update, -> (_msg, _model) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:Update, -> (_msg, _model) { Rooibos::Command.exit })
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
       with_test_terminal do
-        RatatuiRuby::Tea.run(fragment, update: -> (_m, _mdl) { RatatuiRuby::Tea::Command.exit })
+        Rooibos.run(fragment, update: -> (_m, _mdl) { Rooibos::Command.exit })
       end
     end
 
@@ -86,11 +86,11 @@ class TestFragmentFirstAPI < Minitest::Test
     fragment.const_set(:Model, Data.define(:value))
     fragment.const_set(:Init, -> { fragment::Model.new(value: 1) })
     fragment.const_set(:View, -> (model, tui) { tui.clear })
-    fragment.const_set(:Update, -> (_msg, _model) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:Update, -> (_msg, _model) { Rooibos::Command.exit })
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
       with_test_terminal do
-        RatatuiRuby::Tea.run(fragment, command: RatatuiRuby::Tea::Command.exit)
+        Rooibos.run(fragment, command: Rooibos::Command.exit)
       end
     end
 

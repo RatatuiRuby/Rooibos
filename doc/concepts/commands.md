@@ -55,7 +55,7 @@ Define a class. Include <tt>Command::Custom</tt>. Implement <tt>call</tt>:
 -->
 ```ruby
 class FetchUsers < Data.define(:url, :tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     response = HTTParty.get(url)
@@ -84,7 +84,7 @@ Use <tt>out.source</tt> to run child commands synchronously. Fetch one result. U
 -->
 ```ruby
 class FetchUserWithCompany < Data.define(:user_id, :tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     # Step 1: Fetch user profile
@@ -186,7 +186,7 @@ Instance methods don't create closures. They can reference constants without sha
 DB = Sequel.connect(ENV["DATABASE_URL"])
 
 class FetchUsers < Data.define(:tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     users = DB[:users].where(active: true).all
@@ -209,7 +209,7 @@ The <tt>FetchUsers</tt> instance only holds <tt>tag</tt> (a symbol, always share
 # frozen_string_literal: true
 
 class DatabaseQuery < Data.define(:sql, :params, :tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     result = DB[sql, *params].all
@@ -282,7 +282,9 @@ end
   SPDX-FileCopyrightText: 2026 Kerrick Long
   SPDX-License-Identifier: MIT-0
 -->
+
 ```ruby
+
 class MyTest < Minitest::Test
   # Lambda defined at class level doesn't capture instance
   TEST_COMMAND = Command.custom(-> (out, token) {
@@ -291,7 +293,7 @@ class MyTest < Minitest::Test
   })
 
   def test_command
-    Tea.run(..., command: TEST_COMMAND)
+    Rooibos.run(..., command : TEST_COMMAND)
     assert_equal :done, Thread.current[:test_result]
   end
 end
@@ -350,7 +352,7 @@ Long-running commands should check the cancellation token:
 -->
 ```ruby
 class PollAPI < Data.define(:url, :interval_seconds, :tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     until token.canceled?
@@ -399,9 +401,9 @@ Override the grace period for commands that need more time to clean up:
 -->
 ```ruby
 class WebSocketListener < Data.define(:url, :tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
-  def tea_cancellation_grace_period
+  def rooibos_cancellation_grace_period
     5.0  # Give the WS close handshake time to complete
   end
 
@@ -430,7 +432,7 @@ end
 -->
 ```ruby
 class ProcessFile < Data.define(:path, :tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     lines = File.readlines(path)
@@ -450,7 +452,7 @@ end
 -->
 ```ruby
 class BatchImport < Data.define(:items, :tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     items.each_with_index do |item, index|
@@ -492,7 +494,7 @@ DB = Sequel.connect(
 )
 
 class FetchUserProfile < Data.define(:user_id, :tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     user = DB[:users].where(id: user_id).first

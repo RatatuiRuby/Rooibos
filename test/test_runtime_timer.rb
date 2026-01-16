@@ -20,8 +20,8 @@ class TestRuntimeTimer < Minitest::Test
       case msg
       when RatatuiRuby::Event::Key
         case msg.code
-        when "w" then [m, RatatuiRuby::Tea::Command.wait(0.05, :waited)]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "w" then [m, Rooibos::Command.wait(0.05, :waited)]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -34,11 +34,11 @@ class TestRuntimeTimer < Minitest::Test
       inject_key("w")
       inject_sync # Wait for command to complete
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Should receive TimerResponse, not bare tag
-    timer_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::Timer) }
+    timer_msg = messages.find { |m| m.is_a?(Rooibos::Message::Timer) }
     refute_nil timer_msg, "Should receive TimerResponse"
     assert_equal :waited, timer_msg.envelope
     assert_operator timer_msg.elapsed, :>=, 0.05
@@ -53,8 +53,8 @@ class TestRuntimeTimer < Minitest::Test
       case msg
       when RatatuiRuby::Event::Key
         case msg.code
-        when "t" then [m, RatatuiRuby::Tea::Command.tick(0.05, :ticked)]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "t" then [m, Rooibos::Command.tick(0.05, :ticked)]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -67,11 +67,11 @@ class TestRuntimeTimer < Minitest::Test
       inject_key("t")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Should receive TimerResponse, not bare tag
-    timer_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::Timer) }
+    timer_msg = messages.find { |m| m.is_a?(Rooibos::Message::Timer) }
     refute_nil timer_msg, "Should receive TimerResponse"
     assert_equal :ticked, timer_msg.envelope
   end
@@ -87,12 +87,12 @@ class TestRuntimeTimer < Minitest::Test
         case msg.code
         when "w"
           # 10 second wait — if naive sleep, grace period = 10s = slow
-          cmd = RatatuiRuby::Tea::Command.wait(10.0, :should_not_arrive)
+          cmd = Rooibos::Command.wait(10.0, :should_not_arrive)
           [Ractor.make_shareable({ cmd: }), cmd]
         when "c"
-          [m, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+          [m, Rooibos::Command.cancel(m[:cmd])]
         when "q"
-          [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.exit]
         else
           [m, nil]
         end
@@ -107,7 +107,7 @@ class TestRuntimeTimer < Minitest::Test
       inject_key("w")  # Start 10s wait
       inject_key("c")  # Cancel immediately
       inject_key("q")  # Quit
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
     elapsed = Time.now - start
 
@@ -127,13 +127,13 @@ class TestRuntimeTimer < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "w"
-          cmd = RatatuiRuby::Tea::Command.wait(10.0, :timeout)
+          cmd = Rooibos::Command.wait(10.0, :timeout)
           original_cmd = cmd
           [Ractor.make_shareable({ cmd: }), cmd]
         when "c"
-          [m, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+          [m, Rooibos::Command.cancel(m[:cmd])]
         when "q"
-          [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.exit]
         else
           [m, nil]
         end
@@ -147,11 +147,11 @@ class TestRuntimeTimer < Minitest::Test
       inject_key("w")  # Start 10s wait
       inject_key("c")  # Cancel it
       inject_key("q")  # Quit
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Cooperative cancellation sends Command.cancel(self); thread-kill sends nothing
-    cancel_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Cancel) }
+    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Command::Cancel) }
     refute_nil cancel_msg, "Should receive a Cancel message"
     assert_same original_cmd, cancel_msg.handle, "Cancel sentinel wraps the original command as .handle"
   end

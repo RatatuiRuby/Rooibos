@@ -19,7 +19,7 @@ class TestOutletSource < Minitest::Test
   # Demonstrates the basic source pattern: call a child command,
   # wait for its result, then continue processing.
   TwoStepFetch = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(out, token)
       # Step 1: Get first value
@@ -36,7 +36,7 @@ class TestOutletSource < Minitest::Test
   end
 
   StepOneCommand = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(out, _token)
       out.put(:step_one_value, 42)
@@ -44,7 +44,7 @@ class TestOutletSource < Minitest::Test
   end
 
   StepTwoCommand = Data.define(:input) do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(out, _token)
       # Double the input value
@@ -62,7 +62,7 @@ class TestOutletSource < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, TwoStepFetch.new]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -76,7 +76,7 @@ class TestOutletSource < Minitest::Test
       inject_sync      # Wait for command to complete
       inject_key("q")  # Quit
 
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # The final composed result should arrive
@@ -89,7 +89,7 @@ class TestOutletSource < Minitest::Test
   # Demonstrates how source returns nil on cancellation, allowing
   # the parent command to clean up and exit gracefully.
   CancellableMultiStep = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(out, token)
       out.put(:multi_step_started)
@@ -107,7 +107,7 @@ class TestOutletSource < Minitest::Test
   end
 
   SlowCommand = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(out, token)
       sleep 0.02 until token.canceled?
@@ -128,9 +128,9 @@ class TestOutletSource < Minitest::Test
           cmd = CancellableMultiStep.new
           [Ractor.make_shareable({ cmd: }), cmd]
         when "c"
-          [m, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+          [m, Rooibos::Command.cancel(m[:cmd])]
         when "q"
-          [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.exit]
         else
           [m, nil]
         end
@@ -145,7 +145,7 @@ class TestOutletSource < Minitest::Test
       inject_key("c")  # Cancel it
       inject_key("q")  # Quit
 
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_includes received_messages, :multi_step_started
@@ -157,7 +157,7 @@ class TestOutletSource < Minitest::Test
   # Demonstrates how source propagates exceptions, allowing the
   # parent to catch and handle them appropriately.
   ResilientFetch = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(out, token)
       out.source(FailingCommand.new, token, timeout: 0.5)
@@ -168,7 +168,7 @@ class TestOutletSource < Minitest::Test
   end
 
   FailingCommand = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(_out, _token)
       raise ArgumentError, "simulated failure"
@@ -185,7 +185,7 @@ class TestOutletSource < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, ResilientFetch.new]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -199,7 +199,7 @@ class TestOutletSource < Minitest::Test
       inject_sync
       inject_key("q")
 
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     error_msg = received_messages.find { |m| m.is_a?(Array) && m.first == :error_handled }
@@ -211,7 +211,7 @@ class TestOutletSource < Minitest::Test
   # A command that respects a timeout when child command hangs.
   # Demonstrates how timeout prevents indefinite blocking.
   TimeoutAwareFetch = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(out, token)
       result = out.source(HungCommand.new, token, timeout: 0.05)
@@ -225,7 +225,7 @@ class TestOutletSource < Minitest::Test
   end
 
   HungCommand = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(_out, _token)
       sleep 10 # Never completes
@@ -242,7 +242,7 @@ class TestOutletSource < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, TimeoutAwareFetch.new]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -258,7 +258,7 @@ class TestOutletSource < Minitest::Test
       inject_sync
       inject_key("q")
 
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     elapsed = Time.now - start_time

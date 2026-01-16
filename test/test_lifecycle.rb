@@ -9,8 +9,8 @@ require "test_helper"
 
 class TestLifecycle < Minitest::Test
   def test_run_sync_returns_result_from_child_command
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
-    token = RatatuiRuby::Tea::Command.uncancellable
+    lifecycle = Rooibos::Command::Lifecycle.new
+    token = Rooibos::Command.uncancellable
 
     # Child command that puts a result
     child = -> (out, _tok) { out.put(:hello, :world) }
@@ -21,7 +21,7 @@ class TestLifecycle < Minitest::Test
   end
 
   def test_run_sync_returns_nil_when_already_cancelled
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    lifecycle = Rooibos::Command::Lifecycle.new
 
     # Pre-cancelled token
     origin = Concurrent::Promises.resolvable_event
@@ -37,8 +37,8 @@ class TestLifecycle < Minitest::Test
   end
 
   def test_run_sync_returns_nil_when_timeout_expires
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
-    token = RatatuiRuby::Tea::Command.uncancellable
+    lifecycle = Rooibos::Command::Lifecycle.new
+    token = Rooibos::Command.uncancellable
 
     # Child that never puts (hangs)
     child = -> (_out, _tok) { sleep 10 }
@@ -52,8 +52,8 @@ class TestLifecycle < Minitest::Test
   end
 
   def test_run_sync_propagates_exceptions
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
-    token = RatatuiRuby::Tea::Command.uncancellable
+    lifecycle = Rooibos::Command::Lifecycle.new
+    token = Rooibos::Command.uncancellable
 
     # Child that raises
     child = -> (_out, _tok) { raise ArgumentError, "boom" }
@@ -66,7 +66,7 @@ class TestLifecycle < Minitest::Test
   end
 
   def test_run_sync_returns_immediately_when_cancelled_mid_wait
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    lifecycle = Rooibos::Command::Lifecycle.new
 
     origin = Concurrent::Promises.resolvable_event
     token = Concurrent::Cancellation.new(origin)
@@ -88,7 +88,7 @@ class TestLifecycle < Minitest::Test
   # --- run_async tests ---
 
   def test_run_async_runs_command_and_tracks_it
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    lifecycle = Rooibos::Command::Lifecycle.new
     channel = Concurrent::Promises::Channel.new
 
     command = -> (out, _tok) { out.put(:async_result) }
@@ -108,14 +108,14 @@ class TestLifecycle < Minitest::Test
   end
 
   def test_cancel_signals_cancellation_and_waits_grace
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    lifecycle = Rooibos::Command::Lifecycle.new
     channel = Concurrent::Promises::Channel.new
 
     # Command that tracks cancellation
     cancelled = Concurrent::AtomicBoolean.new(false)
     command_class = Class.new do
-      include RatatuiRuby::Tea::Command::Custom
-      define_method(:tea_cancellation_grace_period) { 0.05 }
+      include Rooibos::Command::Custom
+      define_method(:rooibos_cancellation_grace_period) { 0.05 }
       define_method(:initialize) { |flag| @cancelled = flag }
       define_method(:call) do |out, token|
         loop do
@@ -146,7 +146,7 @@ class TestLifecycle < Minitest::Test
   end
 
   def test_cancel_removes_command_from_tracking
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    lifecycle = Rooibos::Command::Lifecycle.new
     channel = Concurrent::Promises::Channel.new
 
     command = -> (out, token) do
@@ -169,13 +169,13 @@ class TestLifecycle < Minitest::Test
   end
 
   def test_shutdown_cancels_all_active_commands
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
+    lifecycle = Rooibos::Command::Lifecycle.new
     channel = Concurrent::Promises::Channel.new
 
     cancelled_count = Concurrent::AtomicFixnum.new(0)
     command_class = Class.new do
-      include RatatuiRuby::Tea::Command::Custom
-      define_method(:tea_cancellation_grace_period) { 0.05 }
+      include Rooibos::Command::Custom
+      define_method(:rooibos_cancellation_grace_period) { 0.05 }
       define_method(:initialize) { |counter| @counter = counter }
       define_method(:call) do |out, token|
         loop do

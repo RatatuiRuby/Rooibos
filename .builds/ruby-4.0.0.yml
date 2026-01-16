@@ -15,8 +15,6 @@ packages:
   - libffi
   - clang
   - git
-artifacts:
-  - ratatui_ruby-tea/pkg/ratatui_ruby-tea-0.2.0.gem
 sources:
   - https://git.sr.ht/~kerrick/ratatui_ruby-tea
 tasks:

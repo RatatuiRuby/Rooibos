@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 #++
 
-require "ratatui_ruby/tea"
+require "rooibos"
 # Streaming output fragment for custom shell command modal.
 #
 # Displays interleaved stdout/stderr. Border color reflects exit status.

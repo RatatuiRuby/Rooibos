@@ -18,7 +18,7 @@ class TestRouterDsl < Minitest::Test
   # The prefix is normalized to a symbol via .to_s.to_sym.
   def test_route_registers_child_with_prefix
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       route :stats, to: TestRouterDsl::FakeChild
       route "network", to: TestRouterDsl::FakeChild # String works too
@@ -34,7 +34,7 @@ class TestRouterDsl < Minitest::Test
     handler = -> { [:scroll, -1] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       action :scroll_up, handler
       action "scroll_down", -> { [:scroll, 1] } # String works too
@@ -49,7 +49,7 @@ class TestRouterDsl < Minitest::Test
     q_called = false
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         key "q", -> { q_called = true; nil }
@@ -70,7 +70,7 @@ class TestRouterDsl < Minitest::Test
     action_called = false
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       action :scroll_up, -> { action_called = true; nil }
 
@@ -94,7 +94,7 @@ class TestRouterDsl < Minitest::Test
     scroll_down_called = false
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       mousemap do
         scroll :up, -> { scroll_up_called = true; nil }
@@ -121,7 +121,7 @@ class TestRouterDsl < Minitest::Test
     action_called = false
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       action :scroll_up_action, -> { action_called = true; nil }
 
@@ -142,7 +142,7 @@ class TestRouterDsl < Minitest::Test
   # from_router returns a callable UPDATE lambda
   def test_from_router_returns_callable
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
     end
 
     update = test_class.from_router
@@ -154,7 +154,7 @@ class TestRouterDsl < Minitest::Test
   def test_from_router_routes_prefixed_messages
     # FakeChild is defined at class level with proper UPDATE constant
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
       route :child, to: TestRouterDsl::FakeChild
     end
 
@@ -178,7 +178,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:allowed] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         key "x", -> { handler_called = true; nil }, when: guard_proc
@@ -201,7 +201,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:allowed] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         key "x", -> { handler_called = true; nil }, when: guard_proc
@@ -224,7 +224,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:allowed] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         key "x", -> { handler_called = true; nil }, if: guard_proc
@@ -247,7 +247,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:blocked] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         key "x", -> { handler_called = true; nil }, unless: guard_proc
@@ -270,7 +270,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:allowed] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         key "x", -> { handler_called = true; nil }, only: guard_proc
@@ -297,7 +297,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:blocked] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         key "x", -> { handler_called = true; nil }, skip: guard_proc
@@ -324,7 +324,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:allowed] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         key "x", -> { handler_called = true; nil }, guard: guard_proc
@@ -351,7 +351,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:blocked] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         key "x", -> { handler_called = true; nil }, except: guard_proc
@@ -378,7 +378,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:allowed] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         only guard: guard_proc do
@@ -400,7 +400,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:allowed] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         only when: guard_proc do
@@ -428,7 +428,7 @@ class TestRouterDsl < Minitest::Test
 
     assert_raises ArgumentError do
       Class.new do
-        include RatatuiRuby::Tea::Router
+        include Rooibos::Router
 
         keymap do
           only when: guard_proc_one, guard: guard_proc_two do
@@ -444,7 +444,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:allowed] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         only if: guard_proc do
@@ -466,7 +466,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:allowed] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         only only: guard_proc do
@@ -489,7 +489,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:blocked] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         skip when: guard_proc do
@@ -512,7 +512,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:blocked] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         skip if: guard_proc do
@@ -534,7 +534,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:blocked] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         skip skip: guard_proc do
@@ -558,7 +558,7 @@ class TestRouterDsl < Minitest::Test
 
     assert_raises ArgumentError do
       test_class = Class.new do
-        include RatatuiRuby::Tea::Router
+        include Rooibos::Router
 
         keymap do
           skip when: guard_proc_one, if: guard_proc_two do
@@ -574,7 +574,7 @@ class TestRouterDsl < Minitest::Test
     guard_proc = -> (model) { model[:blocked] }
 
     test_class = Class.new do
-      include RatatuiRuby::Tea::Router
+      include Rooibos::Router
 
       keymap do
         skip guard: guard_proc do

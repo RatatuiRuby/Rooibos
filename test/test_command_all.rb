@@ -13,23 +13,23 @@ class TestCommandAll < Minitest::Test
 
   def test_all_validates_commands_are_shareable
     non_shareable_command = Class.new do
-      include RatatuiRuby::Tea::Command::Custom
+      include Rooibos::Command::Custom
       def call(_out, _token) = nil
     end.new
 
     assert_raises(RatatuiRuby::Error::Invariant) do
-      RatatuiRuby::Tea::Command.all(:tag, [non_shareable_command])
+      Rooibos::Command.all(:tag, [non_shareable_command])
     end
   end
 
   def test_all_has_envelope_accessor
     wait_cmd = Data.define do
-      include RatatuiRuby::Tea::Command::Custom
+      include Rooibos::Command::Custom
       def call(out, _token)
         out.put(:done)
       end
     end.new
-    cmd = RatatuiRuby::Tea::Command.all(:my_envelope, [Ractor.make_shareable(wait_cmd)])
+    cmd = Rooibos::Command.all(:my_envelope, [Ractor.make_shareable(wait_cmd)])
     assert_equal :my_envelope, cmd.envelope
   end
 
@@ -44,9 +44,9 @@ class TestCommandAll < Minitest::Test
         case msg.code
         when "a"
           # Dynamic filter that results in empty array - common pattern
-          cmd = RatatuiRuby::Tea::Command.all(:empty, [].filter { |c| c })
+          cmd = Rooibos::Command.all(:empty, [].filter { |c| c })
           [m, cmd]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -59,11 +59,11 @@ class TestCommandAll < Minitest::Test
       inject_key("a")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Should get Message::All with empty results, not hang forever
-    all_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::All) }
+    all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all with empty commands. Got: #{messages.inspect}"
     assert_equal :empty, all_msg.envelope
     assert_equal [], all_msg.results, "Empty commands should return empty results"
@@ -73,12 +73,12 @@ class TestCommandAll < Minitest::Test
   def test_all_skips_validation_when_debug_disabled
     RatatuiRuby::Debug.suppress_debug_mode do
       non_shareable_command = Class.new do
-        include RatatuiRuby::Tea::Command::Custom
+        include Rooibos::Command::Custom
         def call(_out, _token) = nil
       end.new
 
       # Should NOT raise when debug is disabled
-      RatatuiRuby::Tea::Command.all(:tag, [non_shareable_command])
+      Rooibos::Command.all(:tag, [non_shareable_command])
     end
   end
 
@@ -92,12 +92,12 @@ class TestCommandAll < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "a"
-          cmd = RatatuiRuby::Tea::Command.all(:dashboard, [
-            RatatuiRuby::Tea::Command.wait(0.01, :first),
-            RatatuiRuby::Tea::Command.wait(0.01, :second),
+          cmd = Rooibos::Command.all(:dashboard, [
+            Rooibos::Command.wait(0.01, :first),
+            Rooibos::Command.wait(0.01, :second),
           ])
           [m, cmd]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -110,10 +110,10 @@ class TestCommandAll < Minitest::Test
       inject_key("a")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    all_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::All) }
+    all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all"
 
     assert_equal :dashboard, all_msg.envelope
@@ -133,12 +133,12 @@ class TestCommandAll < Minitest::Test
         case msg.code
         when "a"
           # Variadic syntax → splatted output
-          cmd = RatatuiRuby::Tea::Command.all(:dashboard,
-            RatatuiRuby::Tea::Command.wait(0.01, :first),
-            RatatuiRuby::Tea::Command.wait(0.01, :second),
+          cmd = Rooibos::Command.all(:dashboard,
+            Rooibos::Command.wait(0.01, :first),
+            Rooibos::Command.wait(0.01, :second),
           )
           [m, cmd]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -151,19 +151,19 @@ class TestCommandAll < Minitest::Test
       inject_key("a")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Variadic produces Message::All with nested: false
-    all_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::All) }
+    all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all"
 
     # Variadic: Message::All with nested: false, results contain the child messages
     assert_equal :dashboard, all_msg.envelope
     refute all_msg.nested, "Variadic syntax should produce nested: false"
     assert_equal 2, all_msg.results.size
-    assert_kind_of RatatuiRuby::Tea::Message::Timer, all_msg.results[0]
-    assert_kind_of RatatuiRuby::Tea::Message::Timer, all_msg.results[1]
+    assert_kind_of Rooibos::Message::Timer, all_msg.results[0]
+    assert_kind_of Rooibos::Message::Timer, all_msg.results[1]
     assert_equal :first, all_msg.results[0].envelope
     assert_equal :second, all_msg.results[1].envelope
   end
@@ -179,13 +179,13 @@ class TestCommandAll < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "a"
-          all_cmd = RatatuiRuby::Tea::Command.all(:dashboard, [
-            RatatuiRuby::Tea::Command.wait(10.0, :should_not_arrive),
+          all_cmd = Rooibos::Command.all(:dashboard, [
+            Rooibos::Command.wait(10.0, :should_not_arrive),
           ])
           [m, all_cmd]
         when "c"
-          [m, RatatuiRuby::Tea::Command.cancel(all_cmd)]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.cancel(all_cmd)]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -198,10 +198,10 @@ class TestCommandAll < Minitest::Test
       inject_key("a")
       inject_key("c")
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    cancel_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Cancel) }
+    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Command::Cancel) }
     assert_same all_cmd, cancel_msg&.handle, "Expected Cancel sentinel with self as handle"
   end
 
@@ -215,12 +215,12 @@ class TestCommandAll < Minitest::Test
         case msg.code
         when "a"
           # Two 0.1s waits — sequential = 0.2s, parallel < 0.15s
-          cmd = RatatuiRuby::Tea::Command.all(:dashboard, [
-            RatatuiRuby::Tea::Command.wait(0.1, :first),
-            RatatuiRuby::Tea::Command.wait(0.1, :second),
+          cmd = Rooibos::Command.all(:dashboard, [
+            Rooibos::Command.wait(0.1, :first),
+            Rooibos::Command.wait(0.1, :second),
           ])
           [m, cmd]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -233,7 +233,7 @@ class TestCommandAll < Minitest::Test
       inject_key("a")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
     elapsed = Time.now - start
 
@@ -252,12 +252,12 @@ class TestCommandAll < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "a"
-          cmd = RatatuiRuby::Tea::Command.all(:dashboard, [
-            RatatuiRuby::Tea::Command.wait(0.01, :first),
-            RatatuiRuby::Tea::Command.wait(0.01, :second),
+          cmd = Rooibos::Command.all(:dashboard, [
+            Rooibos::Command.wait(0.01, :first),
+            Rooibos::Command.wait(0.01, :second),
           ])
           [m, cmd]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -270,19 +270,19 @@ class TestCommandAll < Minitest::Test
       inject_key("a")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Command.all should emit Message::All, not raw arrays
-    all_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::All) }
+    all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all, got: #{messages.inspect}"
 
     # Verify hash-based pattern matching works
     case all_msg
     in { type: :all, envelope: :dashboard, results:, nested: true }
       assert_equal 2, results.size
-      assert_kind_of RatatuiRuby::Tea::Message::Timer, results[0]
-      assert_kind_of RatatuiRuby::Tea::Message::Timer, results[1]
+      assert_kind_of Rooibos::Message::Timer, results[0]
+      assert_kind_of Rooibos::Message::Timer, results[1]
     else
       flunk "Message::All should match hash pattern { type: :all, envelope:, results:, nested: }"
     end
@@ -294,7 +294,7 @@ class TestCommandAll < Minitest::Test
     view = -> (_m, t) { t.clear }
 
     failing_class = Data.define do
-      include RatatuiRuby::Tea::Command::Custom
+      include Rooibos::Command::Custom
       def call(_out, _token)
         raise "intentional failure"
       end
@@ -306,9 +306,9 @@ class TestCommandAll < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "a"
-          cmd = RatatuiRuby::Tea::Command.all(:dashboard, [failing_command])
+          cmd = Rooibos::Command.all(:dashboard, [failing_command])
           [m, cmd]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -321,11 +321,11 @@ class TestCommandAll < Minitest::Test
       inject_key("a")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Child error should surface as Command::Error
-    error_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Error) }
+    error_msg = messages.find { |m| m.is_a?(Rooibos::Command::Error) }
     refute_nil error_msg, "Expected Command::Error message from failed child"
     assert_match(/intentional failure/, error_msg.exception.message)
   end

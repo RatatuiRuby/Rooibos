@@ -12,14 +12,14 @@ require_relative "../fragments/custom_shell_modal"
 # Shared Model, Init, and View for the Dashboard.
 # Each Dashboard variation (Manual, Router, Helpers) provides its own Update.
 module DashboardBase
-  Command = RatatuiRuby::Tea::Command
+  Command = Rooibos::Command
 
   Model = Data.define(:stats, :network, :shell_modal)
 
   Init = -> do
-    stats, = RatatuiRuby::Tea.normalize_init(StatsPanel::Init.())
-    network, = RatatuiRuby::Tea.normalize_init(NetworkPanel::Init.())
-    shell_modal, = RatatuiRuby::Tea.normalize_init(CustomShellModal::Init.())
+    stats, = Rooibos.normalize_init(StatsPanel::Init.())
+    network, = Rooibos.normalize_init(NetworkPanel::Init.())
+    shell_modal, = Rooibos.normalize_init(CustomShellModal::Init.())
     Model.new(stats:, network:, shell_modal:)
   end
 

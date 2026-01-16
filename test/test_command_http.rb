@@ -64,10 +64,10 @@ class TestCommandHttp < Minitest::Test
     update = -> (msg, m) do
       case msg
       in { type: :key, code: "f" }
-        [m, RatatuiRuby::Tea::Command.http(:get, "http://127.0.0.1:#{@port}/".freeze, :fetch)]
+        [m, Rooibos::Command.http(:get, "http://127.0.0.1:#{@port}/".freeze, :fetch)]
       in { type: :key, code: "q" }
         final_model = m
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       in { type: :http, envelope: :fetch, status:, body: }
         [m.with(status:, body:), nil]
       else
@@ -79,7 +79,7 @@ class TestCommandHttp < Minitest::Test
       inject_key("f")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_equal 200, final_model.status
@@ -96,10 +96,10 @@ class TestCommandHttp < Minitest::Test
     update = -> (msg, m) do
       case msg
       in { type: :key, code: "p" }
-        [m, RatatuiRuby::Tea::Command.http(:post, "http://127.0.0.1:#{@port}/".freeze, :fetch, body: "data")]
+        [m, Rooibos::Command.http(:post, "http://127.0.0.1:#{@port}/".freeze, :fetch, body: "data")]
       in { type: :key, code: "q" }
         final_model = m
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       in { type: :http, envelope: :fetch, body: }
         [m.with(method_used: body), nil]
       else
@@ -111,7 +111,7 @@ class TestCommandHttp < Minitest::Test
       inject_key("p")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_equal "POST", final_model.method_used
@@ -127,10 +127,10 @@ class TestCommandHttp < Minitest::Test
     update = -> (msg, m) do
       case msg
       in { type: :key, code: "u" }
-        [m, RatatuiRuby::Tea::Command.http(:put, "http://127.0.0.1:#{@port}/".freeze, :fetch, body: "data")]
+        [m, Rooibos::Command.http(:put, "http://127.0.0.1:#{@port}/".freeze, :fetch, body: "data")]
       in { type: :key, code: "q" }
         final_model = m
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       in { type: :http, envelope: :fetch, body: }
         [m.with(method_used: body), nil]
       else
@@ -142,7 +142,7 @@ class TestCommandHttp < Minitest::Test
       inject_key("u")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_equal "PUT", final_model.method_used
@@ -158,10 +158,10 @@ class TestCommandHttp < Minitest::Test
     update = -> (msg, m) do
       case msg
       in { type: :key, code: "a" }
-        [m, RatatuiRuby::Tea::Command.http(:patch, "http://127.0.0.1:#{@port}/".freeze, :fetch, body: "data")]
+        [m, Rooibos::Command.http(:patch, "http://127.0.0.1:#{@port}/".freeze, :fetch, body: "data")]
       in { type: :key, code: "q" }
         final_model = m
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       in { type: :http, envelope: :fetch, body: }
         [m.with(method_used: body), nil]
       else
@@ -173,7 +173,7 @@ class TestCommandHttp < Minitest::Test
       inject_key("a")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_equal "PATCH", final_model.method_used
@@ -189,10 +189,10 @@ class TestCommandHttp < Minitest::Test
     update = -> (msg, m) do
       case msg
       in { type: :key, code: "d" }
-        [m, RatatuiRuby::Tea::Command.http(:delete, "http://127.0.0.1:#{@port}/".freeze, :fetch)]
+        [m, Rooibos::Command.http(:delete, "http://127.0.0.1:#{@port}/".freeze, :fetch)]
       in { type: :key, code: "q" }
         final_model = m
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       in { type: :http, envelope: :fetch, body: }
         [m.with(method_used: body), nil]
       else
@@ -204,7 +204,7 @@ class TestCommandHttp < Minitest::Test
       inject_key("d")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_equal "DELETE", final_model.method_used
@@ -221,10 +221,10 @@ class TestCommandHttp < Minitest::Test
       case msg
       in { type: :key, code: "e" }
         # Port 1 is privileged and won't have anything listening
-        [m, RatatuiRuby::Tea::Command.http(:get, "http://127.0.0.1:1/", :fetch)]
+        [m, Rooibos::Command.http(:get, "http://127.0.0.1:1/", :fetch)]
       in { type: :key, code: "q" }
         final_model = m
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       in { type: :http, envelope: :fetch, error: }
         # Pattern-match on error response and store in model
         [m.with(error:), nil]
@@ -237,7 +237,7 @@ class TestCommandHttp < Minitest::Test
       inject_key("e")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     refute_nil final_model.error, "Expected error to be set"
@@ -267,7 +267,7 @@ class TestCommandHttp < Minitest::Test
     update = -> (msg, m) do
       case msg
       in { type: :key, code: "h" }
-        cmd = RatatuiRuby::Tea::Command.http(
+        cmd = Rooibos::Command.http(
           :get,
           "http://127.0.0.1:#{@port}/".freeze,
           :fetch,
@@ -276,7 +276,7 @@ class TestCommandHttp < Minitest::Test
         [m, cmd]
       in { type: :key, code: "q" }
         final_model = m
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       in { type: :http, envelope: :fetch, body: }
         [m.with(body:), nil]
       else
@@ -288,7 +288,7 @@ class TestCommandHttp < Minitest::Test
       inject_key("h")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_equal "Bearer secret123", final_model.body
@@ -299,7 +299,7 @@ class TestCommandHttp < Minitest::Test
     mutable_headers = { "Authorization" => "Bearer token" }
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
-      RatatuiRuby::Tea::Command.http(
+      Rooibos::Command.http(
         :get,
         "http://example.com/",
         :fetch,
@@ -315,7 +315,7 @@ class TestCommandHttp < Minitest::Test
       mutable_headers = { "Authorization" => "Bearer token" }
 
       # Should NOT raise when debug is disabled
-      RatatuiRuby::Tea::Command.http(
+      Rooibos::Command.http(
         :get,
         "http://example.com/",
         :fetch,
@@ -328,7 +328,7 @@ class TestCommandHttp < Minitest::Test
     mutable_body = String.new("mutable request body")
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
-      RatatuiRuby::Tea::Command.http(
+      Rooibos::Command.http(
         :post,
         "http://example.com/",
         :fetch,
@@ -343,7 +343,7 @@ class TestCommandHttp < Minitest::Test
     mutable_url = String.new("http://example.com/")
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
-      RatatuiRuby::Tea::Command.http(
+      Rooibos::Command.http(
         :get,
         mutable_url,
         :fetch
@@ -369,7 +369,7 @@ class TestCommandHttp < Minitest::Test
     update = -> (msg, m) do
       case msg
       in { type: :key, code: "t" }
-        cmd = RatatuiRuby::Tea::Command.http(
+        cmd = Rooibos::Command.http(
           :get,
           "http://127.0.0.1:#{@port}/".freeze,
           :fetch,
@@ -378,7 +378,7 @@ class TestCommandHttp < Minitest::Test
         [m, cmd]
       in { type: :key, code: "q" }
         final_model = m
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       in { type: :http, envelope: :fetch, error: }
         [m.with(error:), nil]
       in { type: :http, envelope: :fetch, status: }
@@ -392,7 +392,7 @@ class TestCommandHttp < Minitest::Test
       inject_key("t")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     refute_nil final_model.error, "Expected timeout error"
@@ -401,7 +401,7 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_raises_on_unknown_method
     error = assert_raises(ArgumentError) do
-      RatatuiRuby::Tea::Command.http(
+      Rooibos::Command.http(
         :invalid_method,
         "http://example.com/",
         :fetch
@@ -413,8 +413,8 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_has_zero_grace_period
     # Net::HTTP is blocking; grace period = 0 means immediate force-kill is acceptable
-    cmd = RatatuiRuby::Tea::Command.http(:get, "http://example.com/", :fetch)
-    assert_equal 0, cmd.tea_cancellation_grace_period
+    cmd = Rooibos::Command.http(:get, "http://example.com/", :fetch)
+    assert_equal 0, cmd.rooibos_cancellation_grace_period
   end
 
   # --- DWIM Arity Tests (at Http.new level) ---
@@ -422,7 +422,7 @@ class TestCommandHttp < Minitest::Test
   public def test_http_new_url_only_implies_get_with_url_as_envelope
     # Http.new('https://api.example.com/foo')
     # → method: :get, envelope: url, url: url
-    cmd = RatatuiRuby::Tea::Command::Http.new("https://api.example.com/foo")
+    cmd = Rooibos::Command::Http.new("https://api.example.com/foo")
 
     assert_equal :get, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -431,7 +431,7 @@ class TestCommandHttp < Minitest::Test
 
   public def test_command_http_url_only_implies_get_with_url_as_envelope
     # Command.http('https://api.example.com/foo') - convenience factory
-    cmd = RatatuiRuby::Tea::Command.http("https://api.example.com/foo")
+    cmd = Rooibos::Command.http("https://api.example.com/foo")
 
     assert_equal :get, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -442,7 +442,7 @@ class TestCommandHttp < Minitest::Test
     mutable_url = String.new("https://api.example.com/foo")
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
-      RatatuiRuby::Tea::Command::Http.new(mutable_url)
+      Rooibos::Command::Http.new(mutable_url)
     end
 
     assert_match(/url.*not.*shareable/i, error.message)
@@ -450,7 +450,7 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_new_url_and_envelope
     # Http.new('https://api.example.com/foo', :mine)
-    cmd = RatatuiRuby::Tea::Command::Http.new("https://api.example.com/foo", :mine)
+    cmd = Rooibos::Command::Http.new("https://api.example.com/foo", :mine)
 
     assert_equal :get, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -459,7 +459,7 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_new_method_and_url
     # Http.new(:delete, 'https://api.example.com/foo')
-    cmd = RatatuiRuby::Tea::Command::Http.new(:delete, "https://api.example.com/foo")
+    cmd = Rooibos::Command::Http.new(:delete, "https://api.example.com/foo")
 
     assert_equal :delete, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -468,7 +468,7 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_new_method_url_and_envelope
     # Http.new(:delete, 'https://api.example.com/foo', :mine)
-    cmd = RatatuiRuby::Tea::Command::Http.new(:delete, "https://api.example.com/foo", :mine)
+    cmd = Rooibos::Command::Http.new(:delete, "https://api.example.com/foo", :mine)
 
     assert_equal :delete, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -477,7 +477,7 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_new_method_url_and_body
     # Http.new(:post, 'https://api.example.com/foo', '{ done: true }')
-    cmd = RatatuiRuby::Tea::Command::Http.new(:post, "https://api.example.com/foo", "{ done: true }")
+    cmd = Rooibos::Command::Http.new(:post, "https://api.example.com/foo", "{ done: true }")
 
     assert_equal :post, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -487,7 +487,7 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_new_method_url_body_and_envelope
     # Http.new(:post, 'https://api.example.com/foo', '{ done: true }', :mine)
-    cmd = RatatuiRuby::Tea::Command::Http.new(:post, "https://api.example.com/foo", "{ done: true }", :mine)
+    cmd = Rooibos::Command::Http.new(:post, "https://api.example.com/foo", "{ done: true }", :mine)
 
     assert_equal :post, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -497,7 +497,7 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_new_get_keyword
     # Http.new(get: 'https://api.example.com/foo')
-    cmd = RatatuiRuby::Tea::Command::Http.new(get: "https://api.example.com/foo")
+    cmd = Rooibos::Command::Http.new(get: "https://api.example.com/foo")
 
     assert_equal :get, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -506,7 +506,7 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_new_post_keyword
     # Http.new(post: 'https://api.example.com/foo')
-    cmd = RatatuiRuby::Tea::Command::Http.new(post: "https://api.example.com/foo")
+    cmd = Rooibos::Command::Http.new(post: "https://api.example.com/foo")
 
     assert_equal :post, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -516,7 +516,7 @@ class TestCommandHttp < Minitest::Test
   public def test_http_new_conflicting_method_keyword_raises
     # get: 'url' with method: :post should raise
     error = assert_raises(ArgumentError) do
-      RatatuiRuby::Tea::Command::Http.new(get: "https://api.example.com/foo", method: :post)
+      Rooibos::Command::Http.new(get: "https://api.example.com/foo", method: :post)
     end
 
     assert_match(/conflict/i, error.message)
@@ -524,26 +524,26 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_new_redundant_matching_method_keyword_works
     # get: 'url' with method: :get should work
-    cmd = RatatuiRuby::Tea::Command::Http.new(get: "https://api.example.com/foo", method: :get)
+    cmd = Rooibos::Command::Http.new(get: "https://api.example.com/foo", method: :get)
 
     assert_equal :get, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
   end
 
   public def test_http_new_put_keyword
-    cmd = RatatuiRuby::Tea::Command::Http.new(put: "https://api.example.com/foo")
+    cmd = Rooibos::Command::Http.new(put: "https://api.example.com/foo")
     assert_equal :put, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
   end
 
   public def test_http_new_patch_keyword
-    cmd = RatatuiRuby::Tea::Command::Http.new(patch: "https://api.example.com/foo")
+    cmd = Rooibos::Command::Http.new(patch: "https://api.example.com/foo")
     assert_equal :patch, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
   end
 
   public def test_http_new_delete_keyword
-    cmd = RatatuiRuby::Tea::Command::Http.new(delete: "https://api.example.com/foo")
+    cmd = Rooibos::Command::Http.new(delete: "https://api.example.com/foo")
     assert_equal :delete, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
   end
@@ -551,7 +551,7 @@ class TestCommandHttp < Minitest::Test
   public def test_http_new_auto_splat_hash
     # Http.new({get: 'url'}) → same as Http.new(get: 'url')
     options = { get: "https://api.example.com/foo" }
-    cmd = RatatuiRuby::Tea::Command::Http.new(options)
+    cmd = Rooibos::Command::Http.new(options)
 
     assert_equal :get, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -560,7 +560,7 @@ class TestCommandHttp < Minitest::Test
   public def test_http_new_auto_spread_array
     # Http.new([:post, 'url']) → same as Http.new(:post, 'url')
     args = [:post, "https://api.example.com/foo"]
-    cmd = RatatuiRuby::Tea::Command::Http.new(args)
+    cmd = Rooibos::Command::Http.new(args)
 
     assert_equal :post, cmd.method
     assert_equal "https://api.example.com/foo", cmd.url
@@ -569,7 +569,7 @@ class TestCommandHttp < Minitest::Test
   public def test_http_new_conflicting_url_keyword_raises
     # get: 'url1' with url: 'url2' should raise
     error = assert_raises(ArgumentError) do
-      RatatuiRuby::Tea::Command::Http.new(get: "https://api1.example.com/", url: "https://api2.example.com/")
+      Rooibos::Command::Http.new(get: "https://api1.example.com/", url: "https://api2.example.com/")
     end
 
     assert_match(/conflict/i, error.message)
@@ -579,7 +579,7 @@ class TestCommandHttp < Minitest::Test
     mutable_envelope = String.new("custom_tag")
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
-      RatatuiRuby::Tea::Command::Http.new(method: :get, url: "http://example.com", envelope: mutable_envelope)
+      Rooibos::Command::Http.new(method: :get, url: "http://example.com", envelope: mutable_envelope)
     end
 
     assert_match(/envelope.*not.*shareable/i, error.message)
@@ -590,7 +590,7 @@ class TestCommandHttp < Minitest::Test
     mutable_timeout = Object.new
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
-      RatatuiRuby::Tea::Command::Http.new(method: :get, url: "http://example.com", envelope: :tag, timeout: mutable_timeout)
+      Rooibos::Command::Http.new(method: :get, url: "http://example.com", envelope: :tag, timeout: mutable_timeout)
     end
 
     assert_match(/timeout.*not.*shareable/i, error.message)
@@ -606,12 +606,12 @@ class TestCommandHttp < Minitest::Test
     echo_server # Start non-SSL server
 
     channel = Concurrent::Promises::Channel.new
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
-    out = RatatuiRuby::Tea::Command::Outlet.new(channel, lifecycle:)
-    token = RatatuiRuby::Tea::Command.uncancellable
+    lifecycle = Rooibos::Command::Lifecycle.new
+    out = Rooibos::Command::Outlet.new(channel, lifecycle:)
+    token = Rooibos::Command.uncancellable
 
     # Use https:// against our non-SSL server
-    cmd = RatatuiRuby::Tea::Command::Http.new(get: "https://127.0.0.1:#{@port}/".freeze)
+    cmd = Rooibos::Command::Http.new(get: "https://127.0.0.1:#{@port}/".freeze)
     cmd.call(out, token)
 
     result = channel.pop
@@ -622,7 +622,7 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_default_timeout_is_10_seconds
     # When no timeout is specified, default should be 10 seconds
-    cmd = RatatuiRuby::Tea::Command::Http.new(get: "http://example.com")
+    cmd = Rooibos::Command::Http.new(get: "http://example.com")
 
     # The timeout should default to 10
     assert_equal 10, cmd.timeout
@@ -641,12 +641,12 @@ class TestCommandHttp < Minitest::Test
     end
 
     channel = Concurrent::Promises::Channel.new
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
-    out = RatatuiRuby::Tea::Command::Outlet.new(channel, lifecycle:)
-    token = RatatuiRuby::Tea::Command.uncancellable
+    lifecycle = Rooibos::Command::Lifecycle.new
+    out = Rooibos::Command::Outlet.new(channel, lifecycle:)
+    token = Rooibos::Command.uncancellable
 
     # Use very short timeout to trigger quickly
-    cmd = RatatuiRuby::Tea::Command::Http.new(get: "http://127.0.0.1:#{@port}/".freeze, timeout: 0.1)
+    cmd = Rooibos::Command::Http.new(get: "http://127.0.0.1:#{@port}/".freeze, timeout: 0.1)
     cmd.call(out, token)
 
     result = channel.pop
@@ -657,7 +657,7 @@ class TestCommandHttp < Minitest::Test
   public def test_http_validates_method_raises_for_unknown
     # Unknown HTTP method should raise ArgumentError
     error = assert_raises(ArgumentError) do
-      RatatuiRuby::Tea::Command::Http.new(method: :unknown, url: "http://example.com")
+      Rooibos::Command::Http.new(method: :unknown, url: "http://example.com")
     end
 
     assert_match(/unsupported.*method/i, error.message)
@@ -666,15 +666,15 @@ class TestCommandHttp < Minitest::Test
   public def test_http_respects_cancellation_before_request
     # If cancelled before request starts, no message should be sent
     channel = Concurrent::Promises::Channel.new
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
-    out = RatatuiRuby::Tea::Command::Outlet.new(channel, lifecycle:)
+    lifecycle = Rooibos::Command::Lifecycle.new
+    out = Rooibos::Command::Outlet.new(channel, lifecycle:)
 
     # Create a pre-cancelled token
     origin = Concurrent::Promises.resolvable_event
     origin.resolve
     token = Concurrent::Cancellation.new(origin)
 
-    cmd = RatatuiRuby::Tea::Command::Http.new(get: "http://127.0.0.1:#{@port}/".freeze)
+    cmd = Rooibos::Command::Http.new(get: "http://127.0.0.1:#{@port}/".freeze)
     cmd.call(out, token)
 
     # Channel should be empty—no message sent
@@ -686,7 +686,7 @@ class TestCommandHttp < Minitest::Test
     # Http.new with parser: stores it on instance
     require "json"
     parser = Ractor.make_shareable(JSON.method(:parse))
-    cmd = RatatuiRuby::Tea::Command::Http.new(get: "http://example.com", parser:)
+    cmd = Rooibos::Command::Http.new(get: "http://example.com", parser:)
 
     assert_equal parser, cmd.parser
   end
@@ -694,7 +694,7 @@ class TestCommandHttp < Minitest::Test
   public def test_http_new_non_callable_parser_raises
     # parser: must respond to :call
     error = assert_raises(ArgumentError) do
-      RatatuiRuby::Tea::Command::Http.new(get: "http://example.com", parser: "not callable")
+      Rooibos::Command::Http.new(get: "http://example.com", parser: "not callable")
     end
 
     assert_match(/parser.*call/i, error.message)
@@ -706,7 +706,7 @@ class TestCommandHttp < Minitest::Test
     mutable_parser = -> (body) { mutable_state << body; body }
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
-      RatatuiRuby::Tea::Command::Http.new(get: "http://example.com", parser: mutable_parser)
+      Rooibos::Command::Http.new(get: "http://example.com", parser: mutable_parser)
     end
 
     assert_match(/parser.*not.*shareable/i, error.message)
@@ -728,13 +728,13 @@ class TestCommandHttp < Minitest::Test
     update = -> (msg, m) do
       case msg
       in { type: :key, code: "f" }
-        cmd = RatatuiRuby::Tea::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: MutableResultParser)
+        cmd = Rooibos::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: MutableResultParser)
         [m, cmd]
       in { type: :key, code: "q" }
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       in { type: :http, error: }
         error_raised = error
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       else
         [m, nil]
       end
@@ -744,7 +744,7 @@ class TestCommandHttp < Minitest::Test
       inject_key("f")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_match(/parsed.*body.*not.*shareable/i, error_raised)
@@ -767,11 +767,11 @@ class TestCommandHttp < Minitest::Test
       update = -> (msg, m) do
         case msg
         in { type: :key, code: "f" }
-          cmd = RatatuiRuby::Tea::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: MutableResultParser)
+          cmd = Rooibos::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: MutableResultParser)
           [m, cmd]
         in { type: :key, code: "q" }
           final_model = m
-          [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.exit]
         in { type: :http, body: }
           [m.with(body:), nil]
         else
@@ -783,7 +783,7 @@ class TestCommandHttp < Minitest::Test
         inject_key("f")
         inject_sync
         inject_key("q")
-        RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view:, update:)
       end
 
       # Should have received parsed body without error
@@ -808,14 +808,14 @@ class TestCommandHttp < Minitest::Test
     update = -> (msg, m) do
       case msg
       in { type: :key, code: "f" }
-        cmd = RatatuiRuby::Tea::Command.http(
+        cmd = Rooibos::Command.http(
           get: "http://127.0.0.1:#{@port}/".freeze,
           parser: ShareableJsonParser
         )
         [m, cmd]
       in { type: :key, code: "q" }
         final_model = m
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       in { type: :http, body: }
         # Body should be parsed Hash from JSON, not raw string
         [m.with(body:), nil]
@@ -828,7 +828,7 @@ class TestCommandHttp < Minitest::Test
       inject_key("f")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Parser was invoked: body is a Hash, not a String
@@ -857,10 +857,10 @@ class TestCommandHttp < Minitest::Test
       case msg
       in { type: :key, code: "f" }
         # JsonParser parses JSON and makes result shareable
-        [m, RatatuiRuby::Tea::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: JsonParser)]
+        [m, Rooibos::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: JsonParser)]
       in { type: :http, body: }
         final_model = m.with(body:)
-        [final_model, RatatuiRuby::Tea::Command.exit]
+        [final_model, Rooibos::Command.exit]
       else
         [m, nil]
       end
@@ -869,7 +869,7 @@ class TestCommandHttp < Minitest::Test
     with_test_terminal do
       inject_key("f")
       inject_sync
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_instance_of Hash, final_model.body
@@ -891,10 +891,10 @@ class TestCommandHttp < Minitest::Test
       case msg
       in { type: :key, code: "f" }
         # YamlParser uses YAML.safe_load for security
-        [m, RatatuiRuby::Tea::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: YamlParser)]
+        [m, Rooibos::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: YamlParser)]
       in { type: :http, body: }
         final_model = m.with(body:)
-        [final_model, RatatuiRuby::Tea::Command.exit]
+        [final_model, Rooibos::Command.exit]
       else
         [m, nil]
       end
@@ -903,7 +903,7 @@ class TestCommandHttp < Minitest::Test
     with_test_terminal do
       inject_key("f")
       inject_sync
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_instance_of Hash, final_model.body
@@ -925,10 +925,10 @@ class TestCommandHttp < Minitest::Test
       case msg
       in { type: :key, code: "f" }
         # CsvParser returns array of arrays
-        [m, RatatuiRuby::Tea::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: CsvParser)]
+        [m, Rooibos::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: CsvParser)]
       in { type: :http, body: }
         final_model = m.with(body:)
-        [final_model, RatatuiRuby::Tea::Command.exit]
+        [final_model, Rooibos::Command.exit]
       else
         [m, nil]
       end
@@ -937,7 +937,7 @@ class TestCommandHttp < Minitest::Test
     with_test_terminal do
       inject_key("f")
       inject_sync
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_instance_of Array, final_model.body

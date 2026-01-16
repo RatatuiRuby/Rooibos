@@ -13,7 +13,7 @@ class TestMessagePredicates < Minitest::Test
 
   # Test stub that includes Predicates mixin
   StubMessage = Data.define(:value) do
-    include RatatuiRuby::Tea::Message::Predicates
+    include Rooibos::Message::Predicates
   end
 
   def test_unknown_predicate_returns_false
@@ -73,7 +73,7 @@ class TestMessagePredicates < Minitest::Test
   # A custom message for a weather fetch command.
   # Include Predicates so users can call any predicate safely.
   WeatherResponse = Data.define(:envelope, :temperature, :conditions, :error) do
-    include RatatuiRuby::Tea::Message::Predicates
+    include Rooibos::Message::Predicates
 
     def weather? = true
     def sunny? = conditions == :sunny
@@ -90,7 +90,7 @@ class TestMessagePredicates < Minitest::Test
 
   # A custom command that fetches weather and emits WeatherResponse.
   FetchWeather = Data.define(:envelope) do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(out, _token)
       current_weather = MyApp::Weather::Gateway.new.fetch
@@ -116,7 +116,7 @@ class TestMessagePredicates < Minitest::Test
       in { type: :key, code: "w" }
         FetchWeather.new(envelope: :current)
       in { type: :key, code: "q" }
-        RatatuiRuby::Tea::Command.exit
+        Rooibos::Command.exit
       in { type: :weather, envelope: :current, temperature:, conditions: }
         received = message
         model
@@ -130,7 +130,7 @@ class TestMessagePredicates < Minitest::Test
       inject_sync      # Wait for command to complete
       inject_key("q")  # Quit
 
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     refute_nil received, "Update should receive WeatherResponse"

@@ -10,7 +10,7 @@ The runtime processes messages one at a time.
 You build interactive apps. Events arrive from everywhere: keyboard, mouse,
 timers, HTTP responses. Coordinating concurrent results feels complex.
 
-TEA handles the concurrency. Your `update` function handles exactly one message
+Rooibos handles the concurrency. Your `update` function handles exactly one message
 per invocation. The runtime schedules everything else.
 
 ## Recurring Ticks

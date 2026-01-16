@@ -5,11 +5,11 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
-require "ratatui_ruby/tea"
+require "rooibos"
 # Fetches and displays system information via +uname -a+.
 # A fragment for fetching and displaying system information.
 module SystemInfo
-  Command = RatatuiRuby::Tea::Command
+  Command = Rooibos::Command
 
   Model = Data.define(:output, :loading)
 

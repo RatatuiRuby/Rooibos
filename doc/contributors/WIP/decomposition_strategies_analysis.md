@@ -223,12 +223,12 @@ Framework does not provide explicit support for breaking down complex applicatio
 
 ---
 
-## Where Does RatatuiRuby-TEA Fit?
+## Where Does Rooibos Fit?
 
 ### Current State: **FRACTAL**
 - Fragments have `Model`, `INITIAL`, `UPDATE`, `VIEW`
-- Parents delegate to children via `Tea.delegate`
-- Message routing via `Tea.route`
+- Parents delegate to children via `Rooibos.delegate`
+- Message routing via `Rooibos.route`
 - Router DSL for declarative composition
 
 ### With Init Callable: **ENHANCED FRACTAL**
@@ -244,12 +244,12 @@ This is **closer to Iced** (Rust) than Elm, as Iced explicitly supports flags fo
 
 ## Recommendation
 
-RatatuiRuby-TEA should **embrace the modern fractal pattern** with:
+Rooibos should **embrace the modern fractal pattern** with:
 - **Complete MVU triads per fragment**: `Model`, `Init`, `Update`, `View`
 - **Parameterized initialization**: `Init` accepts flags/props
 - **Explicit composition**: Parent calls child `Init`, routes messages, composes views
 
-This positions RatatuiRuby-TEA as:
+This positions Rooibos as:
 - **Functional** (like Elm/Elmish/Iced)
 - **Composable** (fractal pattern)
 - **Modern** (Init callable, not static constants)

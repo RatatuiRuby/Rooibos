@@ -13,7 +13,7 @@ class VerifyReadmeUsage
 
   VIEW: ^(Model, RatatuiRuby::TUI) -> untyped
 
-  UPDATE: ^(RatatuiRuby::Event, Model) -> (Model | [Model, RatatuiRuby::Tea::Command::Exit])
+  UPDATE: ^(RatatuiRuby::Event, Model) -> (Model | [Model, Rooibos::Command::Exit])
 
   def run: () -> void
 end

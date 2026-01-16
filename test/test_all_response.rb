@@ -9,7 +9,7 @@ require "test_helper"
 
 class TestAllResponse < Minitest::Test
   def test_all_predicate_returns_true
-    msg = RatatuiRuby::Tea::Message::All.new(
+    msg = Rooibos::Message::All.new(
       envelope: :parallel, results: [], nested: false
     )
 
@@ -17,7 +17,7 @@ class TestAllResponse < Minitest::Test
   end
 
   def test_deconstruct_keys_for_pattern_matching
-    msg = RatatuiRuby::Tea::Message::All.new(
+    msg = Rooibos::Message::All.new(
       envelope: :parallel, results: [1, 2, 3], nested: false
     )
 

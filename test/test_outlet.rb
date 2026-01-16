@@ -13,14 +13,14 @@ class TestOutlet < Minitest::Test
   include RatatuiRuby::TestHelper
 
   private def make_outlet(channel)
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
-    RatatuiRuby::Tea::Command::Outlet.new(channel, lifecycle:)
+    lifecycle = Rooibos::Command::Lifecycle.new
+    Rooibos::Command::Outlet.new(channel, lifecycle:)
   end
 
   def test_live_accessor_returns_injected_lifecycle
     channel = Concurrent::Promises::Channel.new
-    lifecycle = RatatuiRuby::Tea::Command::Lifecycle.new
-    outlet = RatatuiRuby::Tea::Command::Outlet.new(channel, lifecycle:)
+    lifecycle = Rooibos::Command::Lifecycle.new
+    outlet = Rooibos::Command::Outlet.new(channel, lifecycle:)
 
     assert_same lifecycle, outlet.live
   end
@@ -82,7 +82,7 @@ class TestOutlet < Minitest::Test
   def test_source_runs_command_and_returns_result
     channel = Concurrent::Promises::Channel.new
     out = make_outlet(channel)
-    token = RatatuiRuby::Tea::Command.uncancellable
+    token = Rooibos::Command.uncancellable
 
     # Simple command that immediately puts a result
     simple_command = -> (out, _tok) { out.put(:result, 42) }
@@ -110,7 +110,7 @@ class TestOutlet < Minitest::Test
   def test_source_returns_nil_when_timeout_expires
     channel = Concurrent::Promises::Channel.new
     out = make_outlet(channel)
-    token = RatatuiRuby::Tea::Command.uncancellable
+    token = Rooibos::Command.uncancellable
 
     # Command that never puts anything (simulates a hung command)
     hung_command = -> (_out, _tok) { sleep 10 }
@@ -126,7 +126,7 @@ class TestOutlet < Minitest::Test
   def test_source_propagates_exceptions_from_failed_commands
     channel = Concurrent::Promises::Channel.new
     out = make_outlet(channel)
-    token = RatatuiRuby::Tea::Command.uncancellable
+    token = Rooibos::Command.uncancellable
 
     failing_command = -> (_out, _tok) { raise ArgumentError, "something went wrong" }
 

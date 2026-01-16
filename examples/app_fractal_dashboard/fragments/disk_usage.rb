@@ -5,11 +5,11 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
-require "ratatui_ruby/tea"
+require "rooibos"
 # Fetches and displays disk usage via +df -h+.
 # A fragment for fetching and displaying disk usage.
 module DiskUsage
-  Command = RatatuiRuby::Tea::Command
+  Command = Rooibos::Command
 
   Model = Data.define(:output, :loading)
 

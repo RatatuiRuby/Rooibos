@@ -1,0 +1,46 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+# The Elm Architecture for Ruby.
+module Rooibos
+  # Starts the MVU event loop (positional fragment).
+  def self.run: [Model] (
+    ?Module? root_fragment,
+    ?fps: Integer
+  ) -> Model
+
+  # Starts the MVU event loop (explicit parameters).
+  | [Model] (
+    ?Module? root_fragment,
+    ?fps: Integer,
+    model: Model,
+    view: ^(Model, RatatuiRuby::TUI) -> Runtime::renderable,
+    update: ^(RatatuiRuby::Event, Model) -> Runtime::update_result?,
+    ?command: Command::execution?
+  ) -> Model
+
+  # Starts the MVU event loop (explicit parameters without fps).
+  | [Model] (
+    ?Module? root_fragment,
+    model: Model,
+    view: ^(Model, RatatuiRuby::TUI) -> Runtime::renderable,
+    update: ^(RatatuiRuby::Event, Model) -> Runtime::update_result?,
+    ?command: Command::execution?
+  ) -> Model
+
+  # Wraps a command with a routing prefix.
+  def self.route: (Command::execution command, Symbol prefix) -> Command::Mapped
+
+  # Delegates a prefixed message to a child fragment's UPDATE.
+  def self.delegate: (
+    untyped message,
+    Symbol prefix,
+    ^(Array[untyped]?, untyped) -> [untyped, Command::execution?] child_update,
+    untyped child_model
+  ) -> ([untyped, Command::execution?] | nil)
+
+  # Normalizes Init callable return value to [model, command] tuple.
+  def self.normalize_init: [Model] (Runtime::init_result result) -> [Model?, Command::execution?]
+end

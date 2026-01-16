@@ -7,7 +7,7 @@ repos:
           name: Check Gemfile.lock
           entry: bundle check
           language: system
-          files: (Gemfile|Gemfile\.lock|ratatui_ruby-tea\.gemspec)
+          files: (Gemfile|Gemfile\.lock|rooibos\.gemspec)
           pass_filenames: false
       -   id: rake
           name: rake

@@ -14,7 +14,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 2. **RBS Signatures** - Fully updated for new signature
 
-3. **Tea.run signatures** - All test files updated from `fragment:` to positional
+3. **Rooibos.run signatures** - All test files updated from `fragment:` to positional
 
 4. **Model Ractor-shareability** - All tests fixed with `Ractor.make_shareable(..., copy: true)`
 

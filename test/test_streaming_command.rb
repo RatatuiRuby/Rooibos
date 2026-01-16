@@ -23,19 +23,19 @@ class TestStreamingCommand < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s"
-          [m, RatatuiRuby::Tea::Command.system(shell_cmd, tag, stream:)]
+          [m, Rooibos::Command.system(shell_cmd, tag, stream:)]
         when "q"
-          [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.exit]
         else
           [m, nil]
         end
       when Array
         messages << msg
         [m, nil]
-      when RatatuiRuby::Tea::Message::System::Batch
+      when Rooibos::Message::System::Batch
         messages << msg
         [m, nil]
-      when RatatuiRuby::Tea::Message::System::Stream
+      when Rooibos::Message::System::Stream
         messages << msg
         [m, nil]
       else
@@ -47,7 +47,7 @@ class TestStreamingCommand < Minitest::Test
       inject_key("s")
       inject_sync # Wait for command to complete
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     messages
@@ -124,7 +124,7 @@ class TestStreamingCommand < Minitest::Test
     assert_equal 1, messages.size, "Batch mode should return single message"
     msg = messages.first
 
-    assert_kind_of RatatuiRuby::Tea::Message::System::Batch, msg, "Should be System::Batch"
+    assert_kind_of Rooibos::Message::System::Batch, msg, "Should be System::Batch"
     assert_equal :output, msg.envelope, "Envelope should match"
     assert_kind_of String, msg.stdout, "Should have stdout"
     assert_kind_of String, msg.stderr, "Should have stderr"
@@ -155,7 +155,7 @@ class TestStreamingCommand < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s"
-          cmd = RatatuiRuby::Tea::Command.system(
+          cmd = Rooibos::Command.system(
             "echo started && sleep 0.5", # Short sleep so force-kill completes quickly
             :output,
             stream: true
@@ -164,13 +164,13 @@ class TestStreamingCommand < Minitest::Test
         else
           [m, nil]
         end
-      when RatatuiRuby::Tea::Message::System::Stream
+      when Rooibos::Message::System::Stream
         events << msg.stream
         if msg.envelope == :output && msg.stdout? && !m[:cancelled]
           new_model = Ractor.make_shareable({ cmd: m[:cmd], cancelled: true })
-          [new_model, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+          [new_model, Rooibos::Command.cancel(m[:cmd])]
         elsif msg.envelope == :output && msg.complete?
-          [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.exit]
         else
           [m, nil]
         end
@@ -181,7 +181,7 @@ class TestStreamingCommand < Minitest::Test
 
     with_test_terminal do
       inject_key("s")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Command should complete (either via cancel or natural completion)
@@ -203,7 +203,7 @@ class TestStreamingCommand < Minitest::Test
         case msg.code
         when "s"
           # Shell: output immediately, responds to SIGTERM quickly (1ms loop)
-          cmd = RatatuiRuby::Tea::Command.system(
+          cmd = Rooibos::Command.system(
             "printf 'started\n' && trap 'exit 0' TERM && while true; do sleep 0.001; done",
             :output,
             stream: true
@@ -212,13 +212,13 @@ class TestStreamingCommand < Minitest::Test
         else
           [m, nil]
         end
-      when RatatuiRuby::Tea::Message::System::Stream
+      when Rooibos::Message::System::Stream
         events << msg.stream
         if msg.envelope == :output && msg.stdout? && !m[:cancelled]
           new_model = Ractor.make_shareable({ cmd: m[:cmd], cancelled: true })
-          [new_model, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+          [new_model, Rooibos::Command.cancel(m[:cmd])]
         elsif msg.envelope == :output && msg.complete?
-          [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.exit]
         else
           [m, nil]
         end
@@ -231,7 +231,7 @@ class TestStreamingCommand < Minitest::Test
 
     with_test_terminal do
       inject_key("s")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     elapsed = Time.now - start_time

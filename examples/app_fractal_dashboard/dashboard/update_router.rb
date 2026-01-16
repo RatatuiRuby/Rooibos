@@ -7,14 +7,14 @@
 
 require_relative "base"
 
-# UPDATE using the declarative Tea::Router DSL.
+# UPDATE using the declarative Rooibos::Router DSL.
 #
 # This is the minimal-boilerplate approach: declare routes and keymaps,
 # let from_router generate the UPDATE lambda. Maximum DX, least control.
 module DashboardRouter
-  include RatatuiRuby::Tea::Router
+  include Rooibos::Router
 
-  Command = RatatuiRuby::Tea::Command
+  Command = Rooibos::Command
 
   # Shared with other Update variants
   Model = DashboardBase::Model

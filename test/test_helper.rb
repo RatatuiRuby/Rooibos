@@ -6,5 +6,5 @@
 #++
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
-require "ratatui_ruby/tea"
+require "rooibos"
 require "minitest/autorun"

@@ -7,7 +7,7 @@
 
 $LOAD_PATH.unshift File.expand_path("../../../lib", __dir__)
 require "ratatui_ruby"
-require "ratatui_ruby/tea"
+require "rooibos"
 require "ratatui_ruby/test_helper"
 require "open3"
 require "minitest/autorun"
@@ -51,7 +51,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
     with_test_terminal do
       inject_key(:q)
 
-      RatatuiRuby::Tea.run(DashboardManual)
+      Rooibos.run(DashboardManual)
 
       assert_snapshots("initial_view")
     end
@@ -64,7 +64,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
         inject_sync
         inject_key(:q)
 
-        RatatuiRuby::Tea.run(DashboardManual)
+        Rooibos.run(DashboardManual)
 
         assert_snapshots("after_system_info")
       end
@@ -78,7 +78,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
         inject_sync
         inject_key(:q)
 
-        RatatuiRuby::Tea.run(DashboardManual)
+        Rooibos.run(DashboardManual)
 
         assert_snapshots("after_disk_usage")
       end
@@ -92,7 +92,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
         inject_sync
         inject_key(:q)
 
-        RatatuiRuby::Tea.run(DashboardManual)
+        Rooibos.run(DashboardManual)
 
         assert_snapshots("after_ping")
       end
@@ -106,7 +106,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
         inject_sync
         inject_key(:q)
 
-        RatatuiRuby::Tea.run(DashboardManual)
+        Rooibos.run(DashboardManual)
 
         assert_snapshots("after_uptime")
       end
@@ -118,7 +118,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
     manual_content = nil
     with_test_terminal do
       inject_key(:q)
-      RatatuiRuby::Tea.run(DashboardManual)
+      Rooibos.run(DashboardManual)
       manual_content = buffer_content
     end
 
@@ -126,7 +126,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
     helpers_content = nil
     with_test_terminal do
       inject_key(:q)
-      RatatuiRuby::Tea.run(
+      Rooibos.run(
         model: DashboardHelpers::Init.(),
         view: DashboardHelpers::View,
         update: DashboardHelpers::Update
@@ -138,7 +138,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
     router_content = nil
     with_test_terminal do
       inject_key(:q)
-      RatatuiRuby::Tea.run(
+      Rooibos.run(
         model: DashboardRouter::Init.(),
         view: DashboardRouter::View,
         update: DashboardRouter::Update
@@ -157,7 +157,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:esc)      # Cancel modal
       inject_key(:q)        # Quit
 
-      RatatuiRuby::Tea.run(DashboardManual)
+      Rooibos.run(DashboardManual)
 
       # Should be back to initial view (ESC dismissed modal)
       assert_snapshots("initial_view")
@@ -170,7 +170,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:esc)      # Cancel modal immediately
       inject_key(:q)        # Quit
 
-      RatatuiRuby::Tea.run(DashboardManual)
+      Rooibos.run(DashboardManual)
 
       # If we got here without error, modal opened and closed successfully
       assert true
@@ -187,7 +187,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:esc)      # Cancel
       inject_key(:q)        # Quit
 
-      RatatuiRuby::Tea.run(DashboardManual)
+      Rooibos.run(DashboardManual)
 
       # Should be back to initial view
       assert_snapshots("initial_view")
@@ -201,7 +201,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:enter)    # Enter on empty = cancel
       inject_key(:q)        # Quit
 
-      RatatuiRuby::Tea.run(DashboardManual)
+      Rooibos.run(DashboardManual)
 
       # Should be back to initial view
       assert_snapshots("initial_view")
@@ -221,7 +221,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:esc)
       inject_key(:q)
 
-      RatatuiRuby::Tea.run(
+      Rooibos.run(
         model: start_model,
         view: DashboardManual::View,
         update: DashboardManual::Update
@@ -251,7 +251,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:esc)
       inject_key(:q)
 
-      RatatuiRuby::Tea.run(
+      Rooibos.run(
         model: start_model,
         view: DashboardManual::View,
         update: DashboardManual::Update
@@ -290,7 +290,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       inject_key(:esc)
       inject_key(:q)
 
-      RatatuiRuby::Tea.run(
+      Rooibos.run(
         model: start_model,
         view: DashboardManual::View,
         update: DashboardManual::Update

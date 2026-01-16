@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
-require "ratatui_ruby/tea"
+require "rooibos"
 require_relative "ping"
 require_relative "uptime"
 
@@ -14,8 +14,8 @@ module NetworkPanel
   Model = Data.define(:ping, :uptime)
 
   Init = -> do
-    ping, = RatatuiRuby::Tea.normalize_init(Ping::Init.())
-    uptime, = RatatuiRuby::Tea.normalize_init(Uptime::Init.())
+    ping, = Rooibos.normalize_init(Ping::Init.())
+    uptime, = Rooibos.normalize_init(Uptime::Init.())
     Model.new(ping:, uptime:)
   end
 

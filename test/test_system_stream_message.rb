@@ -9,7 +9,7 @@ require "test_helper"
 
 class TestSystemStreamMessage < Minitest::Test
   def test_system_predicate_returns_true
-    msg = RatatuiRuby::Tea::Message::System::Stream.new(
+    msg = Rooibos::Message::System::Stream.new(
       envelope: :build, stream: :stdout, content: "line\n", status: nil
     )
 
@@ -17,7 +17,7 @@ class TestSystemStreamMessage < Minitest::Test
   end
 
   def test_stdout_predicate_for_stdout_stream
-    msg = RatatuiRuby::Tea::Message::System::Stream.new(
+    msg = Rooibos::Message::System::Stream.new(
       envelope: :build, stream: :stdout, content: "line\n", status: nil
     )
 
@@ -25,7 +25,7 @@ class TestSystemStreamMessage < Minitest::Test
   end
 
   def test_stderr_predicate_for_stderr_stream
-    msg = RatatuiRuby::Tea::Message::System::Stream.new(
+    msg = Rooibos::Message::System::Stream.new(
       envelope: :build, stream: :stderr, content: "error\n", status: nil
     )
 
@@ -33,7 +33,7 @@ class TestSystemStreamMessage < Minitest::Test
   end
 
   def test_complete_predicate_for_complete_stream
-    msg = RatatuiRuby::Tea::Message::System::Stream.new(
+    msg = Rooibos::Message::System::Stream.new(
       envelope: :build, stream: :complete, content: nil, status: 0
     )
 
@@ -41,7 +41,7 @@ class TestSystemStreamMessage < Minitest::Test
   end
 
   def test_deconstruct_keys_for_stdout_pattern_matching
-    msg = RatatuiRuby::Tea::Message::System::Stream.new(
+    msg = Rooibos::Message::System::Stream.new(
       envelope: :build, stream: :stdout, content: "OK\n", status: nil
     )
 
@@ -54,7 +54,7 @@ class TestSystemStreamMessage < Minitest::Test
   end
 
   def test_deconstruct_keys_for_complete_pattern_matching
-    msg = RatatuiRuby::Tea::Message::System::Stream.new(
+    msg = Rooibos::Message::System::Stream.new(
       envelope: :build, stream: :complete, content: nil, status: 0
     )
 

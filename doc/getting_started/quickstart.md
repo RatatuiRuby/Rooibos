@@ -4,7 +4,7 @@
 -->
 # Quickstart
 
-Welcome to **ratatui_ruby-tea**! This guide will help you get up and running with your first Terminal User Interface in Ruby.
+Welcome to **rooibos**! This guide will help you get up and running with your first Terminal User Interface in Ruby.
 
 ## Installation
 
@@ -15,7 +15,7 @@ See [Installation in the README](../README.md#installation) for setup instructio
 
 ### Basic Application
 
-Here is a "Hello World" application that demonstrates the core lifecycle of a **ratatui_ruby-tea** app.
+Here is a "Hello World" application that demonstrates the core lifecycle of a **rooibos** app.
 
 _Because this gem is in pre-release, it lacks documentation. Please check the source files.
 
@@ -25,7 +25,7 @@ _Because this gem is in pre-release, it lacks documentation. Please check the so
 
 ## Examples
 
-These examples showcase the full power of **ratatui_ruby-tea**. You can find their source code in the [examples directory](../examples).
+These examples showcase the full power of **rooibos**. You can find their source code in the [examples directory](../examples).
 
 ### Widget Demos
 
@@ -46,7 +46,7 @@ These larger examples combine concepts into complete applications, demonstrating
 
 ## Next Steps
 
-Now that you've seen what **ratatui_ruby-tea** can do:
+Now that you've seen what **rooibos** can do:
 
 - **Deep dive**: Read the [Application Architecture](../concepts/application_architecture.md) guide for scaling patterns
 - **Test your TUI**: See the [Testing Guide](../concepts/application_testing.md) for snapshot and style assertions

@@ -9,13 +9,13 @@ require "test_helper"
 
 class TestTimerResponse < Minitest::Test
   def test_timer_predicate_returns_true
-    msg = RatatuiRuby::Tea::Message::Timer.new(envelope: :dismiss, elapsed: 3.0)
+    msg = Rooibos::Message::Timer.new(envelope: :dismiss, elapsed: 3.0)
 
     assert msg.timer?, "TimerResponse should return true for timer?"
   end
 
   def test_deconstruct_keys_for_pattern_matching
-    msg = RatatuiRuby::Tea::Message::Timer.new(envelope: :animate, elapsed: 0.5)
+    msg = Rooibos::Message::Timer.new(envelope: :animate, elapsed: 0.5)
 
     case msg
     in { type: :timer, envelope: :animate, elapsed: }

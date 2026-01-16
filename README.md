@@ -2,13 +2,13 @@
   SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-# ratatui_ruby-tea
+# rooibos
 
 [![
-builds.sr.ht status](https://builds.sr.ht/~kerrick/ratatui_ruby-tea.svg)](https://builds.sr.ht/~kerrick/ratatui_ruby-tea?) [![
-License](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fgit.sr.ht%2F~kerrick%2Fratatui_ruby-tea%2Fblob%2Fstable%2Fratatui_ruby-tea.gemspec&search=spec%5C.license%20%3D%20%22(.*)%22&replace=%241&label=License&color=a2c93e)](https://spdx.org/licenses/LGPL-3.0-or-later.html) [![
-Gem Total Downloads](https://img.shields.io/gem/dt/ratatui_ruby-tea)](https://rubygems.org/gems/ratatui_ruby-tea) [![
-Gem Version](https://img.shields.io/gem/v/ratatui_ruby-tea)](https://rubygems.org/gems/ratatui_ruby-tea) [![
+builds.sr.ht status](https://builds.sr.ht/~kerrick/rooibos.svg)](https://builds.sr.ht/~kerrick/rooibos?) [![
+License](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fgit.sr.ht%2F~kerrick%2Frooibos%2Fblob%2Fstable%2Frooibos.gemspec&search=spec%5C.license%20%3D%20%22(.*)%22&replace=%241&label=License&color=a2c93e)](https://spdx.org/licenses/LGPL-3.0-or-later.html) [![
+Gem Total Downloads](https://img.shields.io/gem/dt/rooibos)](https://rubygems.org/gems/rooibos) [![
+Gem Version](https://img.shields.io/gem/v/rooibos)](https://rubygems.org/gems/rooibos) [![
 Mailing List: Discussion](https://img.shields.io/badge/mailing_list-discussion-5865F2.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iaWNvbiBpY29uLXRhYmxlciBpY29ucy10YWJsZXItb3V0bGluZSBpY29uLXRhYmxlci1tYWlsIj48cGF0aCBzdHJva2U9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMyA3YTIgMiAwIDAgMSAyIC0yaDE0YTIgMiAwIDAgMSAyIDJ2MTBhMiAyIDAgMCAxIC0yIDJoLTE0YTIgMiAwIDAgMSAtMiAtMnYtMTB6IiAvPjxwYXRoIGQ9Ik0zIDdsOSA2bDkgLTYiIC8+PC9zdmc+Cg==)](https://lists.sr.ht/~kerrick/ratatui_ruby-discuss) [![
 Mailing List: Development](https://img.shields.io/badge/mailing_list-development-4954d5.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iaWNvbiBpY29uLXRhYmxlciBpY29ucy10YWJsZXItb3V0bGluZSBpY29uLXRhYmxlci1tYWlsIj48cGF0aCBzdHJva2U9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMyA3YTIgMiAwIDAgMSAyIC0yaDE0YTIgMiAwIDAgMSAyIDJ2MTBhMiAyIDAgMCAxIC0yIDJoLTE0YTIgMiAwIDAgMSAtMiAtMnYtMTB6IiAvPjxwYXRoIGQ9Ik0zIDdsOSA2bDkgLTYiIC8+PC9zdmc+Cg==)](https://lists.sr.ht/~kerrick/ratatui_ruby-devel) [![
 Mailing List: Announcements](https://img.shields.io/badge/mailing_list-announcements-3b44ac.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iaWNvbiBpY29uLXRhYmxlciBpY29ucy10YWJsZXItb3V0bGluZSBpY29uLXRhYmxlci1tYWlsIj48cGF0aCBzdHJva2U9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMyA3YTIgMiAwIDAgMSAyIC0yaDE0YTIgMiAwIDAgMSAyIDJ2MTBhMiAyIDAgMCAxIC0yIDJoLTE0YTIgMiAwIDAgMSAtMiAtMnYtMTB6IiAvPjxwYXRoIGQ9Ik0zIDdsOSA2bDkgLTYiIC8+PC9zdmc+Cg==)](https://lists.sr.ht/~kerrick/ratatui_ruby-announce)
@@ -16,15 +16,15 @@ Mailing List: Announcements](https://img.shields.io/badge/mailing_list-announcem
 
 ## Introduction
 
-**ratatui_ruby-tea** is a gem in the [RatatuiRuby ecosystem](https://sr.ht/~kerrick/ratatui_ruby/).
+**rooibos** is a gem in the [RatatuiRuby ecosystem](https://sr.ht/~kerrick/ratatui_ruby/).
 **ratatui_ruby** is a community wrapper that is not affiliated with [the Ratatui team](https://github.com/orgs/ratatui/people).
 
 > [!WARNING]
-> **ratatui_ruby-tea** is currently in **ALPHA**. The API may change with minor versions.
+> **rooibos** is currently in **ALPHA**. The API may change with minor versions.
 
 **[Why RatatuiRuby?](https://man.sr.ht/~kerrick/ratatui_ruby/why.md)** — Native Rust performance, zero runtime overhead, and Ruby's expressiveness. [See how we compare](https://man.sr.ht/~kerrick/ratatui_ruby/why.md) to CharmRuby, raw Rust, and Go.
 
-Please join the **announce** mailing list at https://lists.sr.ht/~kerrick/ratatui_ruby-announce to stay up-to-date on new releases and announcements. See the [`trunk` branch](https://git.sr.ht/~kerrick/ratatui_ruby-tea/tree/trunk) for pre-release updates.
+Please join the **announce** mailing list at https://lists.sr.ht/~kerrick/ratatui_ruby-announce to stay up-to-date on new releases and announcements. See the [`trunk` branch](https://git.sr.ht/~kerrick/rooibos/tree/trunk) for pre-release updates.
 
 ---
 
@@ -32,7 +32,7 @@ Please join the **announce** mailing list at https://lists.sr.ht/~kerrick/ratatu
 
 ### The Ecosystem
 
-**RatatuiRuby:** [Core engine](https://git.sr.ht/~kerrick/ratatui_ruby) • **Tea:** [MVU architecture](https://git.sr.ht/~kerrick/ratatui_ruby-tea) • **Kit:** [Component architecture](https://git.sr.ht/~kerrick/ratatui_ruby-kit) (Planned) • **DSL:** [Glimmer syntax](https://sr.ht/~kerrick/ratatui_ruby/#chapter-4-the-syntax) (Planned) • **Framework:** [Omakase framework](https://git.sr.ht/~kerrick/ratatui_ruby-framework) (Planned) • **UI:** [Polished widgets](https://git.sr.ht/~kerrick/ratatui_ruby-ui) (Planned) • **UI Pro:** [More polished widgets](https://sr.ht/~kerrick/ratatui_ruby#chapter-6-licensing) (Planned)
+**RatatuiRuby:** [Core engine](https://git.sr.ht/~kerrick/ratatui_ruby) • **Tea:** [MVU architecture](https://git.sr.ht/~kerrick/rooibos) • **Kit:** [Component architecture](https://git.sr.ht/~kerrick/ratatui_ruby-kit) (Planned) • **DSL:** [Glimmer syntax](https://sr.ht/~kerrick/ratatui_ruby/#chapter-4-the-syntax) (Planned) • **Framework:** [Omakase framework](https://git.sr.ht/~kerrick/ratatui_ruby-framework) (Planned) • **UI:** [Polished widgets](https://git.sr.ht/~kerrick/ratatui_ruby-ui) (Planned) • **UI Pro:** [More polished widgets](https://sr.ht/~kerrick/ratatui_ruby#chapter-6-licensing) (Planned)
 
 ### For App Developers
 
@@ -46,7 +46,7 @@ Please join the **announce** mailing list at https://lists.sr.ht/~kerrick/ratatu
 
 ## Compatibility
 
-**ratatui_ruby-tea** is designed to run on [everything Ruby does](https://www.ruby-lang.org/en/documentation/installation/), including:
+**rooibos** is designed to run on [everything Ruby does](https://www.ruby-lang.org/en/documentation/installation/), including:
 
 - GNU/Linux, macOS, Windows, OpenBSD, and FreeBSD; and
 - x86_64 (AMD, Intel) and ARM (Apple Silicon, Raspberry Pi).
@@ -66,7 +66,7 @@ Add this line to your application's Gemfile:
   SPDX-License-Identifier: MIT-0
 -->
 ```ruby
-gem "ratatui_ruby-tea"
+gem "rooibos"
 ```
 <!-- SPDX-SnippetEnd -->
 
@@ -90,14 +90,14 @@ Or install it yourself with:
   SPDX-License-Identifier: MIT-0
 -->
 ```bash
-gem install ratatui_ruby-tea
+gem install rooibos
 ```
 <!-- SPDX-SnippetEnd -->
 
 
 ## Usage
 
-**ratatui_ruby-tea** uses the Model-View-Update (MVU) pattern. You provide an immutable model, a view function, and an update function.
+**rooibos** uses the Model-View-Update (MVU) pattern. You provide an immutable model, a view function, and an update function.
 
 <!-- SPDX-SnippetBegin -->
 <!--
@@ -126,14 +126,14 @@ end
 
 Update = -> (msg, model) do
   if msg.q? || msg.ctrl_c?
-    RatatuiRuby::Tea::Command.exit
+    Rooibos::Command.exit
   else
     model
   end
 end
 
 def run
-  RatatuiRuby::Tea.run(VerifyReadmeUsage)
+  Rooibos.run(VerifyReadmeUsage)
 end
 ```
 <!-- SYNC:END -->
@@ -165,16 +165,16 @@ _Because this gem is in pre-release, it lacks documentation. Please check the so
 Bug reports and pull requests are welcome on [sourcehut](https://sourcehut.org) at https://sr.ht/~kerrick/ratatui_ruby/. This project is intended to be a safe, productive collaboration, and contributors are expected to adhere to the [Code of Conduct](https://man.sr.ht/~kerrick/ratatui_ruby/code_of_conduct.md).
 
 
-Want to help develop **ratatui_ruby-tea**? Check out the [contribution guide on the wiki](https://man.sr.ht/~kerrick/ratatui_ruby/contributing.md).
+Want to help develop **rooibos**? Check out the [contribution guide on the wiki](https://man.sr.ht/~kerrick/ratatui_ruby/contributing.md).
 
 **Note**: Active development happens on the `trunk` branch. Use `trunk` if you are a contributor or want the latest cutting-edge features. `stable` is for stable releases only.
 
 
 ## Copyright & License
 
-**ratatui_ruby-tea** is copyright 2026, Kerrick Long.
+**rooibos** is copyright 2026, Kerrick Long.
 
-The library is [LGPL-3.0-or-later](./LICENSES/LGPL-3.0-or-later.txt): you can use it in proprietary applications, but you must share changes you make to **ratatui_ruby-tea** itself. Documentation snippets and widget examples are [MIT-0](./LICENSES/MIT-0.txt): copy and use them without attribution.
+The library is [LGPL-3.0-or-later](./LICENSES/LGPL-3.0-or-later.txt): you can use it in proprietary applications, but you must share changes you make to **rooibos** itself. Documentation snippets and widget examples are [MIT-0](./LICENSES/MIT-0.txt): copy and use them without attribution.
 
 Documentation is [CC-BY-SA-4.0](./LICENSES/CC-BY-SA-4.0.txt). Build tooling and full app examples are [LGPL-3.0-or-later](./LICENSES/LGPL-3.0-or-later.txt). See each file's SPDX comment for specifics.
 

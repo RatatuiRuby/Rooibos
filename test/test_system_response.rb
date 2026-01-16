@@ -9,7 +9,7 @@ require "test_helper"
 
 class TestSystemResponse < Minitest::Test
   def test_system_predicate_returns_true
-    msg = RatatuiRuby::Tea::Message::System::Batch.new(
+    msg = Rooibos::Message::System::Batch.new(
       envelope: :build, stdout: "", stderr: "", status: 0
     )
 
@@ -17,7 +17,7 @@ class TestSystemResponse < Minitest::Test
   end
 
   def test_success_predicate_when_status_zero
-    msg = RatatuiRuby::Tea::Message::System::Batch.new(
+    msg = Rooibos::Message::System::Batch.new(
       envelope: :build, stdout: "", stderr: "", status: 0
     )
 
@@ -25,7 +25,7 @@ class TestSystemResponse < Minitest::Test
   end
 
   def test_error_predicate_when_status_nonzero
-    msg = RatatuiRuby::Tea::Message::System::Batch.new(
+    msg = Rooibos::Message::System::Batch.new(
       envelope: :build, stdout: "", stderr: "Error", status: 1
     )
 
@@ -33,7 +33,7 @@ class TestSystemResponse < Minitest::Test
   end
 
   def test_deconstruct_keys_for_pattern_matching
-    msg = RatatuiRuby::Tea::Message::System::Batch.new(
+    msg = Rooibos::Message::System::Batch.new(
       envelope: :build, stdout: "OK", stderr: "", status: 0
     )
 

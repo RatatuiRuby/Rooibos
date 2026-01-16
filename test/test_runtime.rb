@@ -19,22 +19,22 @@ class TestRuntime < Minitest::Test
   end
 
   def test_runtime_class_exists
-    assert_kind_of Class, RatatuiRuby::Tea::Runtime
+    assert_kind_of Class, Rooibos::Runtime
   end
 
   def test_runtime_responds_to_run
-    assert_respond_to RatatuiRuby::Tea::Runtime, :run
+    assert_respond_to Rooibos::Runtime, :run
   end
 
   def test_run_accepts_fps_parameter
     model = Ractor.make_shareable({ count: 0 }, copy: true)
     view = -> (_m, tui) { tui.clear }
-    update = -> (_msg, _m) { RatatuiRuby::Tea::Command.exit }
+    update = -> (_msg, _m) { Rooibos::Command.exit }
 
     # Verify it runs and returns the model
     result = with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:, fps: 30)
+      Rooibos::Runtime.run(model:, view:, update:, fps: 30)
     end
 
     assert_equal model, result
@@ -45,11 +45,11 @@ class TestRuntime < Minitest::Test
     view_args = nil
 
     view = -> (m, t) { view_args = [m, t]; t.clear }
-    update = -> (msg, _m) { [model, RatatuiRuby::Tea::Command.exit] }
+    update = -> (msg, _m) { [model, Rooibos::Command.exit] }
 
     with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_equal model, view_args[0], "view should receive model as first arg"
@@ -65,13 +65,13 @@ class TestRuntime < Minitest::Test
 
     fragment = Module.new
     fragment.const_set(:Init, callable_init)
-    fragment.const_set(:Update, -> (_msg, _m) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:Update, -> (_msg, _m) { Rooibos::Command.exit })
     fragment.const_set(:View, -> (_m, tui) { tui.clear })
 
     # specific verification that it runs without raising and returns the correct model
     result = with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(fragment)
+      Rooibos::Runtime.run(fragment)
     end
 
     assert_equal({ count: 0 }, result)
@@ -81,12 +81,12 @@ class TestRuntime < Minitest::Test
     # Init does not respond to call
     fragment = Module.new
     fragment.const_set(:Init, Object.new)
-    fragment.const_set(:Update, -> (_msg, _m) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:Update, -> (_msg, _m) { Rooibos::Command.exit })
     fragment.const_set(:View, -> (_m, tui) { tui.clear })
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
       with_test_terminal do
-        RatatuiRuby::Tea::Runtime.run(fragment)
+        Rooibos::Runtime.run(fragment)
       end
     end
     assert_match(/Fragment::Init must respond to :call/, error.message)
@@ -96,12 +96,12 @@ class TestRuntime < Minitest::Test
     # Model does not respond to new
     fragment = Module.new
     fragment.const_set(:Model, Object.new) # Object.new returns an instance, which doesn't have .new
-    fragment.const_set(:Update, -> (_msg, _m) { RatatuiRuby::Tea::Command.exit })
+    fragment.const_set(:Update, -> (_msg, _m) { Rooibos::Command.exit })
     fragment.const_set(:View, -> (_m, tui) { tui.clear })
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
       with_test_terminal do
-        RatatuiRuby::Tea::Runtime.run(fragment)
+        Rooibos::Runtime.run(fragment)
       end
     end
     assert_match(/Fragment::Model must respond to :new/, error.message)
@@ -115,7 +115,7 @@ class TestRuntime < Minitest::Test
     update = -> (msg, m) do
       call_count += 1
       if call_count >= 2 || msg.q?
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       else
         m # Return plain model, no tuple
       end
@@ -124,7 +124,7 @@ class TestRuntime < Minitest::Test
     with_test_terminal do
       inject_key("a") # First event: causes plain model return
       inject_key("q") # Second event: causes quit
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_equal 2, call_count, "update should be called twice (once per event)"
@@ -138,7 +138,7 @@ class TestRuntime < Minitest::Test
     view = -> (m, tui) { received_model = m; tui.clear }
     update = -> (msg, m) do
       if msg.q?
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       else
         m # Return the array model directly
       end
@@ -147,7 +147,7 @@ class TestRuntime < Minitest::Test
     with_test_terminal do
       inject_key("a") # First event: returns array model
       inject_key("q") # Second event: quits
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # The model should still be the 2-element array, not destructured
@@ -159,11 +159,11 @@ class TestRuntime < Minitest::Test
     received_model = nil
 
     view = -> (m, tui) { received_model = m; tui.clear }
-    update = -> (_msg, _m) { RatatuiRuby::Tea::Command.exit }
+    update = -> (_msg, _m) { Rooibos::Command.exit }
 
     with_test_terminal do
       inject_key("a")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_same model, received_model, "model should be preserved when update returns Cmd only"
@@ -177,13 +177,13 @@ class TestRuntime < Minitest::Test
     view = -> (m, tui) { received_model = m; tui.clear }
     update = -> (_msg, _m) do
       call_count += 1
-      (call_count >= 2) ? RatatuiRuby::Tea::Command.exit : nil
+      (call_count >= 2) ? Rooibos::Command.exit : nil
     end
 
     with_test_terminal do
       inject_key("a")
       inject_key("b")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_same model, received_model, "model should be preserved when update returns nil"
@@ -193,12 +193,12 @@ class TestRuntime < Minitest::Test
     model = Ractor.make_shareable({ text: "hello" }, copy: true)
 
     view = -> (_m, _t) { nil }
-    update = -> (_msg, _m) { RatatuiRuby::Tea::Command.exit }
+    update = -> (_msg, _m) { Rooibos::Command.exit }
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
       with_test_terminal do
         inject_key("q")
-        RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
@@ -210,12 +210,12 @@ class TestRuntime < Minitest::Test
     view_called = false
 
     view = -> (_m, tui) { view_called = true; tui.clear }
-    update = -> (_msg, _m) { RatatuiRuby::Tea::Command.exit }
+    update = -> (_msg, _m) { Rooibos::Command.exit }
 
     # tui.clear is the intentional way to render nothing
     with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert view_called, "view should have been called"
@@ -225,13 +225,13 @@ class TestRuntime < Minitest::Test
     mutable_model = { count: 0 } # NOT frozen
 
     view = -> (_m, tui) { tui.clear }
-    update = -> (_msg, _m) { RatatuiRuby::Tea::Command.exit }
+    update = -> (_msg, _m) { Rooibos::Command.exit }
 
     RatatuiRuby::Debug.suppress_debug_mode do
       with_test_terminal do
         inject_key("q")
         # Should NOT raise - validation is skipped in production mode
-        RatatuiRuby::Tea::Runtime.run(model: mutable_model, view:, update:)
+        Rooibos::Runtime.run(model: mutable_model, view:, update:)
       end
     end
   end
@@ -240,12 +240,12 @@ class TestRuntime < Minitest::Test
     mutable_model = { count: 0 } # NOT frozen
 
     view = -> (_m, tui) { tui.clear }
-    update = -> (_msg, _m) { RatatuiRuby::Tea::Command.exit }
+    update = -> (_msg, _m) { Rooibos::Command.exit }
 
     error = assert_raises(RatatuiRuby::Error::Invariant) do
       with_test_terminal do
         inject_key("q")
-        RatatuiRuby::Tea::Runtime.run(model: mutable_model, view:, update:)
+        Rooibos::Runtime.run(model: mutable_model, view:, update:)
       end
     end
 
@@ -262,7 +262,7 @@ class TestRuntime < Minitest::Test
       with_test_terminal do
         inject_key("a")
         inject_key("q")
-        RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
@@ -275,13 +275,13 @@ class TestRuntime < Minitest::Test
 
     view = -> (m, tui) { final_model = m; tui.clear }
     update = -> (msg, m) do
-      msg.q? ? [m, RatatuiRuby::Tea::Command.exit] : { count: m[:count] + 1 }.freeze
+      msg.q? ? [m, Rooibos::Command.exit] : { count: m[:count] + 1 }.freeze
     end
 
     with_test_terminal do
       inject_key("a") # Triggers update that returns frozen model
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_equal({ count: 1 }, final_model)
@@ -298,16 +298,16 @@ class TestRuntime < Minitest::Test
         init_ran = true
         [Ractor.make_shareable({ initialized: true }, copy: true), nil]
       else
-        [m, RatatuiRuby::Tea::Command.exit]
+        [m, Rooibos::Command.exit]
       end
     end
 
     # command: is a Cmd that returns a message
-    init_cmd = RatatuiRuby::Tea::Command.custom(INIT_COMPLETE_COMMAND)
+    init_cmd = Rooibos::Command.custom(INIT_COMPLETE_COMMAND)
 
     with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:, command: init_cmd)
+      Rooibos::Runtime.run(model:, view:, update:, command: init_cmd)
     end
 
     assert init_ran, "init command should trigger update with :init_complete message"
@@ -323,10 +323,10 @@ class TestRuntime < Minitest::Test
       in { type: :system, envelope: :got_output, status: 0, stdout: }
         received_stdout = stdout.strip
         assert Ractor.shareable?(msg), "Background message must be Ractor-shareable"
-        [Ractor.make_shareable({ output: stdout }), RatatuiRuby::Tea::Command.exit]
+        [Ractor.make_shareable({ output: stdout }), Rooibos::Command.exit]
       else
         # First event triggers the exec command
-        [m, RatatuiRuby::Tea::Command.system("echo hello", :got_output)]
+        [m, Rooibos::Command.system("echo hello", :got_output)]
       end
     end
 
@@ -337,7 +337,7 @@ class TestRuntime < Minitest::Test
     Open3.stub(:capture3, ["hello\n", "", mock_status]) do
       with_test_terminal do
         inject_key("a") # triggers exec
-        RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
@@ -354,9 +354,9 @@ class TestRuntime < Minitest::Test
       in { type: :system, envelope: :ran_cmd, stderr:, status: } unless status == 0
         received_stderr = stderr
         assert Ractor.shareable?(msg), "Background message must be Ractor-shareable"
-        [Ractor.make_shareable({ error: stderr }), RatatuiRuby::Tea::Command.exit]
+        [Ractor.make_shareable({ error: stderr }), Rooibos::Command.exit]
       else
-        [m, RatatuiRuby::Tea::Command.system("false", :ran_cmd)]
+        [m, Rooibos::Command.system("false", :ran_cmd)]
       end
     end
 
@@ -367,7 +367,7 @@ class TestRuntime < Minitest::Test
     Open3.stub(:capture3, ["", "command failed\n", mock_status]) do
       with_test_terminal do
         inject_key("a")
-        RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
@@ -386,9 +386,9 @@ class TestRuntime < Minitest::Test
       in { type: :system, envelope: :ran_cmd, status: 0, stdout:, stderr: }
         received_stdout = stdout
         received_stderr = stderr
-        [Ractor.make_shareable({ output: stdout, noise: stderr }), RatatuiRuby::Tea::Command.exit]
+        [Ractor.make_shareable({ output: stdout, noise: stderr }), Rooibos::Command.exit]
       else
-        [m, RatatuiRuby::Tea::Command.system("compiler --verbose", :ran_cmd)]
+        [m, Rooibos::Command.system("compiler --verbose", :ran_cmd)]
       end
     end
 
@@ -398,7 +398,7 @@ class TestRuntime < Minitest::Test
     Open3.stub(:capture3, ["compiled.o\n", "warning: deprecated syntax\n", mock_status]) do
       with_test_terminal do
         inject_key("a")
-        RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
@@ -414,17 +414,17 @@ class TestRuntime < Minitest::Test
     update = -> (msg, m) do
       case msg
       when Array
-        if msg[0] == :parent && msg[1].is_a?(RatatuiRuby::Tea::Message::System::Batch)
+        if msg[0] == :parent && msg[1].is_a?(Rooibos::Message::System::Batch)
           received_msg = msg
           batch = msg[1]
-          [Ractor.make_shareable({ output: batch.stdout }), RatatuiRuby::Tea::Command.exit]
+          [Ractor.make_shareable({ output: batch.stdout }), Rooibos::Command.exit]
         else
           m
         end
       else
         # First event triggers the mapped command
-        inner_cmd = RatatuiRuby::Tea::Command.system("echo hello", :inner_done)
-        mapped_cmd = RatatuiRuby::Tea::Command.map(inner_cmd) { |m| [:parent, m] }
+        inner_cmd = Rooibos::Command.system("echo hello", :inner_done)
+        mapped_cmd = Rooibos::Command.map(inner_cmd) { |m| [:parent, m] }
         [m, mapped_cmd]
       end
     end
@@ -435,11 +435,11 @@ class TestRuntime < Minitest::Test
     Open3.stub(:capture3, ["hello\n", "", mock_status]) do
       with_test_terminal do
         inject_key("a") # triggers mapped command
-        RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
-    assert_kind_of RatatuiRuby::Tea::Message::System::Batch, received_msg[1], "Should receive System::Batch"
+    assert_kind_of Rooibos::Message::System::Batch, received_msg[1], "Should receive System::Batch"
     assert_equal :inner_done, received_msg[1].envelope, "Inner envelope should be preserved"
   end
 
@@ -454,11 +454,11 @@ class TestRuntime < Minitest::Test
       case msg
       when RatatuiRuby::Event::Key
         if msg.code == "a"
-          cmd = RatatuiRuby::Tea::Command.system("echo 'loaded'", :data)
+          cmd = Rooibos::Command.system("echo 'loaded'", :data)
           [m, cmd]
         elsif msg.q?
           result_seen_before_quit = m[:result]
-          [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.exit]
         else
           m
         end
@@ -477,7 +477,7 @@ class TestRuntime < Minitest::Test
         inject_key("a")       # Triggers async command
         inject_sync           # Wait for command to complete
         inject_key(:q)        # Quit - should see result
-        RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
@@ -497,7 +497,7 @@ class TestRuntime < Minitest::Test
 
     # Command that pushes immediately when called
     fast_command = Class.new do
-      include RatatuiRuby::Tea::Command::Custom
+      include Rooibos::Command::Custom
       def call(out, _token)
         out.put(:fast_message, :data)
       end
@@ -508,7 +508,7 @@ class TestRuntime < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, fast_command.new]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       when Array
@@ -523,7 +523,7 @@ class TestRuntime < Minitest::Test
       inject_key("s") # Start command that pushes immediately
       # NO inject_sync - quit happens before channel is polled
       inject_key("q") # Quit
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Without graceful_exit!, this fails - message is lost

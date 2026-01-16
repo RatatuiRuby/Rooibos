@@ -8,7 +8,7 @@
 $LOAD_PATH.unshift File.expand_path("../../lib", __dir__)
 
 require "ratatui_ruby"
-require "ratatui_ruby/tea"
+require "rooibos"
 
 # Demonstrates three approaches to UPDATE routing in Fractal Architecture.
 #
@@ -16,8 +16,8 @@ require "ratatui_ruby/tea"
 #
 #   ruby app.rb           # Defaults to 'manual'
 #   ruby app.rb manual    # Verbose pattern matching
-#   ruby app.rb helpers   # Tea.route and Tea.delegate helpers
-#   ruby app.rb router    # Tea::Router DSL
+#   ruby app.rb helpers   # Rooibos.route and Rooibos.delegate helpers
+#   ruby app.rb router    # Rooibos::Router DSL
 #
 # All three share the same fragments, Model, INITIAL, and VIEW. Only the UPDATE
 # implementation differs. Compare the three update_*.rb files to see the
@@ -60,4 +60,4 @@ dashboard = case mode
 end
 
 puts "Running with #{mode} UPDATE..."
-RatatuiRuby::Tea.run(fragment: dashboard)
+Rooibos.run(fragment: dashboard)

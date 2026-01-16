@@ -8,31 +8,31 @@
 require "test_helper"
 
 class TestUpdateHelpers < Minitest::Test
-  # Tea.route wraps a command with Command.map, prefixing results.
+  # Rooibos.route wraps a command with Command.map, prefixing results.
   # This reduces boilerplate when triggering child commands from parents.
   #
   # Without helper:
   #   Command.map(child.fetch_command) { |result| [:panel, *result] }
   #
   # With helper:
-  #   Tea.route(child.fetch_command, :panel)
+  #   Rooibos.route(child.fetch_command, :panel)
   def test_route_wraps_command_with_prefix
-    inner_command = RatatuiRuby::Tea::Command.system("echo hello", :done)
+    inner_command = Rooibos::Command.system("echo hello", :done)
 
-    wrapped = RatatuiRuby::Tea.route(inner_command, :stats)
+    wrapped = Rooibos.route(inner_command, :stats)
 
-    assert_kind_of RatatuiRuby::Tea::Command::Mapped, wrapped
+    assert_kind_of Rooibos::Command::Mapped, wrapped
     assert_equal inner_command, wrapped.inner_command
 
     # The mapper should prefix the result
-    original_result = RatatuiRuby::Tea::Message::System::Batch.new(
+    original_result = Rooibos::Message::System::Batch.new(
       envelope: :done, stdout: "hello", stderr: "", status: 0
     )
     transformed = wrapped.mapper.call(original_result)
     assert_equal [:stats, original_result], transformed
   end
 
-  # Tea.delegate routes a prefixed message to a child UPDATE.
+  # Rooibos.delegate routes a prefixed message to a child UPDATE.
   # Returns [new_child_model, wrapped_command] or nil if prefix doesn't match.
   #
   # Without helper:
@@ -44,7 +44,7 @@ class TestUpdateHelpers < Minitest::Test
   #   end
   #
   # With helper:
-  #   Tea.delegate(message, :stats, StatsPanel::UPDATE, model.stats)
+  #   Rooibos.delegate(message, :stats, StatsPanel::UPDATE, model.stats)
   def test_delegate_routes_message_to_child_update
     # Simulate a child UPDATE that receives [:system_info, {stdout:}]
     # and returns [new_model, nil]
@@ -59,12 +59,12 @@ class TestUpdateHelpers < Minitest::Test
     child_model = Ractor.make_shareable({ output: "initial" }, copy: true)
 
     # Message with :stats prefix
-    batch_msg = RatatuiRuby::Tea::Message::System::Batch.new(
+    batch_msg = Rooibos::Message::System::Batch.new(
       envelope: :system_info, stdout: "Darwin", stderr: "", status: 0
     )
     message = [:stats, batch_msg]
 
-    result = RatatuiRuby::Tea.delegate(message, :stats, child_update, child_model)
+    result = Rooibos.delegate(message, :stats, child_update, child_model)
 
     refute_nil result, "delegate should return result when prefix matches"
     new_child, command = result
@@ -80,28 +80,28 @@ class TestUpdateHelpers < Minitest::Test
     # Message has :network prefix, but we're checking for :stats
     message = [:network, :ping, { stdout: "ok" }]
 
-    result = RatatuiRuby::Tea.delegate(message, :stats, child_update, child_model)
+    result = Rooibos.delegate(message, :stats, child_update, child_model)
 
     assert_nil result, "delegate should return nil when prefix doesn't match"
   end
 
   # When child UPDATE returns a command, delegate wraps it with the prefix.
   def test_delegate_wraps_child_command_with_prefix
-    inner_command = RatatuiRuby::Tea::Command.system("ls", :files)
+    inner_command = Rooibos::Command.system("ls", :files)
     child_update = -> (message, model) { [model.merge(updated: true).freeze, inner_command] }
     child_model = Ractor.make_shareable({ updated: false }, copy: true)
 
     message = [:stats, :refresh]
 
-    result = RatatuiRuby::Tea.delegate(message, :stats, child_update, child_model)
+    result = Rooibos.delegate(message, :stats, child_update, child_model)
 
     refute_nil result
     new_child, wrapped_command = result
     assert_equal({ updated: true }, new_child)
-    assert_kind_of RatatuiRuby::Tea::Command::Mapped, wrapped_command
+    assert_kind_of Rooibos::Command::Mapped, wrapped_command
 
     # Verify the command is properly wrapped
-    original_result = RatatuiRuby::Tea::Message::System::Batch.new(
+    original_result = Rooibos::Message::System::Batch.new(
       envelope: :files, stdout: "a.txt", stderr: "", status: 0
     )
     transformed = wrapped_command.mapper.call(original_result)

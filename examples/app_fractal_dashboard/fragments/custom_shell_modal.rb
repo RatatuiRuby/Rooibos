@@ -10,13 +10,13 @@ require_relative "custom_shell_output"
 
 # Modal overlay for custom shell command execution.
 module CustomShellModal
-  Command = RatatuiRuby::Tea::Command
+  Command = Rooibos::Command
 
   Model = Data.define(:mode, :input, :output)
 
   Init = -> do
-    input, = RatatuiRuby::Tea.normalize_init(CustomShellInput::Init.())
-    output, = RatatuiRuby::Tea.normalize_init(CustomShellOutput::Init.())
+    input, = Rooibos.normalize_init(CustomShellInput::Init.())
+    output, = Rooibos.normalize_init(CustomShellOutput::Init.())
     Ractor.make_shareable(Model.new(mode: :none, input:, output:))
   end
 
@@ -42,7 +42,7 @@ module CustomShellModal
       elsif new_input.submitted
         shell_cmd = new_input.text
         new_output = CustomShellOutput::Init.().with(command: shell_cmd, running: true)
-        reset_input, = RatatuiRuby::Tea.normalize_init(CustomShellInput::Init.())
+        reset_input, = Rooibos.normalize_init(CustomShellInput::Init.())
         [
           model.with(mode: :output, input: reset_input, output: new_output),
           Command.system(shell_cmd, :shell_output, stream: true),
@@ -72,7 +72,7 @@ module CustomShellModal
   end
 
   def self.open
-    input, = RatatuiRuby::Tea.normalize_init(CustomShellInput::Init.())
+    input, = Rooibos.normalize_init(CustomShellInput::Init.())
     Init.().with(mode: :input, input:)
   end
 

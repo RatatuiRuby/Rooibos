@@ -13,7 +13,7 @@ class TestRuntimeCustomCommand < Minitest::Test
 
   def test_normalize_update_return_recognizes_custom_command
     command_class = Class.new do
-      include RatatuiRuby::Tea::Command::Custom
+      include Rooibos::Command::Custom
     end
 
     command = command_class.new
@@ -21,7 +21,7 @@ class TestRuntimeCustomCommand < Minitest::Test
 
     # Simulate update returning [model, custom_command]
     result = [:new_model, command]
-    normalized = RatatuiRuby::Tea::Runtime.__send__(:normalize_update_return, result, previous_model)
+    normalized = Rooibos::Runtime.__send__(:normalize_update_return, result, previous_model)
 
     assert_equal :new_model, normalized[0], "Model should be extracted"
     assert_equal command, normalized[1], "Custom command should be recognized as command"
@@ -32,7 +32,7 @@ class TestRuntimeCustomCommand < Minitest::Test
     received_token = nil
 
     command_class = Class.new do
-      include RatatuiRuby::Tea::Command::Custom
+      include Rooibos::Command::Custom
 
       define_method(:initialize) do |callback|
         @callback = callback
@@ -58,7 +58,7 @@ class TestRuntimeCustomCommand < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, command]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -69,18 +69,18 @@ class TestRuntimeCustomCommand < Minitest::Test
     with_test_terminal do
       inject_key("s")
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     refute_nil received_token, "Command should have received a Cancellation"
-    assert_kind_of RatatuiRuby::Tea::Command::Outlet, received_out
+    assert_kind_of Rooibos::Command::Outlet, received_out
     assert_kind_of Concurrent::Cancellation, received_token
   end
 
   def test_outlet_messages_arrive_in_update
     messages = []
     command_class = Class.new do
-      include RatatuiRuby::Tea::Command::Custom
+      include Rooibos::Command::Custom
 
       define_method(:call) do |out, _token|
         out.put(:test_message, :payload)
@@ -94,7 +94,7 @@ class TestRuntimeCustomCommand < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, command_class.new]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -106,7 +106,7 @@ class TestRuntimeCustomCommand < Minitest::Test
     with_test_terminal do
       inject_key("s")
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_includes messages, [:test_message, :payload], "Update should receive outlet message"
@@ -114,7 +114,7 @@ class TestRuntimeCustomCommand < Minitest::Test
 
   # Command that runs briefly then finishes
   BriefCommand = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(out, _token)
       sleep 0.05 # Brief work
@@ -132,7 +132,7 @@ class TestRuntimeCustomCommand < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, BriefCommand.new] # 0.05s work, 0.1s grace
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -145,7 +145,7 @@ class TestRuntimeCustomCommand < Minitest::Test
       inject_key("s")  # Start brief command
       inject_key("q")  # Quit
 
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Brief command (0.05s) finishes within its 0.1s grace period
@@ -154,7 +154,7 @@ class TestRuntimeCustomCommand < Minitest::Test
 
   # Long-running command that waits until cancelled
   WaitForCancel = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(out, token)
       out.put(:command_started)
@@ -176,9 +176,9 @@ class TestRuntimeCustomCommand < Minitest::Test
           cmd = WaitForCancel.new
           [Ractor.make_shareable({ cmd: }), cmd]
         when "c"
-          [m, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+          [m, Rooibos::Command.cancel(m[:cmd])]
         when "q"
-          [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.exit]
         else
           [m, nil]
         end
@@ -193,7 +193,7 @@ class TestRuntimeCustomCommand < Minitest::Test
       inject_key("c")  # Cancel it
       inject_key("q")  # Quit
 
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_includes events, :command_started, "Command should have started"
@@ -202,9 +202,9 @@ class TestRuntimeCustomCommand < Minitest::Test
 
   # Command with infinite grace that cooperates with cancellation
   InfiniteGraceCooperative = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
-    def tea_cancellation_grace_period = Float::INFINITY
+    def rooibos_cancellation_grace_period = Float::INFINITY
 
     def call(out, token)
       out.put(:infinite_started)
@@ -226,9 +226,9 @@ class TestRuntimeCustomCommand < Minitest::Test
           cmd = InfiniteGraceCooperative.new
           [Ractor.make_shareable({ cmd: }), cmd]
         when "c"
-          [m, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
+          [m, Rooibos::Command.cancel(m[:cmd])]
         when "q"
-          [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.exit]
         else
           [m, nil]
         end
@@ -243,7 +243,7 @@ class TestRuntimeCustomCommand < Minitest::Test
       inject_key("c")  # Cancel it (should wait for cooperative stop)
       inject_key("q")  # Quit
 
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_includes events, :infinite_started, "Command should have started"
@@ -256,7 +256,7 @@ class TestRuntimeCustomCommand < Minitest::Test
 
   # Command that raises an error
   ExplodingCommand = Data.define do
-    include RatatuiRuby::Tea::Command::Custom
+    include Rooibos::Command::Custom
 
     def call(_out, _token)
       raise "Boom!"
@@ -273,10 +273,10 @@ class TestRuntimeCustomCommand < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, ExplodingCommand.new]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
-      when RatatuiRuby::Tea::Command::Error
+      when Rooibos::Command::Error
         received_error = msg
         [m, nil]
       else
@@ -289,11 +289,11 @@ class TestRuntimeCustomCommand < Minitest::Test
       inject_sync      # Wait for command to complete
       inject_key("q")  # Quit
 
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     refute_nil received_error, "Update should receive Command::Error"
-    assert_kind_of RatatuiRuby::Tea::Command::Error, received_error
+    assert_kind_of Rooibos::Command::Error, received_error
     assert_equal ExplodingCommand, received_error.command.class
     assert_equal "Boom!", received_error.exception.message
   end

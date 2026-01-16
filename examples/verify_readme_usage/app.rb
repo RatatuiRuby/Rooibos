@@ -8,7 +8,7 @@
 $LOAD_PATH.unshift File.expand_path("../../lib", __dir__)
 
 require "ratatui_ruby"
-require "ratatui_ruby/tea"
+require "rooibos"
 
 class VerifyReadmeUsage
   # [SYNC:START:mvu]
@@ -32,14 +32,14 @@ class VerifyReadmeUsage
 
   Update = -> (msg, model) do
     if msg.q? || msg.ctrl_c?
-      RatatuiRuby::Tea::Command.exit
+      Rooibos::Command.exit
     else
       model
     end
   end
 
   def run
-    RatatuiRuby::Tea.run(VerifyReadmeUsage)
+    Rooibos.run(VerifyReadmeUsage)
   end
   # [SYNC:END:mvu]
 end

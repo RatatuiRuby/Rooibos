@@ -3,13 +3,13 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Custom Commands Design (`ratatui_ruby-tea`)
+# Custom Commands Design (`rooibos`)
 
-This document describes the architectural design and guiding principles of custom commands in `ratatui_ruby-tea`. It is intended for contributors, architects, and AI agents working on the codebase.
+This document describes the architectural design and guiding principles of custom commands in `rooibos`. It is intended for contributors, architects, and AI agents working on the codebase.
 
 ## Core Abstractions
 
-Custom commands extend Tea with user-defined side effects: WebSockets, gRPC, database polling, background workers. The architecture provides four key components:
+Custom commands extend Rooibos with user-defined side effects: WebSockets, gRPC, database polling, background workers. The architecture provides four key components:
 
 | Component | Purpose |
 |-----------|---------|
@@ -100,7 +100,7 @@ This design is forward-compatible with Ruby's Ractor-based parallelism.
 
 **Debug mode validation:**
 
-In debug mode, Tea validates Ractor shareability at dispatch time. `Ractor.shareable?(command)` catches most issues. The Outlet's `put` method validates messages before pushing them to the queue.
+In debug mode, Rooibos validates Ractor shareability at dispatch time. `Ractor.shareable?(command)` catches most issues. The Outlet's `put` method validates messages before pushing them to the queue.
 
 **Why Thread dispatch is Ractor-safe:**
 
@@ -164,7 +164,7 @@ This design implements several established patterns from the software architectu
 | **Redux Observable** | RxJS Observables | RxRuby (rejected for complexity) |
 | **redux-loop** | Elm-style Cmd | Recursive commands |
 
-Redux Saga's `put()` is the direct inspiration for `out.put()`. The Saga pattern—long-running processes that listen for actions and dispatch new ones—maps directly to Tea's custom commands.
+Redux Saga's `put()` is the direct inspiration for `out.put()`. The Saga pattern—long-running processes that listen for actions and dispatch new ones—maps directly to Rooibos's custom commands.
 
 ### Ruby Ecosystem
 

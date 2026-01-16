@@ -5,11 +5,11 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
-require "ratatui_ruby/tea"
+require "rooibos"
 # Pings localhost to check network connectivity.
 # A fragment for pinging localhost.
 module Ping
-  Command = RatatuiRuby::Tea::Command
+  Command = Rooibos::Command
 
   Model = Data.define(:output, :loading)
 

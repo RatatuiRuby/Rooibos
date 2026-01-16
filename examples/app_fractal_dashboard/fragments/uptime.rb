@@ -5,11 +5,11 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
-require "ratatui_ruby/tea"
+require "rooibos"
 # Displays system uptime.
 # A fragment for displaying system uptime.
 module Uptime
-  Command = RatatuiRuby::Tea::Command
+  Command = Rooibos::Command
 
   Model = Data.define(:output, :loading)
 

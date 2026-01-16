@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MIT-0
 #++
 
-require "ratatui_ruby/tea"
+require "rooibos"
 require_relative "system_info"
 require_relative "disk_usage"
 
@@ -14,8 +14,8 @@ module StatsPanel
   Model = Data.define(:system_info, :disk_usage)
 
   Init = -> do
-    system_info, = RatatuiRuby::Tea.normalize_init(SystemInfo::Init.())
-    disk_usage, = RatatuiRuby::Tea.normalize_init(DiskUsage::Init.())
+    system_info, = Rooibos.normalize_init(SystemInfo::Init.())
+    disk_usage, = Rooibos.normalize_init(DiskUsage::Init.())
     Model.new(system_info:, disk_usage:)
   end
 

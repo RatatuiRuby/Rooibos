@@ -245,7 +245,7 @@ app({
 - Can combine state + effects in array format
 - Very flexible
 
-## Key Findings for RatatuiRuby-TEA
+## Key Findings for Rooibos
 
 ### ✅ **Flags/Props Pattern is Proven**
 **Iced (Rust)** explicitly uses a `flags` parameter in `new()`:
@@ -331,17 +331,18 @@ Like Hyperapp, support both:
 From Elm/Iced patterns:
 
 ```ruby
+
 module Dashboard
   Init = ->(theme: :dark) do
     stats_model, stats_cmd = StatsPanel::Init.(theme: theme)
     network_model, network_cmd = NetworkPanel::Init.(theme: theme)
-    
+
     model = Model.new(stats: stats_model, network: network_model)
     command = Command.batch(
-      Tea.route(stats_cmd, :stats),
-      Tea.route(network_cmd, :network)
+            Rooibos.route(stats_cmd, :stats),
+            Rooibos.route(network_cmd, :network)
     )
-    
+
     [model, command]
   end
 end
@@ -351,10 +352,10 @@ end
 From Iced/Elm patterns:
 
 ```ruby
-Tea.run(
-  fragment: App,
-  argv: ARGV,
-  env: ENV
+Rooibos.run(
+        fragment: App,
+        argv: ARGV,
+        env: ENV
 )
 # Internally calls: model, cmd = App::Init.(argv: ARGV, env: ENV)
 ```

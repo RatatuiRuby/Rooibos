@@ -12,7 +12,7 @@ require_relative "base"
 # This is the most explicit approach: full pattern matching, explicit
 # Command.map calls, manual model updates. Maximum control, maximum boilerplate.
 module DashboardManual
-  Command = RatatuiRuby::Tea::Command
+  Command = Rooibos::Command
 
   # Shared with other UPDATE variants
   Model = DashboardBase::Model
@@ -21,7 +21,7 @@ module DashboardManual
 
   Update = -> (message, model) do
     # Global Force Quit
-    return [model, RatatuiRuby::Tea::Command.exit] if message.respond_to?(:ctrl_c?) && message.ctrl_c?
+    return [model, Rooibos::Command.exit] if message.respond_to?(:ctrl_c?) && message.ctrl_c?
 
     # IMPORTANT: Route command results BEFORE modal intercept.
     # Async command results must always reach their destination, even when a

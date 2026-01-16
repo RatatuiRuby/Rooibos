@@ -16,7 +16,7 @@ class TestRuntimeAsync < Minitest::Test
     model = Ractor.make_shareable({ events: [] })
 
     # Command that sleeps for 0.01s.
-    long_running_cmd = RatatuiRuby::Tea::Command.system("sleep 0.01", :cmd_complete)
+    long_running_cmd = Rooibos::Command.system("sleep 0.01", :cmd_complete)
 
     view = -> (_m, t) { t.clear }
 
@@ -46,7 +46,7 @@ class TestRuntimeAsync < Minitest::Test
         [m.merge(events: new_events).freeze, nil]
       when :quit
         final_model = m.merge(events: new_events).freeze
-        [final_model, RatatuiRuby::Tea::Command.exit]
+        [final_model, Rooibos::Command.exit]
       else
         [m, nil]
       end
@@ -72,7 +72,7 @@ class TestRuntimeAsync < Minitest::Test
       blocking_simulation = -> (_cmd) { sleep(0.05); ["", "", mock_status] }
 
       Open3.stub(:capture3, blocking_simulation) do
-        RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view:, update:)
       rescue => e
         puts "CAUGHT ERROR: #{e.class}: #{e.message}"
         puts e.backtrace.join("\n")

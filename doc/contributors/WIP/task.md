@@ -9,7 +9,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 ## Signature Changes
 - [x] Update RBS signatures for new Runtime.run signature
 - [x] Add with_argv helper to ratatui_ruby test_helper
-- [x] Update Tea.run wrapper signature
+- [x] Update Rooibos.run wrapper signature
 
 ## Test Updates  
 - [x] Update test_fragment_first_api.rb - change fragment: to positional
@@ -17,9 +17,9 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 - [x] Fix all Command.custom tests to use Ractor-shareable callables
 - [ ] Fix test_init_triggers_update_before_first_event - still failing
 - [ ] Fix test_fragment_first_api_passes_argv_and_env_to_init - ENV hash comparison issue
-- [ ] Update test_snapshots.rb - change all Tea.run calls (15+ occurrences)
-- [ ] Update test_fractal_dashboard.rb - change Tea.run calls
-- [ ] Update all other test files using Tea.run
+- [ ] Update test_snapshots.rb - change all Rooibos.run calls (15+ occurrences)
+- [ ] Update test_fractal_dashboard.rb - change Rooibos.run calls
+- [ ] Update all other test files using Rooibos.run
 - [ ] Add test for fps: parameter
 
 ## Example Updates

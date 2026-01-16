@@ -8,7 +8,7 @@
 $LOAD_PATH.unshift File.expand_path("../../lib", __dir__)
 
 require "ratatui_ruby"
-require "ratatui_ruby/tea"
+require "rooibos"
 
 # Demonstrates the Command.execute command for running shell commands.
 #
@@ -107,25 +107,25 @@ class WidgetCommandSystem
 
     # Handle key presses
     in _ if message.q? || message.ctrl_c?
-      RatatuiRuby::Tea::Command.exit
+      Rooibos::Command.exit
     in _ if message.d?
-      [model.with(loading: true, last_command: "ls -la"), RatatuiRuby::Tea::Command.system("ls -la", :got_output)]
+      [model.with(loading: true, last_command: "ls -la"), Rooibos::Command.system("ls -la", :got_output)]
     in _ if message.u?
-      [model.with(loading: true, last_command: "uname -a"), RatatuiRuby::Tea::Command.system("uname -a", :got_output)]
+      [model.with(loading: true, last_command: "uname -a"), Rooibos::Command.system("uname -a", :got_output)]
     in _ if message.s?
       command = "sleep 3 && echo 'Slept for 3s'"
-      [model.with(loading: true, last_command: cmd.freeze), RatatuiRuby::Tea::Command.system(cmd, :got_output)]
+      [model.with(loading: true, last_command: cmd.freeze), Rooibos::Command.system(cmd, :got_output)]
     in _ if message.f?
       # Intentional failure to demonstrate error handling
       command = "ls /nonexistent_path_12345"
-      [model.with(loading: true, last_command: cmd.freeze), RatatuiRuby::Tea::Command.system(cmd, :got_output)]
+      [model.with(loading: true, last_command: cmd.freeze), Rooibos::Command.system(cmd, :got_output)]
     else
       model
     end
   end
 
   def run
-    RatatuiRuby::Tea.run(model: INITIAL, view: VIEW, update: UPDATE)
+    Rooibos.run(model: INITIAL, view: VIEW, update: UPDATE)
   end
 end
 

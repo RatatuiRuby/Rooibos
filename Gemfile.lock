@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    ratatui_ruby-tea (0.4.0)
+    rooibos (0.4.0)
       concurrent-ruby (~> 1.3)
       concurrent-ruby-edge (~> 0.7)
       ostruct (~> 0.6)
@@ -281,8 +281,8 @@ DEPENDENCIES
   rake (~> 13.0)
   ratatui_ruby (~> 0.10.2)
   ratatui_ruby-devtools
-  ratatui_ruby-tea!
   rdoc (~> 7.0)
+  rooibos!
   rubocop (~> 1.21)
   rubycritic (~> 4.11)
   steep
@@ -354,7 +354,6 @@ CHECKSUMS
   rake-compiler-dock (1.11.0) sha256=eab51f2cd533eb35cea6b624a75281f047123e70a64c58b607471bb49428f8c2
   ratatui_ruby (0.10.2) sha256=6002eb43158e95365182dd82c2ffdac81d0c0a3147c38318ad7af31ab5f3cbb6
   ratatui_ruby-devtools (0.1.0) sha256=be259bbd30fa9ccdd0febc00830d942845997a87c02de876e4c3d99f4839baf6
-  ratatui_ruby-tea (0.4.0)
   rb-fsevent (0.11.2) sha256=43900b972e7301d6570f64b850a5aa67833ee7d87b458ee92805d56b7318aefe
   rb-inotify (0.11.1) sha256=a0a700441239b0ff18eb65e3866236cd78613d6b9f78fea1f9ac47a85e47be6e
   rb_sys (0.9.124) sha256=513476557b12eaf73764b3da9f8746024558fe8699bda785fb548c9aa3877ae7
@@ -365,6 +364,7 @@ CHECKSUMS
   regexp_parser (2.11.3) sha256=ca13f381a173b7a93450e53459075c9b76a10433caadcb2f1180f2c741fc55a4
   reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
   rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
+  rooibos (0.4.0)
   rubocop (1.82.1) sha256=09f1a6a654a960eda767aebea33e47603080f8e9c9a3f019bf9b94c9cab5e273
   rubocop-ast (1.49.0) sha256=49c3676d3123a0923d333e20c6c2dbaaae2d2287b475273fddee0c61da9f71fd
   ruby-progressbar (1.13.0) sha256=80fc9c47a9b640d6834e0dc7b3c94c9df37f08cb072b7761e4a71e22cff29b33

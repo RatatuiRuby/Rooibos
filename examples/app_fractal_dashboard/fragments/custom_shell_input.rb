@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 #++
 
-require "ratatui_ruby/tea"
+require "rooibos"
 # Text input fragment for custom shell command modal.
 #
 # Handles text entry. Sets cancelled: or submitted: in model for parent to detect.

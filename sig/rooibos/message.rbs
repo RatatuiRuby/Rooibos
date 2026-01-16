@@ -1,0 +1,121 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  # Messages sent from commands to update functions.
+  module Message
+  # Fallback predicate mixin.
+  module Predicates
+    # Returns false for unknown predicate methods.
+    def method_missing: (Symbol name, *untyped args, **untyped kwargs) ?{ () -> untyped } -> bool
+
+    # Responds to all predicate methods.
+    def respond_to_missing?: (Symbol name, ?bool include_private) -> bool
+  end
+
+  # System command response types.
+  module System
+    # Response from a system command (batch mode).
+    class Batch
+      include Predicates
+
+      attr_reader envelope: Symbol
+      attr_reader stdout: String
+      attr_reader stderr: String
+      attr_reader status: Integer
+
+      def initialize: (
+        envelope: Symbol,
+        stdout: String,
+        stderr: String,
+        status: Integer
+      ) -> void
+
+      def system?: () -> bool
+      def success?: () -> bool
+      def error?: () -> bool
+      def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+    end
+
+    # Streaming message from a system command.
+    class Stream
+      include Predicates
+
+      attr_reader envelope: Symbol
+      attr_reader stream: Symbol
+      attr_reader content: String?
+      attr_reader status: Integer?
+
+      def initialize: (
+        envelope: Symbol,
+        stream: Symbol,
+        content: String?,
+        status: Integer?
+      ) -> void
+
+      def system?: () -> bool
+      def stdout?: () -> bool
+      def stderr?: () -> bool
+      def complete?: () -> bool
+      def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+    end
+  end
+
+  # Response from a timer command.
+  class Timer
+    include Predicates
+
+    attr_reader envelope: Symbol
+    attr_reader elapsed: Float
+
+    def initialize: (envelope: Symbol, elapsed: Float) -> void
+
+    def timer?: () -> bool
+    def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+  end
+
+  # Response from an HTTP command.
+  class HttpResponse
+    include Predicates
+
+    attr_reader envelope: Symbol
+    attr_reader status: Integer?
+    attr_reader body: String?
+    attr_reader headers: Hash[String, String]?
+    attr_reader error: String?
+
+    def initialize: (
+      envelope: Symbol,
+      status: Integer?,
+      body: String?,
+      headers: Hash[String, String]?,
+      error: String?
+    ) -> void
+
+    def http?: () -> bool
+    def success?: () -> bool
+    def error?: () -> bool
+    def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+  end
+
+  # Response from Command.all aggregating parallel execution.
+  class All
+    include Predicates
+
+    attr_reader envelope: Symbol
+    attr_reader results: Array[untyped]
+    attr_reader nested: bool
+
+    def initialize: (
+      envelope: Symbol,
+      results: Array[untyped],
+      nested: bool
+    ) -> void
+
+    def all?: () -> bool
+    def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+  end
+end
+end

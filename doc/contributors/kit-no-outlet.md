@@ -6,7 +6,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Why Kit Doesn't Need Outlet
 
-> **Context**: The `unified-draft.md` specifies `Tea::Command::Outlet` for message passing from custom commands to the Tea runtime. This document explains why Kit (the component-based runtime) does not need this abstraction.
+> **Context**: The `unified-draft.md` specifies `Rooibos::Command::Outlet` for message passing from custom commands to the Rooibos runtime. This document explains why Kit (the component-based runtime) does not need this abstraction.
 
 ---
 
@@ -20,9 +20,9 @@ This means Kit walks the entire component tree and calls `render` **every frame*
 
 ---
 
-## Tea vs Kit: Different Problems
+## Rooibos vs Kit: Different Problems
 
-| Concern | Tea | Kit |
+| Concern | Rooibos | Kit |
 |---------|-----|-----|
 | **State model** | Immutable (Ractor-safe) | Mutable (encapsulated) |
 | **State location** | Single Model in runtime | Distributed in components |
@@ -32,13 +32,14 @@ This means Kit walks the entire component tree and calls `render` **every frame*
 
 ---
 
-## WebSocket Example: Tea vs Kit
+## WebSocket Example: Rooibos vs Kit
 
-### Tea: Outlet Required
+### Rooibos: Outlet Required
 
 ```ruby
+
 class WebSocketCommand
-  include Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     ws = WebSocket::Client.new(@url)
@@ -61,7 +62,7 @@ def update(msg, model)
 end
 ```
 
-Tea needs Outlet because:
+Rooibos needs Outlet because:
 1. Command runs in a separate thread
 2. Model is immutable—can't mutate from callback
 3. Runtime must receive messages to call `update`
@@ -100,17 +101,17 @@ Kit doesn't need Outlet because:
 
 ---
 
-## Why Each Tea Concept Is Unnecessary in Kit
+## Why Each Rooibos Concept Is Unnecessary in Kit
 
 ### Outlet (Message Gateway)
 
-**Tea**: Routes messages from command thread → runtime queue → update function.
+**Rooibos**: Routes messages from command thread → runtime queue → update function.
 
 **Kit**: Not needed. Callbacks mutate component state directly. Immediate-mode rendering sees changes next frame.
 
 ### CancellationToken
 
-**Tea**: Runtime signals command to stop cooperatively, since commands run in spawned threads tracked by the runtime.
+**Rooibos**: Runtime signals command to stop cooperatively, since commands run in spawned threads tracked by the runtime.
 
 **Kit**: Not needed. Components have `unmount` lifecycle hook. Component stops its own resources:
 
@@ -123,13 +124,13 @@ end
 
 ### Ractor Safety
 
-**Tea**: Messages cross thread boundaries and must be Ractor-shareable for future Ruby 4.0 compatibility.
+**Rooibos**: Messages cross thread boundaries and must be Ractor-shareable for future Ruby 4.0 compatibility.
 
 **Kit**: Not needed. Components are mutable by design. State stays within the component. No Ractor isolation required.
 
 ### Thread Tracking
 
-**Tea**: Runtime tracks spawned command threads to ensure clean shutdown.
+**Rooibos**: Runtime tracks spawned command threads to ensure clean shutdown.
 
 **Kit**: Not needed. Each component tracks its own resources. Tree traversal during shutdown calls `unmount` on each component.
 
@@ -151,7 +152,7 @@ module Kit::Component
 end
 ```
 
-These replace Tea's command spawning and cancellation.
+These replace Rooibos's command spawning and cancellation.
 
 ### 2. Thread Safety for Complex Mutations
 
@@ -191,7 +192,7 @@ end
 
 ## Comparison Table
 
-| Abstraction | Tea | Kit | Why Different |
+| Abstraction | Rooibos | Kit | Why Different |
 |-------------|-----|-----|---------------|
 | **Outlet** | ✓ Required | ✗ Not needed | Kit mutates directly |
 | **CancellationToken** | ✓ Required | ✗ Not needed | Kit has `unmount` |
@@ -209,7 +210,7 @@ end
 │                          ENGINE                                  │
 │               (Immediate-mode, renders every frame)              │
 ├─────────────────────────────┬───────────────────────────────────┤
-│            TEA              │              KIT                   │
+│         ROOIBOS             │              KIT                   │
 │                             │                                    │
 │  Immutable Model            │  Mutable Components                │
 │  Commands spawn threads     │  Components own resources          │
@@ -225,7 +226,7 @@ end
 
 ## Conclusion
 
-**Outlet is Tea-specific.** It solves the problem of getting async results into an immutable, unidirectional data flow.
+**Outlet is Rooibos-specific.** It solves the problem of getting async results into an immutable, unidirectional data flow.
 
 Kit's paradigm—mutable components with immediate-mode rendering—makes Outlet unnecessary:
 
@@ -234,4 +235,4 @@ Kit's paradigm—mutable components with immediate-mode rendering—makes Outlet
 3. **`unmount` hook** → No external cancellation needed
 4. **Components own resources** → No runtime tracking needed
 
-The Outlet stays in `Tea::Command::Outlet`. Kit needs no equivalent.
+The Outlet stays in `Rooibos::Command::Outlet`. Kit needs no equivalent.

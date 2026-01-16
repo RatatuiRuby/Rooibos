@@ -5,7 +5,7 @@
 
 # Application Architecture
 
-Build robust TUI applications with Tea patterns.
+Build robust TUI applications with Rooibos patterns.
 
 ## Core Concepts
 
@@ -19,7 +19,7 @@ Ruby 4.0 introduces [Ractors](https://docs.ruby-lang.org/en/4.0/Ractor.html)—
 true parallel actors that forbid shared mutable state. Code that passes
 mutable objects between threads crashes in a Ractor world.
 
-Tea prepares you today. The runtime enforces Ractor-shareability on every
+Rooibos prepares you today. The runtime enforces Ractor-shareability on every
 Model and Message *now*, using standard threads. Pass a mutable object,
 and it raises an error immediately. Write Ractor-safe code today; upgrade
 to Ruby 4.0 without changes tomorrow.
@@ -171,16 +171,18 @@ end
 
 ### The Router DSL
 
-`Tea::Router` handles this correctly. Routes declared with `route :prefix, to: ChildModule` process before keymap handlers. Command results flow through even when guards block keyboard input.
+`Rooibos::Router` handles this correctly. Routes declared with `route :prefix, to: ChildModule` process before keymap handlers. Command results flow through even when guards block keyboard input.
 
 <!-- SPDX-SnippetBegin -->
 <!--
   SPDX-FileCopyrightText: 2026 Kerrick Long
   SPDX-License-Identifier: MIT-0
 -->
+
 ```ruby
+
 module Dashboard
-  include Tea::Router
+  include Rooibos::Router
 
   route :stats, to: StatsPanel
   route :network, to: NetworkPanel

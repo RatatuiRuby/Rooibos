@@ -21,12 +21,12 @@ class TestRuntimeParallel < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "b"
-          batch = RatatuiRuby::Tea::Command.batch([
-            RatatuiRuby::Tea::Command.wait(0.01, :first),
-            RatatuiRuby::Tea::Command.wait(0.01, :second),
+          batch = Rooibos::Command.batch([
+            Rooibos::Command.wait(0.01, :first),
+            Rooibos::Command.wait(0.01, :second),
           ])
           [m, batch]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -39,11 +39,11 @@ class TestRuntimeParallel < Minitest::Test
       inject_key("b")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Should receive TimerResponse messages, not bare tags
-    timer_messages = messages.select { |m| m.is_a?(RatatuiRuby::Tea::Message::Timer) }
+    timer_messages = messages.select { |m| m.is_a?(Rooibos::Message::Timer) }
     envelopes = timer_messages.map(&:envelope)
     assert_includes envelopes, :first
     assert_includes envelopes, :second
@@ -59,12 +59,12 @@ class TestRuntimeParallel < Minitest::Test
         case msg.code
         when "b"
           # Two 0.1s waits — sequential = 0.2s, parallel < 0.15s
-          batch = RatatuiRuby::Tea::Command.batch([
-            RatatuiRuby::Tea::Command.wait(0.1, :first),
-            RatatuiRuby::Tea::Command.wait(0.1, :second),
+          batch = Rooibos::Command.batch([
+            Rooibos::Command.wait(0.1, :first),
+            Rooibos::Command.wait(0.1, :second),
           ])
           [m, batch]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -77,7 +77,7 @@ class TestRuntimeParallel < Minitest::Test
       inject_key("b")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
     elapsed = Time.now - start
 
@@ -98,13 +98,13 @@ class TestRuntimeParallel < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "b"
-          first_wait = RatatuiRuby::Tea::Command.wait(10.0, :should_not_arrive)
-          second_wait = RatatuiRuby::Tea::Command.wait(10.0, :also_should_not)
-          cmd = RatatuiRuby::Tea::Command.batch([first_wait, second_wait])
+          first_wait = Rooibos::Command.wait(10.0, :should_not_arrive)
+          second_wait = Rooibos::Command.wait(10.0, :also_should_not)
+          cmd = Rooibos::Command.batch([first_wait, second_wait])
           [Ractor.make_shareable({ cmd: }), cmd]
         when "c"
-          [m, RatatuiRuby::Tea::Command.cancel(m[:cmd])]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.cancel(m[:cmd])]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -117,12 +117,12 @@ class TestRuntimeParallel < Minitest::Test
       inject_key("b")
       inject_key("c")
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Cooperative cancellation: children emit Command.cancel(self)
     cancel_handles = messages
-      .select { |m| m.is_a?(RatatuiRuby::Tea::Command::Cancel) }
+      .select { |m| m.is_a?(Rooibos::Command::Cancel) }
       .map(&:handle)
 
     assert_includes cancel_handles, first_wait, "First child should emit Cancel sentinel"
@@ -135,7 +135,7 @@ class TestRuntimeParallel < Minitest::Test
     view = -> (_m, t) { t.clear }
 
     failing_class = Data.define do
-      include RatatuiRuby::Tea::Command::Custom
+      include Rooibos::Command::Custom
       def call(_out, _token)
         raise "intentional failure"
       end
@@ -147,9 +147,9 @@ class TestRuntimeParallel < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "b"
-          cmd = RatatuiRuby::Tea::Command.batch([failing_command])
+          cmd = Rooibos::Command.batch([failing_command])
           [m, cmd]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -162,11 +162,11 @@ class TestRuntimeParallel < Minitest::Test
       inject_key("b")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # Child error should surface as Command::Error (aligned with Command.all)
-    error_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Error) }
+    error_msg = messages.find { |m| m.is_a?(Rooibos::Command::Error) }
     refute_nil error_msg, "Expected Command::Error message from failed child"
     assert_match(/intentional failure/, error_msg.exception.message)
   end
@@ -175,8 +175,8 @@ class TestRuntimeParallel < Minitest::Test
     # Stubborn command with long grace — forces the race to be tested
     # Uses Data.define so it's Ractor-shareable
     stubborn_class = Data.define do
-      include RatatuiRuby::Tea::Command::Custom
-      def tea_cancellation_grace_period = 60.0
+      include Rooibos::Command::Custom
+      def rooibos_cancellation_grace_period = 60.0
 
       def call(_out, _token)
         sleep 100
@@ -194,11 +194,11 @@ class TestRuntimeParallel < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "b"
-          batch_cmd = RatatuiRuby::Tea::Command.batch([stubborn_command])
+          batch_cmd = Rooibos::Command.batch([stubborn_command])
           [m, batch_cmd]
         when "c"
-          [m, RatatuiRuby::Tea::Command.cancel(batch_cmd)]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+          [m, Rooibos::Command.cancel(batch_cmd)]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -212,7 +212,7 @@ class TestRuntimeParallel < Minitest::Test
       inject_key("b")
       inject_key("c")
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
     elapsed = Time.now - start
 
@@ -220,36 +220,36 @@ class TestRuntimeParallel < Minitest::Test
     assert_operator elapsed, :<, 2.0, "Batch should exit early on cancellation"
 
     # Batch emits Cancel sentinel
-    cancel_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Cancel) }
+    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Command::Cancel) }
     assert_same batch_cmd, cancel_msg&.handle, "Batch should emit Cancel sentinel with self"
   end
 
   def test_batch_validates_commands_are_shareable
     non_shareable_command = Class.new do
-      include RatatuiRuby::Tea::Command::Custom
+      include Rooibos::Command::Custom
       def call(_out, _token) = nil
     end.new
 
     # Should raise at construction time, not later
     assert_raises(RatatuiRuby::Error::Invariant) do
-      RatatuiRuby::Tea::Command.batch([non_shareable_command])
+      Rooibos::Command.batch([non_shareable_command])
     end
   end
 
   def test_batch_accepts_variadic_args
-    cmd1 = Ractor.make_shareable(Data.define { include RatatuiRuby::Tea::Command::Custom; def call(o, _t) = o.put(:a) }.new)
-    cmd2 = Ractor.make_shareable(Data.define { include RatatuiRuby::Tea::Command::Custom; def call(o, _t) = o.put(:b) }.new)
+    cmd1 = Ractor.make_shareable(Data.define { include Rooibos::Command::Custom; def call(o, _t) = o.put(:a) }.new)
+    cmd2 = Ractor.make_shareable(Data.define { include Rooibos::Command::Custom; def call(o, _t) = o.put(:b) }.new)
 
     # Both should work: batch([cmd1, cmd2]) AND batch(cmd1, cmd2)
-    batch_array = RatatuiRuby::Tea::Command.batch([cmd1, cmd2])
-    batch_variadic = RatatuiRuby::Tea::Command.batch(cmd1, cmd2)
+    batch_array = Rooibos::Command.batch([cmd1, cmd2])
+    batch_variadic = Rooibos::Command.batch(cmd1, cmd2)
 
     assert_equal 2, batch_array.commands.size
     assert_equal 2, batch_variadic.commands.size
 
     # Batch.new directly also gets DWIM behavior
-    batch_array = RatatuiRuby::Tea::Command::Batch.new(cmd1, cmd2)
-    batch_variadic = RatatuiRuby::Tea::Command::Batch.new([cmd1, cmd2])
+    batch_array = Rooibos::Command::Batch.new(cmd1, cmd2)
+    batch_variadic = Rooibos::Command::Batch.new([cmd1, cmd2])
     assert_equal 2, batch_array.commands.size
     assert_equal 2, batch_variadic.commands.size
   end
@@ -260,7 +260,7 @@ class TestRuntimeParallel < Minitest::Test
     view = -> (_m, t) { t.clear }
 
     failing_class = Data.define do
-      include RatatuiRuby::Tea::Command::Custom
+      include Rooibos::Command::Custom
       def call(_out, _token)
         raise "intentional failure"
       end
@@ -273,12 +273,12 @@ class TestRuntimeParallel < Minitest::Test
         case msg.code
         when "b"
           # One fails, one succeeds
-          cmd = RatatuiRuby::Tea::Command.batch([
+          cmd = Rooibos::Command.batch([
             failing_command,
-            RatatuiRuby::Tea::Command.wait(0.01, :success),
+            Rooibos::Command.wait(0.01, :success),
           ])
           [m, cmd]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -291,15 +291,15 @@ class TestRuntimeParallel < Minitest::Test
       inject_key("b")
       inject_sync
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     # The successful command should still complete - check for TimerResponse
-    timer_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::Timer) && m.envelope == :success }
+    timer_msg = messages.find { |m| m.is_a?(Rooibos::Message::Timer) && m.envelope == :success }
     refute_nil timer_msg, "Successful command should still run when sibling fails"
 
     # Error should also be reported
-    error_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Command::Error) }
+    error_msg = messages.find { |m| m.is_a?(Rooibos::Command::Error) }
     refute_nil error_msg, "Expected Command::Error from failed child"
   end
 end

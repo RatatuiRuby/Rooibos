@@ -10,7 +10,7 @@ require "test_helper"
 require "ratatui_ruby/test_helper"
 
 # Documents that procs, lambdas, Method objects, and service objects all work
-# as callable parameters for the Tea runtime.
+# as callable parameters for the Rooibos runtime.
 class TestCallableTypes < Minitest::Test
   include RatatuiRuby::TestHelper
 
@@ -26,12 +26,12 @@ class TestCallableTypes < Minitest::Test
 
     update = proc do |_message, current_model|
       update_called = true
-      [current_model, RatatuiRuby::Tea::Command.exit]
+      [current_model, Rooibos::Command.exit]
     end
 
     with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert view_called, "proc should work as view"
@@ -50,12 +50,12 @@ class TestCallableTypes < Minitest::Test
 
     update = lambda do |_message, current_model|
       update_called = true
-      [current_model, RatatuiRuby::Tea::Command.exit]
+      [current_model, Rooibos::Command.exit]
     end
 
     with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert view_called, "lambda should work as view"
@@ -69,7 +69,7 @@ class TestCallableTypes < Minitest::Test
 
   def update_method(_message, current_model)
     @update_method_called = true
-    [current_model, RatatuiRuby::Tea::Command.exit]
+    [current_model, Rooibos::Command.exit]
   end
 
   def test_method_objects_work_as_view_and_update
@@ -79,7 +79,7 @@ class TestCallableTypes < Minitest::Test
 
     with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(
+      Rooibos::Runtime.run(
         model:,
         view: method(:view_method),
         update: method(:update_method)
@@ -114,7 +114,7 @@ class TestCallableTypes < Minitest::Test
 
     def call(_message, current_model)
       @called = true
-      [current_model, RatatuiRuby::Tea::Command.exit]
+      [current_model, Rooibos::Command.exit]
     end
   end
 
@@ -125,7 +125,7 @@ class TestCallableTypes < Minitest::Test
 
     with_test_terminal do
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert view.called, "service object should work as view"
@@ -142,8 +142,8 @@ class TestCallableTypes < Minitest::Test
 
   # Lambda with singleton methods works as a custom command
   LambdaCommand = -> (out, _token) { out.put(:lambda_done) }
-  def LambdaCommand.tea_command? = true
-  def LambdaCommand.tea_cancellation_grace_period = 0.1
+  def LambdaCommand.rooibos_command? = true
+  def LambdaCommand.rooibos_cancellation_grace_period = 0.1
 
   def test_lambda_with_singleton_methods_works_as_command
     events = []
@@ -155,7 +155,7 @@ class TestCallableTypes < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, LambdaCommand]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -167,7 +167,7 @@ class TestCallableTypes < Minitest::Test
     with_test_terminal do
       inject_key("s")
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_includes events, :lambda_done, "Lambda with singleton methods should work as command"
@@ -175,8 +175,8 @@ class TestCallableTypes < Minitest::Test
 
   # Proc with singleton methods works as a custom command
   ProcCommand = proc { |out, _token| out.put(:proc_done) }
-  def ProcCommand.tea_command? = true
-  def ProcCommand.tea_cancellation_grace_period = 0.1
+  def ProcCommand.rooibos_command? = true
+  def ProcCommand.rooibos_cancellation_grace_period = 0.1
 
   def test_proc_with_singleton_methods_works_as_command
     events = []
@@ -188,7 +188,7 @@ class TestCallableTypes < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, ProcCommand]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -200,7 +200,7 @@ class TestCallableTypes < Minitest::Test
     with_test_terminal do
       inject_key("s")
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_includes events, :proc_done, "Proc with singleton methods should work as command"
@@ -213,8 +213,8 @@ class TestCallableTypes < Minitest::Test
 
   def test_method_object_with_singleton_methods_works_as_command
     method_cmd = method(:command_method)
-    method_cmd.define_singleton_method(:tea_command?) { true }
-    method_cmd.define_singleton_method(:tea_cancellation_grace_period) { 0.1 }
+    method_cmd.define_singleton_method(:rooibos_command?) { true }
+    method_cmd.define_singleton_method(:rooibos_cancellation_grace_period) { 0.1 }
 
     events = []
     model = Ractor.make_shareable({})
@@ -225,7 +225,7 @@ class TestCallableTypes < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, method_cmd]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -237,7 +237,7 @@ class TestCallableTypes < Minitest::Test
     with_test_terminal do
       inject_key("s")
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_includes events, :method_done, "Method object with singleton methods should work as command"
@@ -252,8 +252,8 @@ class TestCallableTypes < Minitest::Test
 
   def test_callable_instance_with_singleton_methods_works_as_command
     callable_cmd = CallableCommand.new
-    callable_cmd.define_singleton_method(:tea_command?) { true }
-    callable_cmd.define_singleton_method(:tea_cancellation_grace_period) { 0.1 }
+    callable_cmd.define_singleton_method(:rooibos_command?) { true }
+    callable_cmd.define_singleton_method(:rooibos_cancellation_grace_period) { 0.1 }
 
     events = []
     model = Ractor.make_shareable({})
@@ -264,7 +264,7 @@ class TestCallableTypes < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "s" then [m, callable_cmd]
-        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
       else
@@ -276,7 +276,7 @@ class TestCallableTypes < Minitest::Test
     with_test_terminal do
       inject_key("s")
       inject_key("q")
-      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_includes events, :callable_done, "Callable instance with singleton methods should work as command"

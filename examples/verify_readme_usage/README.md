@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # README Usage Verification
 
-Verifies the primary usage example for the Tea gem.
+Verifies the primary usage example for the Rooibos gem.
 
 This example exists as a documentation regression test. It ensures that the very first MVU pattern a user sees actually works.
 
@@ -38,14 +38,14 @@ end
 
 Update = -> (msg, model) do
   if msg.q? || msg.ctrl_c?
-    RatatuiRuby::Tea::Command.exit
+    Rooibos::Command.exit
   else
     model
   end
 end
 
 def run
-  RatatuiRuby::Tea.run(VerifyReadmeUsage)
+  Rooibos.run(VerifyReadmeUsage)
 end
 ```
 <!-- SYNC:END -->

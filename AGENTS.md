@@ -7,7 +7,7 @@
 
 ## Project Identity
 
-Project Name: ratatui_ruby-tea
+Project Name: rooibos
 
 Description: Part of the RatatuiRuby ecosystem.
 
@@ -31,10 +31,10 @@ Description: Part of the RatatuiRuby ecosystem.
 - **Setup:** `bin/setup` must handle Bundler dependencies.
 - **Git:** ALWAYS set `PAGER=cat` with `git`. **THIS IS CRITICAL!**
 
-### Tea-Specific Vocabulary
+### Rooibos-Specific Vocabulary
 
 - **BANNED WORD: "component"** — Reserved for Kit.
-- **Avoid "widget" for Tea units** — "Widget" refers to Engine/Ratatui render primitives. In Tea, call them **fragments**.
+- **Avoid "widget" for Rooibos units** — "Widget" refers to Engine/Ratatui render primitives. In Rooibos, call them **fragments**.
 - **Fragment:** A module containing `Model`, `INITIAL`, `UPDATE`, and `VIEW` constants. Fragments compose: parent fragments delegate to child fragments.
 - Use "model", "update", "view" for the MVU pattern. Use "message" (not "msg") and "command" (not "cmd").
 

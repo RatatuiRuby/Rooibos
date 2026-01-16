@@ -14,7 +14,7 @@ Threads are hard. Exceptions in spawned threads vanish silently. The main thread
 
 ## Solution
 
-Tea handles concurrency for you. Two patterns cover nearly every case. Use them instead of raw threads.
+Rooibos handles concurrency for you. Two patterns cover nearly every case. Use them instead of raw threads.
 
 ## Pattern 1: Command Orchestration
 
@@ -27,7 +27,7 @@ Compose child commands instead of spawning threads. Use <tt>out.source</tt> for 
 -->
 ```ruby
 class LoadDashboard < Data.define(:user_id, :tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     # Step 1: Authenticate (sequential - we need the token first)
@@ -92,7 +92,7 @@ Read from multiple sources without threads. Ruby's <tt>IO.select</tt> waits for 
 -->
 ```ruby
 class MultiSocketReader < Data.define(:sockets, :tag)
-  include RatatuiRuby::Tea::Command::Custom
+  include Rooibos::Command::Custom
 
   def call(out, token)
     remaining = sockets.dup

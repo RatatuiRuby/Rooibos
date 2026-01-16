@@ -84,23 +84,24 @@ end
 ### Fractal Composition
 
 ```ruby
+
 module Dashboard
   Model = Data.define(:stats, :network, :theme)
-  
+
   Init = ->(theme: :dark, env:) do
     # Parent can pass props to children
     stats_model, stats_cmd = StatsPanel::Init.(theme: theme)
     network_model, network_cmd = NetworkPanel::Init.(theme: theme)
-    
+
     model = Model.new(stats: stats_model, network: network_model, theme: theme)
     command = Command.batch(
-      Tea.route(stats_cmd, :stats),
-      Tea.route(network_cmd, :network)
+      Rooibos.route(stats_cmd, :stats),
+      Rooibos.route(network_cmd, :network)
     )
-    
+
     [model, command]
   end
-  
+
   Update = from_router
   View = ->(model, tui) { ... }
 end
@@ -141,11 +142,11 @@ No need for separate `init:` runtime parameter pattern:
 ```ruby
 # Old way
 INITIAL = Model.new(data: nil)
-Tea.run(model: INITIAL, init: -> { fetch_data_command })
+Rooibos.run(model: INITIAL, init: -> { fetch_data_command })
 
 # New way
 Init = -> { [Model.new(data: nil), fetch_data_command] }
-Tea.run(fragment: MyApp)  # Init is called automatically
+Rooibos.run(fragment: MyApp) # Init is called automatically
 ```
 
 ### 5. Access to Runtime Context
@@ -177,15 +178,15 @@ Init = -> { Model.new(...) }
 
 ```ruby
 # Current
-Tea.run(model: Fragment::INITIAL, view: Fragment::VIEW, update: Fragment::UPDATE)
+Rooibos.run(model: Fragment::INITIAL, view: Fragment::VIEW, update: Fragment::UPDATE)
 
 # Transitional (supports both)
-Tea.run(fragment: Fragment)  # Calls Fragment::Init
+Rooibos.run(fragment: Fragment) # Calls Fragment::Init
 # OR
-Tea.run(model: initial_model, view: view, update: update)  # Old style
+Rooibos.run(model: initial_model, view: view, update: update) # Old style
 
 # Future
-Tea.run(fragment: Fragment, argv: ARGV, env: ENV)
+Rooibos.run(fragment: Fragment, argv: ARGV, env: ENV)
 ```
 
 ### Phase 3: DSL for Fractal Composition
@@ -193,13 +194,14 @@ Tea.run(fragment: Fragment, argv: ARGV, env: ENV)
 Router could auto-call child `Init`:
 
 ```ruby
+
 module Dashboard
-  include Tea::Router
-  
+  include Rooibos::Router
+
   # Automatically calls StatsPanel::Init and NetworkPanel::Init
   mount :stats, fragment: StatsPanel, theme: :dark
   mount :network, fragment: NetworkPanel, theme: :dark
-  
+
   Update = from_router
 end
 ```
@@ -241,19 +243,19 @@ Init = -> { [Model.new(...), some_command] }    # With command
 
 ### 4. Runtime API
 
-**How does `Tea.run` change?**
+**How does `Rooibos.run` change?**
 
 ```ruby
 # Current
-Tea.run(model: initial, view: view, update: update, init: startup_cmd)
+Rooibos.run(model: initial, view: view, update: update, init: startup_cmd)
 
 # Proposed Option 1: Fragment-first
-Tea.run(fragment: App, argv: ARGV, env: ENV)
+Rooibos.run(fragment: App, argv: ARGV, env: ENV)
 
 # Proposed Option 2: Hybrid
-Tea.run(fragment: App)  # Uses App::Init
+Rooibos.run(fragment: App) # Uses App::Init
 # OR
-Tea.run(model: model, view: view, update: update)  # Old style still works
+Rooibos.run(model: model, view: view, update: update) # Old style still works
 ```
 
 ### 5. Router DSL Integration
@@ -265,11 +267,11 @@ Should `route :child, to: ChildFragment` auto-initialize?
 route :child, to: ChildFragment
 Init = ->(theme:) do
   child_model, child_cmd = ChildFragment::Init.(theme: theme)
-  [Model.new(child: child_model), Tea.route(child_cmd, :child)]
+  [Model.new(child: child_model), Rooibos.route(child_cmd, :child)]
 end
 
 # Automatic (magic convenience)
-mount :child, fragment: ChildFragment, theme: :dark  # Auto-calls Init
+mount :child, fragment: ChildFragment, theme: :dark # Auto-calls Init
 ```
 
 ## Implementation Sketch
@@ -277,7 +279,7 @@ mount :child, fragment: ChildFragment, theme: :dark  # Auto-calls Init
 ### Runtime Changes
 
 ```ruby
-module RatatuiRuby::Tea
+module Rooibos
   def self.run(fragment: nil, model: nil, view: nil, update: nil, argv: [], env: {})
     if fragment
       # New style: fragment-first
@@ -298,13 +300,14 @@ end
 ### Fragment Helpers
 
 ```ruby
-module Tea::Fragment
+
+module Rooibos::Fragment
   # Normalize Init or Update return values
   def self.call_init(fragment, **flags)
     result = fragment::Init.call(**flags)
     normalize(result)
   end
-  
+
   def self.normalize(result)
     case result
     in [model, command] then [model, command]

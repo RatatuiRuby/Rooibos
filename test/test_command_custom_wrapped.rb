@@ -10,21 +10,21 @@ require "test_helper"
 class TestCommandCustomWrapped < Minitest::Test
   # Define callables at class level - they become shareable when wrapped with Command.custom
   SIMPLE_CALLABLE = -> (out, _token) { out.put(:done) }
-  SIMPLE_COMMAND = RatatuiRuby::Tea::Command.custom(SIMPLE_CALLABLE)
+  SIMPLE_COMMAND = Rooibos::Command.custom(SIMPLE_CALLABLE)
 
   DELEGATION_CALLABLE = -> (out, token) {
     Thread.current[:delegation_test_args] = [out, token]
   }
-  DELEGATION_COMMAND = RatatuiRuby::Tea::Command.custom(DELEGATION_CALLABLE)
+  DELEGATION_COMMAND = Rooibos::Command.custom(DELEGATION_CALLABLE)
 
   def test_custom_returns_callable_command
-    assert SIMPLE_COMMAND.tea_command?, "Wrapped should be a custom command"
+    assert SIMPLE_COMMAND.rooibos_command?, "Wrapped should be a custom command"
     assert_respond_to SIMPLE_COMMAND, :call
   end
 
   def test_wrapping_same_proc_twice_produces_distinct_objects
-    wrapped_a = RatatuiRuby::Tea::Command.custom(SIMPLE_CALLABLE)
-    wrapped_b = RatatuiRuby::Tea::Command.custom(SIMPLE_CALLABLE)
+    wrapped_a = Rooibos::Command.custom(SIMPLE_CALLABLE)
+    wrapped_b = Rooibos::Command.custom(SIMPLE_CALLABLE)
 
     refute_same wrapped_a, wrapped_b, "Each wrap should produce a distinct object"
   end
@@ -38,20 +38,20 @@ class TestCommandCustomWrapped < Minitest::Test
     assert_equal [mock_out, mock_token], received_args
   end
 
-  GRACE_PERIOD_COMMAND = RatatuiRuby::Tea::Command.custom(SIMPLE_CALLABLE, grace_period: 10.0)
+  GRACE_PERIOD_COMMAND = Rooibos::Command.custom(SIMPLE_CALLABLE, grace_period: 10.0)
 
   def test_custom_grace_period_overrides_default
-    assert_equal 10.0, GRACE_PERIOD_COMMAND.tea_cancellation_grace_period
+    assert_equal 10.0, GRACE_PERIOD_COMMAND.rooibos_cancellation_grace_period
   end
 
   def test_default_grace_period_when_not_specified
-    assert_equal 0.1, SIMPLE_COMMAND.tea_cancellation_grace_period
+    assert_equal 0.1, SIMPLE_COMMAND.rooibos_cancellation_grace_period
   end
 
   # Block test - blocks defined at class level in production mode
   # rubocop:disable Lint/ConstantDefinitionInBlock
   RatatuiRuby::Debug.suppress_debug_mode do
-    BLOCK_COMMAND = RatatuiRuby::Tea::Command.custom do |out, token|
+    BLOCK_COMMAND = Rooibos::Command.custom do |out, token|
       Thread.current[:test_block_args] = [out, token]
     end
   end
@@ -71,7 +71,7 @@ class TestCommandCustomWrapped < Minitest::Test
   LAMBDA_CALLABLE = -> (out, _token) {
     Thread.current[:lambda_called] = true
   }
-  LAMBDA_COMMAND = RatatuiRuby::Tea::Command.custom(LAMBDA_CALLABLE)
+  LAMBDA_COMMAND = Rooibos::Command.custom(LAMBDA_CALLABLE)
 
   def test_accepts_lambda
     LAMBDA_COMMAND.call(Object.new, Object.new)
@@ -81,7 +81,7 @@ class TestCommandCustomWrapped < Minitest::Test
   PROC_CALLABLE = proc { |out, _token|
     Thread.current[:proc_called] = true
   }
-  PROC_COMMAND = RatatuiRuby::Tea::Command.custom(PROC_CALLABLE)
+  PROC_COMMAND = Rooibos::Command.custom(PROC_CALLABLE)
 
   def test_accepts_proc
     PROC_COMMAND.call(Object.new, Object.new)
@@ -97,7 +97,7 @@ class TestCommandCustomWrapped < Minitest::Test
 
   # rubocop:disable Lint/ConstantDefinitionInBlock
   RatatuiRuby::Debug.suppress_debug_mode do
-    METHOD_COMMAND = RatatuiRuby::Tea::Command.custom(MethodTestHolder.method(:fetch_data))
+    METHOD_COMMAND = Rooibos::Command.custom(MethodTestHolder.method(:fetch_data))
   end
   # rubocop:enable Lint/ConstantDefinitionInBlock
 
@@ -117,7 +117,7 @@ class TestCommandCustomWrapped < Minitest::Test
   end
 
   CALLABLE_INSTANCE = ShareableCallable.new
-  CALLABLE_INSTANCE_COMMAND = RatatuiRuby::Tea::Command.custom(CALLABLE_INSTANCE)
+  CALLABLE_INSTANCE_COMMAND = Rooibos::Command.custom(CALLABLE_INSTANCE)
 
   def test_accepts_callable_instance
     CALLABLE_INSTANCE_COMMAND.call(Object.new, Object.new)

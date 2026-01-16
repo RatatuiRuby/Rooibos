@@ -9,7 +9,7 @@
 require "test_helper"
 
 class TestRouterPascalCase < Minitest::Test
-  Command = RatatuiRuby::Tea::Command
+  Command = Rooibos::Command
 
   # Test that Router DSL uses PascalCase Update instead of SCREAMING_CASE UPDATE
   def test_router_uses_pascalcase_update_constant
@@ -29,7 +29,7 @@ class TestRouterPascalCase < Minitest::Test
 
     # Create parent using Router DSL
     parent = Module.new
-    parent.extend RatatuiRuby::Tea::Router::ClassMethods
+    parent.extend Rooibos::Router::ClassMethods
     parent.route :child, to: child_fragment
 
     parent_model = Data.define(:child)

@@ -5,7 +5,7 @@
 
 # Feature Priorities
 
-This document outlines the remaining work before `ratatui_ruby-tea` reaches v1.0.0.
+This document outlines the remaining work before `rooibos` reaches v1.0.0.
 
 ## 1. Built-In Commands
 

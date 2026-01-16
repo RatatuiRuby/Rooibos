@@ -8,7 +8,7 @@
 require "test_helper"
 
 class TestNormalizeUpdateWarnings < Minitest::Test
-  def test_warns_in_debug_mode_for_callable_without_tea_command
+  def test_warns_in_debug_mode_for_callable_without_rooibos_command
     # Direct test of normalize_update_return warning via normalize_init public API
     bad_command = Object.new
     def bad_command.call(_out, _token); end
@@ -21,26 +21,26 @@ class TestNormalizeUpdateWarnings < Minitest::Test
     begin
       RatatuiRuby::Debug.enable!(source: :test) # Ensure debug enabled
       # normalize_init calls normalize_update_return internally
-      RatatuiRuby::Tea.normalize_init([model, bad_command])
+      Rooibos.normalize_init([model, bad_command])
     ensure
       warning_output = $stderr.string
       $stderr = original_stderr
     end
 
     assert_match(/WARNING/, warning_output)
-    assert_match(/tea_command\?/, warning_output)
+    assert_match(/rooibos_command\?/, warning_output)
     assert_match(/Command::Custom/, warning_output)
   end
 
   def test_no_warning_for_proper_commands
-    good_command = RatatuiRuby::Tea::Command.exit
+    good_command = Rooibos::Command.exit
     model = { test: true }.freeze
 
     warning_output = nil
     original_stderr = $stderr
     $stderr = StringIO.new
     begin
-      RatatuiRuby::Tea.normalize_init([model, good_command])
+      Rooibos.normalize_init([model, good_command])
     ensure
       warning_output = $stderr.string
       $stderr = original_stderr
@@ -56,7 +56,7 @@ class TestNormalizeUpdateWarnings < Minitest::Test
     original_stderr = $stderr
     $stderr = StringIO.new
     begin
-      RatatuiRuby::Tea.normalize_init([model, nil])
+      Rooibos.normalize_init([model, nil])
     ensure
       warning_output = $stderr.string
       $stderr = original_stderr
@@ -80,7 +80,7 @@ class TestNormalizeUpdateWarnings < Minitest::Test
     $stderr = StringIO.new
     begin
       RatatuiRuby::Debug.enable!(source: :test)
-      RatatuiRuby::Tea.normalize_init(shareable_tuple)
+      Rooibos.normalize_init(shareable_tuple)
     ensure
       warning_output = $stderr.string
       $stderr = original_stderr
