@@ -40,11 +40,8 @@ module RatatuiRuby
         def call(out, token)
           # Early return for empty commands - prevents hang from zip_futures([])
           if commands.empty?
-            if nested
-              out.put(envelope, [].freeze)
-            else
-              out.put(envelope)
-            end
+            response = Message::All.new(envelope:, results: [].freeze, nested:)
+            out.put(Ractor.make_shareable(response))
             return
           end
 
@@ -65,11 +62,8 @@ module RatatuiRuby
           return out.put(Command.cancel(self)) if token.canceled?
 
           shareable_results = Ractor.make_shareable(all_done.value!)
-          if nested
-            out.put(envelope, shareable_results)
-          else
-            out.put(envelope, *shareable_results)
-          end
+          response = Message::All.new(envelope:, results: shareable_results, nested:)
+          out.put(Ractor.make_shareable(response))
         end
       end
     end

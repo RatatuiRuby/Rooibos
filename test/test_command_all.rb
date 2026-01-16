@@ -62,11 +62,12 @@ class TestCommandAll < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    # Should get [:empty, []] message with empty results, not hang forever
-    # Using array syntax → nested:true → out.put(:empty, [])
-    all_msg = messages.find { |m| m.is_a?(Array) && m[0] == :empty }
-    refute_nil all_msg, "Expected [:empty, []] message from Command.all with empty commands. Got: #{messages.inspect}"
-    assert_equal [], all_msg[1], "Empty commands should return empty results"
+    # Should get Message::All with empty results, not hang forever
+    all_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::All) }
+    refute_nil all_msg, "Expected Message::All from Command.all with empty commands. Got: #{messages.inspect}"
+    assert_equal :empty, all_msg.envelope
+    assert_equal [], all_msg.results, "Empty commands should return empty results"
+    assert all_msg.nested, "Array syntax should produce nested: true"
   end
 
   def test_all_skips_validation_when_debug_disabled
@@ -112,12 +113,13 @@ class TestCommandAll < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    all_msg = messages.find { |m| m.is_a?(Array) && m[0] == :dashboard }
-    refute_nil all_msg, "Expected [:dashboard, [...]] message from Command.all"
+    all_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::All) }
+    refute_nil all_msg, "Expected Message::All from Command.all"
 
-    results = all_msg[1]
-    assert_kind_of Array, results
-    assert_equal 2, results.size
+    assert_equal :dashboard, all_msg.envelope
+    assert_kind_of Array, all_msg.results
+    assert_equal 2, all_msg.results.size
+    assert all_msg.nested, "Array syntax should produce nested: true"
   end
 
   def test_all_splats_results_with_variadic_args
@@ -152,16 +154,18 @@ class TestCommandAll < Minitest::Test
       RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
     end
 
-    # Variadic produces [:dashboard, result1, result2] (splatted)
-    all_msg = messages.find { |m| m.is_a?(Array) && m[0] == :dashboard }
-    refute_nil all_msg, "Expected [:dashboard, ...] message from Command.all"
+    # Variadic produces Message::All with nested: false
+    all_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::All) }
+    refute_nil all_msg, "Expected Message::All from Command.all"
 
-    # Splatted: [:dashboard, TimerResponse1, TimerResponse2] (not nested array)
-    assert_equal 3, all_msg.size, "Expected 3 elements (tag + 2 splatted results)"
-    assert_kind_of RatatuiRuby::Tea::Message::Timer, all_msg[1]
-    assert_kind_of RatatuiRuby::Tea::Message::Timer, all_msg[2]
-    assert_equal :first, all_msg[1].envelope
-    assert_equal :second, all_msg[2].envelope
+    # Variadic: Message::All with nested: false, results contain the child messages
+    assert_equal :dashboard, all_msg.envelope
+    refute all_msg.nested, "Variadic syntax should produce nested: false"
+    assert_equal 2, all_msg.results.size
+    assert_kind_of RatatuiRuby::Tea::Message::Timer, all_msg.results[0]
+    assert_kind_of RatatuiRuby::Tea::Message::Timer, all_msg.results[1]
+    assert_equal :first, all_msg.results[0].envelope
+    assert_equal :second, all_msg.results[1].envelope
   end
 
   def test_all_emits_cancel_sentinel_on_cancellation
@@ -236,6 +240,52 @@ class TestCommandAll < Minitest::Test
     # Parallel execution: both 0.1s waits overlap, total < 0.15s
     # Sequential execution: 0.1 + 0.1 = 0.2s minimum
     assert_operator elapsed, :<, 0.15, "Command.all should run commands in parallel, not sequentially"
+  end
+
+  def test_all_emits_message_all_for_nested_syntax
+    messages = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "a"
+          cmd = RatatuiRuby::Tea::Command.all(:dashboard, [
+            RatatuiRuby::Tea::Command.wait(0.01, :first),
+            RatatuiRuby::Tea::Command.wait(0.01, :second),
+          ])
+          [m, cmd]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      else
+        messages << msg
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("a")
+      inject_sync
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    # Command.all should emit Message::All, not raw arrays
+    all_msg = messages.find { |m| m.is_a?(RatatuiRuby::Tea::Message::All) }
+    refute_nil all_msg, "Expected Message::All from Command.all, got: #{messages.inspect}"
+
+    # Verify hash-based pattern matching works
+    case all_msg
+    in { type: :all, envelope: :dashboard, results:, nested: true }
+      assert_equal 2, results.size
+      assert_kind_of RatatuiRuby::Tea::Message::Timer, results[0]
+      assert_kind_of RatatuiRuby::Tea::Message::Timer, results[1]
+    else
+      flunk "Message::All should match hash pattern { type: :all, envelope:, results:, nested: }"
+    end
   end
 
   def test_all_reports_child_errors

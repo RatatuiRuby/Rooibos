@@ -75,6 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Outlet#put (Breaking)**: `out.put(msg)`, the common case now sends `msg` directly instead of `[msg]`; `out.put(a, b, c)` sends `[a, b, c]`. Previously all calls wrapped arguments in an array. Update functions that matched `when Array` may need adjustment.
 
+- **Command.all Output (Breaking)**: `Command.all` now emits `Message::All` objects instead of raw arrays. Previously emitted `[:tag, [results]]` (nested) or `[:tag, result1, result2]` (variadic). Now emits `Message::All` with `envelope`, `results`, and `nested` fields. Use hash pattern matching: `in { type: :all, envelope:, results:, nested: }`.
+
 ### Fixed
 
 - **Streaming Command Data Loss**: Fixed race condition where fast commands (e.g., `echo hello`) could lose stdout/stderr messages. The streaming reader threads were being killed immediately after the child process exited, before they could finish reading buffered output. Now the runtime joins the reader threads to ensure all data is processed before sending `:complete`.
