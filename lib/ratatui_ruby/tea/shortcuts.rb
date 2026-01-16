@@ -36,8 +36,8 @@ module RatatuiRuby
 
         # Creates a shell execution command.
         # Short alias for +Command.system+.
-        def self.sh(command, tag)
-          Command.system(command, tag)
+        def self.sh(command, envelope)
+          Command.system(command, envelope)
         end
 
         # Creates a mapped command.

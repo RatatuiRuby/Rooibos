@@ -22,6 +22,53 @@ class TestCommandAll < Minitest::Test
     end
   end
 
+  def test_all_has_envelope_accessor
+    wait_cmd = Data.define do
+      include RatatuiRuby::Tea::Command::Custom
+      def call(out, _token)
+        out.put(:done)
+      end
+    end.new
+    cmd = RatatuiRuby::Tea::Command.all(:my_envelope, [Ractor.make_shareable(wait_cmd)])
+    assert_equal :my_envelope, cmd.envelope
+  end
+
+  def test_all_with_empty_commands_returns_empty_results_immediately
+    messages = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "a"
+          # Dynamic filter that results in empty array - common pattern
+          cmd = RatatuiRuby::Tea::Command.all(:empty, [].filter { |c| c })
+          [m, cmd]
+        when "q" then [m, RatatuiRuby::Tea::Command.exit]
+        else [m, nil]
+        end
+      else
+        messages << msg
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("a")
+      inject_sync
+      inject_key("q")
+      RatatuiRuby::Tea::Runtime.run(model:, view:, update:)
+    end
+
+    # Should get [:empty, []] message with empty results, not hang forever
+    # Using array syntax → nested:true → out.put(:empty, [])
+    all_msg = messages.find { |m| m.is_a?(Array) && m[0] == :empty }
+    refute_nil all_msg, "Expected [:empty, []] message from Command.all with empty commands. Got: #{messages.inspect}"
+    assert_equal [], all_msg[1], "Empty commands should return empty results"
+  end
+
   def test_all_skips_validation_when_debug_disabled
     RatatuiRuby::Debug.suppress_debug_mode do
       non_shareable_command = Class.new do

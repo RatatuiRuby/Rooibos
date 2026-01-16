@@ -17,7 +17,7 @@ class TestCommand < Minitest::Test
     command = RatatuiRuby::Tea::Command.system("echo hello", :got_output)
     assert_kind_of RatatuiRuby::Tea::Command::System, command
     assert_equal "echo hello", command.command
-    assert_equal :got_output, command.tag
+    assert_equal :got_output, command.envelope
   end
 
   def test_command_system_defaults_to_non_streaming

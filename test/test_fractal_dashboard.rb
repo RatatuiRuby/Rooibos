@@ -53,7 +53,7 @@ class TestFractalDashboard < Minitest::Test
     assert new_model.stats.system_info.loading, "Should set loading state"
     assert_kind_of RatatuiRuby::Tea::Command::Mapped, cmd
     assert_kind_of RatatuiRuby::Tea::Command::System, cmd.inner_command
-    assert_equal :system_info, cmd.inner_command.tag
+    assert_equal :system_info, cmd.inner_command.envelope
   end
 
   def test_p_key_triggers_mapped_ping_command
@@ -66,7 +66,7 @@ class TestFractalDashboard < Minitest::Test
     assert new_model.network.ping.loading, "Should set loading state"
     assert_kind_of RatatuiRuby::Tea::Command::Mapped, cmd
     assert_kind_of RatatuiRuby::Tea::Command::System, cmd.inner_command
-    assert_equal :ping, cmd.inner_command.tag
+    assert_equal :ping, cmd.inner_command.envelope
   end
 
   def test_mapper_wraps_with_panel_prefix

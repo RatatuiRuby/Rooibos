@@ -66,3 +66,43 @@ Before considering a task complete and returning control to the user, you **MUST
 4.  **Commit Message Suggested:** You **MUST** ensure the final message to the user includes a suggested commit message block. This is NOT optional.
   - You MUST also check `git log -n1` to see the current standard AI footer ("Generated  with" and "Co-Authored-By") and include it in your suggested message.
 
+## 4. Committing
+
+- Who commits: DON'T stage (DON'T `git add`) unless explicitly instructed. DON'T commit unless explicitly instructed. DO suggest a commit message when you finish, even if not instructed..
+- When: Before reporting the task as complete to the user, suggest the commit message.
+- What: Consider not what you remember, but EVERYTHING in the `git diff` and `git diff --cached`.
+- **Format:**
+    - Format: Use [Conventional Commits](https://www.conventionalcommits.org/).
+    - Body: Explanation if necessary (wrap at 72 chars).
+        - Explain why this is the implementation, as opposed to other possible implementations.
+        - Skip the body entirely if it's rote, a duplication of the diff, or otherwise unhelpful.
+        - **DON'T list the files changed or the edits made in the body.** Don't provide a bulleted list of changes. Use prose to explain the problem and the solution.
+        - **DON'T use markdown syntax** (no backticks, no bolding, no lists, no links). The commit message must be plain text.
+- **Type conventions by directory:**
+    - `lib/`, `ext/`, `sig/`: Use `feat`, `fix`, `refactor`, `perf` as appropriate.
+    - `bin/`, `tasks/`, `.builds/`, CI/CD: Use `chore` for tooling internal to developing this gem. Use `feat`/`fix` for user-facing executables or changes that affect downstream users.
+    - `examples/`: Always `docs` (documentation by example).
+    - `test/`: Use `test` for new/changed tests, or match the type of the code being tested.
+    - `doc/`: Always `docs`.
+
+### 5. Changelog
+
+- Follow [Semantic Versioning](https://semver.org/)
+- Follow the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) specification.
+- **What belongs in CHANGELOG:** Only changes that affect **application developers** or **higher-level library developers** who use or depend on `ratatui_ruby`:
+    - New public APIs or widget parameters
+    - Backwards-incompatible type signature changes, or behavioral additions to type signature changes
+    - Observable behavior changes (rendering, styling, layout)
+    - Deprecations and removals
+    - Breaking changes
+- **What does NOT belong in CHANGELOG:** Internal or non-behavioral changes that don't affect downstream users:
+    - Test additions or improvements
+    - Documentation updates, RDoc fixes, markdown clarifications
+    - Refactors of internal code
+    - New or modified example code
+    - Internal tooling, CI/CD, or build configuration changes
+    - Code style or linting changes
+    - Performance improvements that affect applications
+- Changelogs should be useful to downstream developers (both app and library developers), not simple restatements of diffs or commit messages.
+- The Unreleased section MUST be considered "since the last git tag". Therefore, if a change was done in one commit and undone in another (both since the last tag), the second commit should remove its changelog entry.
+- **Location:** New entries ALWAYS go in `## [Unreleased]`. Never edit past version sections (e.g., `## [0.4.0]`)—those are frozen history.

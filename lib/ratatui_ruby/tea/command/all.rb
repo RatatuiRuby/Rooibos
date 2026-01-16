@@ -9,7 +9,7 @@ module RatatuiRuby
   module Tea
     module Command
       # An aggregating parallel command.
-      All = Data.define(:tag, :commands, :nested) do
+      All = Data.define(:envelope, :commands, :nested) do
         include Custom
 
         def self.new(tag, *args)
@@ -33,11 +33,21 @@ module RatatuiRuby
           end
 
           instance = allocate
-          instance.__send__(:initialize, tag:, commands: commands.freeze, nested:)
+          instance.__send__(:initialize, envelope: tag, commands: commands.freeze, nested:)
           instance
         end
 
         def call(out, token)
+          # Early return for empty commands - prevents hang from zip_futures([])
+          if commands.empty?
+            if nested
+              out.put(envelope, [].freeze)
+            else
+              out.put(envelope)
+            end
+            return
+          end
+
           child_lifecycle = Lifecycle.new
 
           futures = commands.map do |command|
@@ -56,9 +66,9 @@ module RatatuiRuby
 
           shareable_results = Ractor.make_shareable(all_done.value!)
           if nested
-            out.put(tag, shareable_results)
+            out.put(envelope, shareable_results)
           else
-            out.put(tag, *shareable_results)
+            out.put(envelope, *shareable_results)
           end
         end
       end

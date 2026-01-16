@@ -195,7 +195,7 @@ module RatatuiRuby
       # - <tt>[tag, :error, {message:}]</tt> if the command cannot start
       #
       # The <tt>status</tt> is the integer exit code (0 = success).
-      class System < Data.define(:command, :tag, :stream)
+      class System < Data.define(:command, :envelope, :stream)
         include Custom
 
         # Returns true if streaming mode is enabled.
@@ -221,7 +221,7 @@ module RatatuiRuby
         private def batch_execution(out)
           stdout, stderr, status = Open3.capture3(command)
           message = Message::System::Batch.new(
-            envelope: tag,
+            envelope:,
             stdout:,
             stderr:,
             status: status.exitstatus
@@ -234,41 +234,11 @@ module RatatuiRuby
             stdin.close
             pid = wait_thr.pid
 
-            stdout_thread = Thread.new do
-              stdout.each_line do |line|
-                msg = Message::System::Stream.new(
-                  envelope: tag,
-                  stream: :stdout,
-                  content: line.freeze,
-                  status: nil
-                )
-                out.put(Ractor.make_shareable(msg))
-              end
-            rescue IOError
-              # Stream closed - SIGKILL the child if still alive (forcible cleanup)
-              begin
-                Process.kill("KILL", pid) if wait_thr.alive?
-              rescue Errno::ESRCH
-                # Already dead
-              end
-            end
-            stderr_thread = Thread.new do
-              stderr.each_line do |line|
-                msg = Message::System::Stream.new(
-                  envelope: tag,
-                  stream: :stderr,
-                  content: line.freeze,
-                  status: nil
-                )
-                out.put(Ractor.make_shareable(msg))
-              end
-            rescue IOError
-              # Stream closed
-            end
+            # Track which streams are still open
+            streams = { stdout => :stdout, stderr => :stderr }
 
-            # Cooperative cancellation: SIGTERM when token is cancelled
-            cancellation_watcher = Thread.new do
-              sleep 0.01 until token.canceled? || !wait_thr.alive?
+            until streams.empty?
+              # Check cancellation before blocking on IO.select
               if token.canceled? && wait_thr.alive?
                 begin
                   Process.kill("TERM", pid)
@@ -276,20 +246,48 @@ module RatatuiRuby
                   # Already dead
                 end
               end
+
+              # Wait up to 0.05s for any stream to have data
+              ready = IO.select(streams.keys, nil, nil, 0.05)
+              next unless ready
+
+              ready[0].each do |io|
+                stream_type = streams[io]
+                begin
+                  line = io.read_nonblock(8192, exception: false)
+                  case line
+                  when :wait_readable
+                    next
+                  when nil, ""
+                    # EOF - stream closed
+                    streams.delete(io)
+                  else
+                    # Split into lines and send each
+                    line.each_line do |l|
+                      msg = Message::System::Stream.new(
+                        envelope:,
+                        stream: stream_type,
+                        content: l.freeze,
+                        status: nil
+                      )
+                      out.put(Ractor.make_shareable(msg))
+                    end
+                  end
+                rescue EOFError
+                  streams.delete(io)
+                rescue IOError
+                  # Stream forcibly closed
+                  streams.delete(io)
+                end
+              end
             end
 
+            # Wait for process to finish
             wait_thr.join
-
-            # Wait for reader threads to finish processing remaining output.
-            # This ensures all :stdout/:stderr messages are sent before :complete.
-            # Using join instead of kill prevents data loss for fast commands.
-            stdout_thread.join
-            stderr_thread.join
-            cancellation_watcher.join
 
             status = wait_thr.value.exitstatus
             msg = Message::System::Stream.new(
-              envelope: tag,
+              envelope:,
               stream: :complete,
               content: nil,
               status:
@@ -298,7 +296,7 @@ module RatatuiRuby
           end
         rescue Errno::ENOENT, Errno::EACCES => e
           msg = Message::System::Stream.new(
-            envelope: tag,
+            envelope:,
             stream: :error,
             content: e.message,
             status: nil
@@ -348,8 +346,8 @@ module RatatuiRuby
       #       [model.with(loading: false, error: message), nil]
       #     end
       #   end
-      def self.system(command, tag, stream: false)
-        System.new(command:, tag:, stream:)
+      def self.system(command, envelope, stream: false)
+        System.new(command:, envelope:, stream:)
       end
 
       # Wraps another command's result with a transformation.
@@ -522,8 +520,8 @@ module RatatuiRuby
       #     Command.http(:get, "/stats", :_),
       #   )
       #   # Produces: [:all, [user_result, stats_result]]
-      def self.all(tag, *)
-        All.new(tag, *)
+      def self.all(envelope, *)
+        All.new(envelope, *)
       end
 
       # Creates an HTTP request command.

@@ -22,7 +22,7 @@ class TestShortcuts < Minitest::Test
 
     assert_kind_of RatatuiRuby::Tea::Command::System, result
     assert_equal "echo hello", result.command
-    assert_equal :got_output, result.tag
+    assert_equal :got_output, result.envelope
   end
 
   def test_cmd_map_returns_mapped_command

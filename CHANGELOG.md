@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Message::All**: Response type for `Command.all` aggregating parallel execution. Includes `all?` predicate. Contains `envelope`, `results` array, and `nested` boolean. Implements `deconstruct_keys` for pattern matching.
 
-- **Command.wait/tick Parameter Rename**: Renamed `tag` parameter to `envelope` for consistency with other message types. `Command.wait` and `Command.tick` now emit `Message::Timer` instead of bare symbol tags.
+- **Command Parameter Rename**: Renamed `tag` parameter to `envelope` across all commands for consistency: `Command.wait`, `Command.tick`, `Command.system`, and `Command.all`. These now use `envelope:` in their data definitions. Messages emit with `envelope:` for pattern matching.
 
 - **Dependencies**: Added `concurrent-ruby` (~> 1.3) and `concurrent-ruby-edge` (~> 0.7) for robust concurrency primitives.
 
