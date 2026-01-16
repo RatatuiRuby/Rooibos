@@ -1,0 +1,13 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  # Base error class for Rooibos.
+  class Error < StandardError
+    # Invariant violation.
+    class Invariant < Error
+    end
+  end
+end

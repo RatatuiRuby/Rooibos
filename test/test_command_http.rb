@@ -298,7 +298,7 @@ class TestCommandHttp < Minitest::Test
     # Framework philosophy: validate and raise in debug mode, don't silently fix
     mutable_headers = { "Authorization" => "Bearer token" }
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       Rooibos::Command.http(
         :get,
         "http://example.com/",
@@ -327,7 +327,7 @@ class TestCommandHttp < Minitest::Test
   public def test_http_command_validates_body_shareability_in_debug_mode
     mutable_body = String.new("mutable request body")
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       Rooibos::Command.http(
         :post,
         "http://example.com/",
@@ -342,7 +342,7 @@ class TestCommandHttp < Minitest::Test
   public def test_http_command_validates_url_shareability_in_debug_mode
     mutable_url = String.new("http://example.com/")
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       Rooibos::Command.http(
         :get,
         mutable_url,
@@ -441,7 +441,7 @@ class TestCommandHttp < Minitest::Test
   public def test_dwim_url_only_validates_ractor_shareability
     mutable_url = String.new("https://api.example.com/foo")
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       Rooibos::Command::Http.new(mutable_url)
     end
 
@@ -578,7 +578,7 @@ class TestCommandHttp < Minitest::Test
   public def test_mutable_envelope_raises_invariant_in_debug_mode
     mutable_envelope = String.new("custom_tag")
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       Rooibos::Command::Http.new(method: :get, url: "http://example.com", envelope: mutable_envelope)
     end
 
@@ -589,7 +589,7 @@ class TestCommandHttp < Minitest::Test
     # Use a mutable object as timeout (normally should be a number, but test the validation)
     mutable_timeout = Object.new
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       Rooibos::Command::Http.new(method: :get, url: "http://example.com", envelope: :tag, timeout: mutable_timeout)
     end
 
@@ -705,7 +705,7 @@ class TestCommandHttp < Minitest::Test
     mutable_state = []
     mutable_parser = -> (body) { mutable_state << body; body }
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       Rooibos::Command::Http.new(get: "http://example.com", parser: mutable_parser)
     end
 

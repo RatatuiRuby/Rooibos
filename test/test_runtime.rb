@@ -84,7 +84,7 @@ class TestRuntime < Minitest::Test
     fragment.const_set(:Update, -> (_msg, _m) { Rooibos::Command.exit })
     fragment.const_set(:View, -> (_m, tui) { tui.clear })
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
         Rooibos::Runtime.run(fragment)
       end
@@ -99,7 +99,7 @@ class TestRuntime < Minitest::Test
     fragment.const_set(:Update, -> (_msg, _m) { Rooibos::Command.exit })
     fragment.const_set(:View, -> (_m, tui) { tui.clear })
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
         Rooibos::Runtime.run(fragment)
       end
@@ -195,7 +195,7 @@ class TestRuntime < Minitest::Test
     view = -> (_m, _t) { nil }
     update = -> (_msg, _m) { Rooibos::Command.exit }
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
         inject_key("q")
         Rooibos::Runtime.run(model:, view:, update:)
@@ -242,7 +242,7 @@ class TestRuntime < Minitest::Test
     view = -> (_m, tui) { tui.clear }
     update = -> (_msg, _m) { Rooibos::Command.exit }
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
         inject_key("q")
         Rooibos::Runtime.run(model: mutable_model, view:, update:)
@@ -258,7 +258,7 @@ class TestRuntime < Minitest::Test
     view = -> (_m, tui) { tui.clear }
     update = -> (_msg, _m) { { count: 1 } } # Returns mutable hash - NOT frozen
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
         inject_key("a")
         inject_key("q")

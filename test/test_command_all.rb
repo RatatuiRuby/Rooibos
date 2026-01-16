@@ -17,7 +17,7 @@ class TestCommandAll < Minitest::Test
       def call(_out, _token) = nil
     end.new
 
-    assert_raises(RatatuiRuby::Error::Invariant) do
+    assert_raises(Rooibos::Error::Invariant) do
       Rooibos::Command.all(:tag, [non_shareable_command])
     end
   end

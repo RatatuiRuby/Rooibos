@@ -115,7 +115,7 @@ module Rooibos
     #
     # == Raises
     #
-    # [RatatuiRuby::Error::Invariant] If both fragment and any of (model, view, update, command) are provided.
+    # [Rooibos::Error::Invariant] If both fragment and any of (model, view, update, command) are provided.
     def self.run(root_fragment = nil, fps: 60, model: nil, view: nil, update: nil, command: nil)
       @fragment = fragment_from_kwargs(root_fragment, model:, view:, update:, command:)
       @view = @fragment::View
@@ -225,7 +225,7 @@ module Rooibos
 
       # Helps app developers understand invariants
       private def fragment_invariant!(param)
-        raise RatatuiRuby::Error::Invariant, "Cannot provide both fragment: and #{param}: parameters. Use fragment-first API (fragment:) OR explicit parameters (model:, view:, update:, command:), not both."
+        raise Rooibos::Error::Invariant, "Cannot provide both fragment: and #{param}: parameters. Use fragment-first API (fragment:) OR explicit parameters (model:, view:, update:, command:), not both."
       end
 
       private def init_callable
@@ -237,17 +237,17 @@ module Rooibos
               @fragment::Init.method(:call)
             end
           else
-            raise RatatuiRuby::Error::Invariant, "Fragment::Init must respond to :call"
+            raise Rooibos::Error::Invariant, "Fragment::Init must respond to :call"
           end
         else
           if @fragment.const_defined?(:Model)
             if @fragment::Model.respond_to?(:new)
               -> { @fragment::Model.new }
             else
-              raise RatatuiRuby::Error::Invariant, "Fragment::Model must respond to :new; or pass Fragment::Init instead"
+              raise Rooibos::Error::Invariant, "Fragment::Model must respond to :new; or pass Fragment::Init instead"
             end
           else
-            raise RatatuiRuby::Error::Invariant, "Fragment must define a Model class or an Init callable"
+            raise Rooibos::Error::Invariant, "Fragment must define a Model class or an Init callable"
           end
         end
       end
@@ -261,7 +261,7 @@ module Rooibos
       private def validate_view_return!(widget)
         return unless widget.nil?
 
-        raise RatatuiRuby::Error::Invariant,
+        raise Rooibos::Error::Invariant,
           "View returned nil. Return a widget, or use TUI#clear for an empty screen."
       end
 
@@ -316,7 +316,7 @@ module Rooibos
         return unless RatatuiRuby::Debug.enabled?
         return if Ractor.shareable?(object)
 
-        raise RatatuiRuby::Error::Invariant,
+        raise Rooibos::Error::Invariant,
           "#{name.capitalize} is not Ractor-shareable. Use Ractor.make_shareable or Object#freeze."
       end
 
@@ -386,7 +386,7 @@ module Rooibos
           entry = @lifecycle.run_async(@command, @message_queue)
           entry.future
         else
-          raise RatatuiRuby::Error::Invariant,
+          raise Rooibos::Error::Invariant,
             "#{@command.inspect} is not a valid Rooibos command."
         end
         @pending_futures << future if future

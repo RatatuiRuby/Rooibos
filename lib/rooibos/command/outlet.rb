@@ -111,7 +111,7 @@ module Rooibos
         message = (args.size == 1) ? args.first : args.freeze
 
         if RatatuiRuby::Debug.enabled? && !Ractor.shareable?(message)
-          raise RatatuiRuby::Error::Invariant,
+          raise Rooibos::Error::Invariant,
             "Message is not Ractor-shareable: #{message.inspect}\n" \
               "Use Ractor.make_shareable or Object#freeze."
         end

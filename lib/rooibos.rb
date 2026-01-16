@@ -6,6 +6,7 @@
 #++
 
 require_relative "rooibos/version"
+require_relative "rooibos/error"
 require_relative "rooibos/message"
 require_relative "rooibos/command"
 require_relative "rooibos/runtime"

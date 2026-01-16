@@ -59,7 +59,7 @@ class TestOutlet < Minitest::Test
     out = make_outlet(channel)
     mutable_hash = { data: "not frozen" } # NOT Ractor-shareable
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       out.put(:bad, mutable_hash)
     end
 

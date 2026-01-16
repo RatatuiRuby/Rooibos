@@ -231,7 +231,7 @@ class TestRuntimeParallel < Minitest::Test
     end.new
 
     # Should raise at construction time, not later
-    assert_raises(RatatuiRuby::Error::Invariant) do
+    assert_raises(Rooibos::Error::Invariant) do
       Rooibos::Command.batch([non_shareable_command])
     end
   end

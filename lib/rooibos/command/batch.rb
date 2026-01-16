@@ -45,7 +45,7 @@ module Rooibos
         if RatatuiRuby::Debug.enabled?
           commands.each do |cmd|
             unless Ractor.shareable?(cmd)
-              raise RatatuiRuby::Error::Invariant,
+              raise Rooibos::Error::Invariant,
                 "Command is not Ractor-shareable: #{cmd.inspect}\n" \
                   "Use Ractor.make_shareable or a Data.define command."
             end

@@ -61,7 +61,7 @@ class TestCommandCustom < Minitest::Test
     # Create proc dynamically so it's not already shareable
     non_shareable_proc = -> (_out, _token) { :test_message }
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       Rooibos::Command.custom(non_shareable_proc)
     end
 

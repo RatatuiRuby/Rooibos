@@ -40,7 +40,7 @@ class TestFragmentFirstAPI < Minitest::Test
 
     model = fragment::Model.new(value: 2)
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
         Rooibos.run(fragment, model:)
       end
@@ -56,7 +56,7 @@ class TestFragmentFirstAPI < Minitest::Test
     fragment.const_set(:View, -> (model, tui) { tui.clear })
     fragment.const_set(:Update, -> (_msg, _model) { Rooibos::Command.exit })
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
         Rooibos.run(fragment, view: -> (_m, tui) { tui.clear })
       end
@@ -72,7 +72,7 @@ class TestFragmentFirstAPI < Minitest::Test
     fragment.const_set(:View, -> (model, tui) { tui.clear })
     fragment.const_set(:Update, -> (_msg, _model) { Rooibos::Command.exit })
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
         Rooibos.run(fragment, update: -> (_m, _mdl) { Rooibos::Command.exit })
       end
@@ -88,7 +88,7 @@ class TestFragmentFirstAPI < Minitest::Test
     fragment.const_set(:View, -> (model, tui) { tui.clear })
     fragment.const_set(:Update, -> (_msg, _model) { Rooibos::Command.exit })
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
         Rooibos.run(fragment, command: Rooibos::Command.exit)
       end

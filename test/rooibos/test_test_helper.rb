@@ -18,7 +18,7 @@ class TestTeaTestHelper < Minitest::Test
     def bad_command.call(_out, _token); end
     def bad_command.rooibos_cancellation_grace_period; 0.1; end
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       validate_rooibos_command!(bad_command)
     end
 
@@ -32,7 +32,7 @@ class TestTeaTestHelper < Minitest::Test
     def bad_command.rooibos_command?; true; end
     def bad_command.rooibos_cancellation_grace_period; 0.1; end
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       validate_rooibos_command!(bad_command)
     end
 
@@ -45,7 +45,7 @@ class TestTeaTestHelper < Minitest::Test
     def bad_command.rooibos_command?; true; end
     def bad_command.call(_out, _token); end
 
-    error = assert_raises(RatatuiRuby::Error::Invariant) do
+    error = assert_raises(Rooibos::Error::Invariant) do
       validate_rooibos_command!(bad_command)
     end
 

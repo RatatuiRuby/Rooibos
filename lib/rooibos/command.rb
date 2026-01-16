@@ -442,7 +442,7 @@ module Rooibos
         begin
           c = Ractor.make_shareable(c)
         rescue Ractor::IsolationError
-          raise RatatuiRuby::Error::Invariant,
+          raise Rooibos::Error::Invariant,
             "Command.custom requires a Ractor-shareable callable. " \
               "#{c.class} is not shareable. Use Ractor.make_shareable or define at top-level."
         end

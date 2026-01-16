@@ -32,19 +32,19 @@ module Rooibos
     #   end
     def validate_rooibos_command!(command)
       unless command.respond_to?(:rooibos_command?)
-        raise RatatuiRuby::Error::Invariant,
+        raise Rooibos::Error::Invariant,
           "#{command.class} does not respond to #rooibos_command?. " \
             "Include Command::Custom or implement the rooibos_command? predicate."
       end
 
       unless command.respond_to?(:call)
-        raise RatatuiRuby::Error::Invariant,
+        raise Rooibos::Error::Invariant,
           "#{command.class} does not respond to #call. " \
             "Implement call(out, token) to execute the command."
       end
 
       unless command.respond_to?(:rooibos_cancellation_grace_period)
-        raise RatatuiRuby::Error::Invariant,
+        raise Rooibos::Error::Invariant,
           "#{command.class} does not respond to #rooibos_cancellation_grace_period. " \
             "Include Command::Custom or implement this method."
       end

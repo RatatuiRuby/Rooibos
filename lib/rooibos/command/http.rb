@@ -33,31 +33,31 @@ module Rooibos
 
         # Ractor validation
         if RatatuiRuby::Debug.enabled? && !Ractor.shareable?(url)
-          raise RatatuiRuby::Error::Invariant,
+          raise Rooibos::Error::Invariant,
             "URL is not Ractor-shareable: #{url.inspect}\n" \
               "Use a frozen string or Ractor.make_shareable."
         end
 
         if RatatuiRuby::Debug.enabled? && headers && !Ractor.shareable?(headers)
-          raise RatatuiRuby::Error::Invariant,
+          raise Rooibos::Error::Invariant,
             "Headers are not Ractor-shareable: #{headers.inspect}\n" \
               "Use Ractor.make_shareable or freeze the hash and its contents."
         end
 
         if RatatuiRuby::Debug.enabled? && body && !Ractor.shareable?(body)
-          raise RatatuiRuby::Error::Invariant,
+          raise Rooibos::Error::Invariant,
             "Body is not Ractor-shareable: #{body.inspect}\n" \
               "Use a frozen string or Ractor.make_shareable."
         end
 
         if RatatuiRuby::Debug.enabled? && envelope && !Ractor.shareable?(envelope)
-          raise RatatuiRuby::Error::Invariant,
+          raise Rooibos::Error::Invariant,
             "Envelope is not Ractor-shareable: #{envelope.inspect}\n" \
               "Use a frozen string, symbol, or Ractor.make_shareable."
         end
 
         if RatatuiRuby::Debug.enabled? && timeout && !Ractor.shareable?(timeout)
-          raise RatatuiRuby::Error::Invariant,
+          raise Rooibos::Error::Invariant,
             "Timeout is not Ractor-shareable: #{timeout.inspect}\n" \
               "Use a number or Ractor.make_shareable."
         end
@@ -68,7 +68,7 @@ module Rooibos
         end
 
         if RatatuiRuby::Debug.enabled? && parser && !Ractor.shareable?(parser)
-          raise RatatuiRuby::Error::Invariant,
+          raise Rooibos::Error::Invariant,
             "Parser is not Ractor-shareable: #{parser.inspect}\n" \
               "Use a frozen Method object or Ractor.make_shareable."
         end
@@ -166,7 +166,7 @@ module Rooibos
 
         # Validate parsed body is Ractor-shareable in debug mode
         if RatatuiRuby::Debug.enabled? && parser && !Ractor.shareable?(parsed_body)
-          raise RatatuiRuby::Error::Invariant,
+          raise Rooibos::Error::Invariant,
             "Parsed body is not Ractor-shareable: #{parsed_body.class}\n" \
               "Parser must return frozen/shareable data. Use .freeze or Ractor.make_shareable."
         end
