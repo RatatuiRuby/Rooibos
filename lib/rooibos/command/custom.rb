@@ -99,6 +99,89 @@ module Rooibos
       def rooibos_cancellation_grace_period
         0.1
       end
+
+      # Infrastructure methods to exclude from introspection.
+      # Computed once from bare prototypes.
+      INFRASTRUCTURE_METHODS = begin
+        bare_data = Data.define(:_)
+        bare_struct = Struct.new(:_)
+
+        methods = Object.public_instance_methods +
+          bare_data.public_instance_methods +
+          bare_struct.public_instance_methods
+
+        # PP methods can error when called on objects without pretty_print override
+        methods += %i[
+          pretty_print
+          pretty_print_cycle
+          pretty_print_instance_variables
+          pretty_print_inspect
+]
+
+        methods.uniq.freeze
+      end
+      private_constant :INFRASTRUCTURE_METHODS
+
+      # Deconstructs for hash-based pattern matching.
+      #
+      # Introspects public query methods (CQS: zero-arity, no side effects) and
+      # returns a hash suitable for +case+/+in+ matching. Excludes infrastructure
+      # methods from Object, Data, and Struct.
+      #
+      # Always includes +:type+ as a snake_case symbol of the class name.
+      # Anonymous classes default to +:custom+.
+      #
+      # Data.define members are automatically included since they generate
+      # public accessor methods.
+      #
+      # This is a naive but practical default. Override for:
+      # - Hot paths (introspects methods on every call)
+      # - Ghost methods via +method_missing+/+respond_to_missing?+
+      # - Methods with optional arguments (only zero-arity detected)
+      #
+      # @param keys [Array<Symbol>, nil] Limit output to specific keys for performance.
+      #   Pass +nil+ to include all keys.
+      # @return [Hash{Symbol => Object}] Deconstructed hash with +:type+ discriminator.
+      #
+      # @example Pattern matching with Data.define command
+      #   case msg
+      #   in { type: :http_response, envelope: :users, status: 200 }
+      #     # handle success
+      #   end
+      def deconstruct_keys(keys)
+        class_name = self.class.name&.split("::")&.last
+        type_name = if class_name
+          class_name
+            .gsub(/([a-z])([A-Z])/, '\1_\2')
+            .downcase
+            .to_sym
+        else
+          :custom
+        end
+
+        result = { type: type_name }
+
+        # Include Data.define/Struct members
+        if self.class.respond_to?(:members)
+          klass = self.class #: Class & _HasMembers
+          klass.members.each do |member|
+            next if keys && !keys.include?(member)
+            result[member] = public_send(member)
+          end
+        end
+
+        # Include public zero-arity query methods (excluding infrastructure)
+        # Use Kernel#public_method to avoid collision with Data.define :method member
+        get_method = Kernel.instance_method(:public_method)
+        (public_methods - INFRASTRUCTURE_METHODS).each do |method_name|
+          next if method_name.to_s.end_with?("=", "!")
+          next unless get_method.bind_call(self, method_name).arity.zero?
+          next if keys && !keys.include?(method_name)
+          result[method_name] = public_send(method_name)
+        end
+
+        result
+      end
     end
   end
 end

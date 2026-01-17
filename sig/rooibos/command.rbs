@@ -135,12 +135,25 @@ module Rooibos
 
   # Mixin for user-defined custom commands.
   module Custom
+    # Interface for classes with a members method (Data.define, Struct).
+    interface _HasMembers
+      def members: () -> Array[Symbol]
+    end
+
+    # Methods excluded from deconstruct_keys introspection.
+    # Computed from Object, Data.define, Struct, and PP prototypes.
+    INFRASTRUCTURE_METHODS: Array[Symbol]
+
     # Brand predicate for command identification.
     def rooibos_command?: () -> true
 
     # Cleanup time after cancellation is requested. In seconds.
     # Default: 0.1 seconds (100 milliseconds).
     def rooibos_cancellation_grace_period: () -> Float
+
+    # Deconstructs for hash-based pattern matching.
+    # Introspects public query methods and returns a hash with :type discriminator.
+    def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
   end
 
   # Minimal interface for callables accepted by Lifecycle.run_sync.
