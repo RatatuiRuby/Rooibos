@@ -320,9 +320,9 @@ module Rooibos
     #   # Then handle it later:
     #   def update(message, model)
     #     case message
-    #     in [:got_files, {stdout:, status: 0}]
+    #     in { type: :system, envelope: :got_files, stdout:, status: 0 }
     #       [model.with(files: stdout.lines), nil]
-    #     in [:got_files, {stderr:, status:}]
+    #     in { type: :system, envelope: :got_files, stderr:, status: }
     #       [model.with(error: stderr), nil]
     #     end
     #   end
@@ -335,14 +335,14 @@ module Rooibos
     #   # Then handle incremental messages:
     #   def update(message, model)
     #     case message
-    #     in [:log, :stdout, line]
+    #     in { type: :system, envelope: :log, stream: :stdout, content: line }
     #       [model.with(lines: [*model.lines, line]), nil]
-    #     in [:log, :stderr, line]
+    #     in { type: :system, envelope: :log, stream: :stderr, content: line }
     #       [model.with(errors: [*model.errors, line]), nil]
-    #     in [:log, :complete, {status:}]
+    #     in { type: :system, envelope: :log, stream: :complete, status: }
     #       [model.with(loading: false, exit_status: status), nil]
-    #     in [:log, :error, {message:}]
-    #       [model.with(loading: false, error: message), nil]
+    #     in { type: :system, envelope: :log, stream: :error, content: msg }
+    #       [model.with(loading: false, error: msg), nil]
     #     end
     #   end
     def self.system(command, envelope, stream: false)

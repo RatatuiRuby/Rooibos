@@ -1,7 +1,7 @@
-# frozen_string_literal: true
-
 #--
 # SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# frozen_string_literal: true
+
 # SPDX-License-Identifier: LGPL-3.0-or-later
 #++
 
@@ -13,10 +13,10 @@ module Rooibos
   # Writing this routing logic by hand is tedious and error-prone.
   #
   # Include this module to declare routes and keymaps. Call +from_router+ to
-  # generate an UPDATE lambda that handles routing automatically.
+  # generate an Update lambda that handles routing automatically.
   #
-  # A *fragment* is a module containing <tt>Model</tt>, <tt>INITIAL</tt>,
-  # <tt>UPDATE</tt>, and <tt>VIEW</tt> constants. Fragments compose: parent fragments
+  # A *fragment* is a module containing <tt>Model</tt>, <tt>Init</tt>,
+  # <tt>Update</tt>, and <tt>View</tt> constants. Fragments compose: parent fragments
   # delegate to child fragments.
   #
   # === Example
@@ -33,9 +33,9 @@ module Rooibos
   #     end
   #
   #     Model = Data.define(:stats, :network)
-  #     INITIAL = Model.new(stats: StatsPanel::INITIAL, network: NetworkPanel::INITIAL)
-  #     VIEW = ->(model, tui) { ... }
-  #     UPDATE = from_router
+  #     Init = -> { Model.new(stats: StatsPanel::Init.(), network: NetworkPanel::Init.()) }
+  #     View = ->(model, tui) { ... }
+  #     Update = from_router
   #   end
   module Router
     # Configuration for key handlers.

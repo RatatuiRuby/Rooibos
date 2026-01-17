@@ -35,7 +35,7 @@ Description: Part of the RatatuiRuby ecosystem.
 
 - **BANNED WORD: "component"** — Reserved for Kit.
 - **Avoid "widget" for Rooibos units** — "Widget" refers to Engine/Ratatui render primitives. In Rooibos, call them **fragments**.
-- **Fragment:** A module containing `Model`, `INITIAL`, `UPDATE`, and `VIEW` constants. Fragments compose: parent fragments delegate to child fragments.
+- **Fragment:** A module containing `Model`, `Init`, `Update`, and `View` constants. Fragments compose: parent fragments delegate to child fragments.
 - Use "model", "update", "view" for the MVU pattern. Use "message" (not "msg") and "command" (not "cmd").
 
 ### Ruby Standards

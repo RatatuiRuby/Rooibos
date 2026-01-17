@@ -11,10 +11,15 @@ require "app"
 
 class TestWidgetCommandSystem < Minitest::Test
   def test_update_handles_successful_exec_result
-    model = WidgetCommandSystem::INITIAL
-    msg = [:got_output, { stdout: "file1\nfile2\n", stderr: "", status: 0 }]
+    model = WidgetCommandSystem::Init.call
+    msg = Rooibos::Message::System::Batch.new(
+      envelope: :got_output,
+      stdout: "file1\nfile2\n",
+      stderr: "",
+      status: 0
+    )
 
-    result = WidgetCommandSystem::UPDATE.call(msg, model)
+    result = WidgetCommandSystem::Update.call(msg, model)
 
     assert_kind_of Array, result
     new_model, cmd = result
@@ -25,10 +30,15 @@ class TestWidgetCommandSystem < Minitest::Test
   end
 
   def test_update_handles_failed_exec_result
-    model = WidgetCommandSystem::INITIAL
-    msg = [:got_output, { stdout: "", stderr: "No such file\n", status: 1 }]
+    model = WidgetCommandSystem::Init.call
+    msg = Rooibos::Message::System::Batch.new(
+      envelope: :got_output,
+      stdout: "",
+      stderr: "No such file\n",
+      status: 1
+    )
 
-    result = WidgetCommandSystem::UPDATE.call(msg, model)
+    result = WidgetCommandSystem::Update.call(msg, model)
 
     new_model, cmd = result
     assert_includes new_model.result, "Error (exit 1)"

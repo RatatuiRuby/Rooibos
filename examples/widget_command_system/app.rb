@@ -25,13 +25,15 @@ require "rooibos"
 # rdoc-image:/doc/images/widget_cmd_exec.png
 class WidgetCommandSystem
   Model = Data.define(:result, :loading, :last_command)
-  INITIAL = Model.new(
-    result: "Press a key to run a command...",
-    loading: false,
-    last_command: nil
-  )
+  Init = -> {
+    Model.new(
+      result: "Press a key to run a command...",
+      loading: false,
+      last_command: nil
+    )
+  }
 
-  VIEW = -> (model, tui) do
+  View = -> (model, tui) do
     hotkey_style = tui.style(modifiers: [:bold, :underlined])
     dim_style = tui.style(fg: :dark_gray)
 
@@ -97,12 +99,12 @@ class WidgetCommandSystem
     )
   end
 
-  UPDATE = -> (message, model) do
+  Update = -> (message, model) do
     case message
-    # Handle command results
-    in [:got_output, { stdout:, status: 0 }]
+    # Handle command results (hash-based pattern matching)
+    in { type: :system, envelope: :got_output, stdout:, status: 0 }
       [model.with(result: stdout.strip.freeze, loading: false), nil]
-    in [:got_output, { stderr:, status: }]
+    in { type: :system, envelope: :got_output, stderr:, status: }
       [model.with(result: "Error (exit #{status}): #{stderr.strip}".freeze, loading: false), nil]
 
     # Handle key presses
@@ -113,11 +115,11 @@ class WidgetCommandSystem
     in _ if message.u?
       [model.with(loading: true, last_command: "uname -a"), Rooibos::Command.system("uname -a", :got_output)]
     in _ if message.s?
-      command = "sleep 3 && echo 'Slept for 3s'"
+      cmd = "sleep 3 && echo 'Slept for 3s'"
       [model.with(loading: true, last_command: cmd.freeze), Rooibos::Command.system(cmd, :got_output)]
     in _ if message.f?
       # Intentional failure to demonstrate error handling
-      command = "ls /nonexistent_path_12345"
+      cmd = "ls /nonexistent_path_12345"
       [model.with(loading: true, last_command: cmd.freeze), Rooibos::Command.system(cmd, :got_output)]
     else
       model
@@ -125,7 +127,7 @@ class WidgetCommandSystem
   end
 
   def run
-    Rooibos.run(model: INITIAL, view: VIEW, update: UPDATE)
+    Rooibos.run(WidgetCommandSystem)
   end
 end
 

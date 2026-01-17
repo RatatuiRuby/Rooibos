@@ -103,13 +103,13 @@ module Rooibos
   #   # Verbose:
   #   case message
   #   in [:stats, *rest]
-  #     new_child, cmd = StatsPanel::UPDATE.call(rest, model.stats)
+  #     new_child, cmd = StatsPanel::Update.call(rest, model.stats)
   #     mapped = cmd ? Command.map(cmd) { |r| [:stats, *r] } : nil
   #     [new_child, mapped]
   #   end
   #
   #   # Concise:
-  #   Rooibos.delegate(message, :stats, StatsPanel::UPDATE, model.stats)
+  #   Rooibos.delegate(message, :stats, StatsPanel::Update, model.stats)
   def self.delegate(message, prefix, child_update, child_model)
     return nil unless message.is_a?(Array) && message.first == prefix
 
