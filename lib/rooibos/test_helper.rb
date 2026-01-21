@@ -49,6 +49,52 @@ module Rooibos
             "Include Command::Custom or implement this method."
       end
     end
+
+    # Fails if any Command::Error is present in the messages array.
+    #
+    # Call after running the runtime and before asserting on expected messages.
+    # This ensures tests fail fast with helpful error messages instead of
+    # silently passing when errors occur.
+    #
+    # [messages] Array of messages collected from the update function.
+    # [msg]      Optional custom failure message prefix.
+    #
+    # === Example
+    #
+    #   def test_dashboard_loads_data
+    #     messages = []
+    #     update = -> (msg, m) do
+    #       # ... handle keys ...
+    #       messages << msg
+    #       [m, nil]
+    #     end
+    #
+    #     with_test_terminal do
+    #       inject_key("s")
+    #       inject_sync
+    #       inject_key("q")
+    #       Rooibos::Runtime.run(model:, view:, update:)
+    #     end
+    #
+    #     assert_no_command_errors(messages)
+    #     # ... rest of assertions
+    #   end
+    #
+    def assert_no_command_errors(messages, msg = nil)
+      error = messages.find { |m| m.is_a?(Rooibos::Command::Error) }
+      return unless error
+
+      error_detail = "#{error.exception.class}: #{error.exception.message}"
+      failure_msg = msg ? "#{msg}\n#{error_detail}" : "Unexpected Command::Error: #{error_detail}"
+
+      if respond_to?(:flunk)
+        # rubocop:disable Style/SendWithLiteralMethodName
+        public_send(:flunk, failure_msg)
+        # rubocop:enable Style/SendWithLiteralMethodName
+      else
+        raise failure_msg
+      end
+    end
   end
 end
 

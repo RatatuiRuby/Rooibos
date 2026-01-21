@@ -42,6 +42,8 @@ class TestRuntimeParallel < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
+    assert_no_command_errors(messages)
+
     # Should receive TimerResponse messages, not bare tags
     timer_messages = messages.select { |m| m.is_a?(Rooibos::Message::Timer) }
     envelopes = timer_messages.map(&:envelope)

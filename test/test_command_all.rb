@@ -62,6 +62,8 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
+    assert_no_command_errors(messages)
+
     # Should get Message::All with empty results, not hang forever
     all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all with empty commands. Got: #{messages.inspect}"
@@ -113,6 +115,8 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
+    assert_no_command_errors(messages)
+
     all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all"
 
@@ -153,6 +157,8 @@ class TestCommandAll < Minitest::Test
       inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
+
+    assert_no_command_errors(messages)
 
     # Variadic produces Message::All with nested: false
     all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
@@ -201,6 +207,7 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
+    # Note: This test expects Command::Cancel, not Command::Error
     cancel_msg = messages.find { |m| m.is_a?(Rooibos::Command::Cancel) }
     assert_same all_cmd, cancel_msg&.handle, "Expected Cancel sentinel with self as handle"
   end
@@ -273,6 +280,8 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
+    assert_no_command_errors(messages)
+
     # Command.all should emit Message::All, not raw arrays
     all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all, got: #{messages.inspect}"
@@ -328,5 +337,72 @@ class TestCommandAll < Minitest::Test
     error_msg = messages.find { |m| m.is_a?(Rooibos::Command::Error) }
     refute_nil error_msg, "Expected Command::Error message from failed child"
     assert_match(/intentional failure/, error_msg.exception.message)
+  end
+
+  # Demonstrate that Command.all works with heterogeneous command types.
+  # This test verifies parallel execution across different command categories
+  # and that each result correctly matches the { type:, envelope: } pattern.
+  def test_all_with_mixed_command_types
+    messages = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "a"
+          cmd = Rooibos::Command.all(:dashboard,
+            Rooibos::Command.wait(0.01, :timer_result),
+            Rooibos::Command.system("echo mixed", :shell_result),
+          )
+          [m, cmd]
+        when "q" then [m, Rooibos::Command.exit]
+        else [m, nil]
+        end
+      else
+        messages << msg
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("a")
+      inject_sync
+      inject_key("q")
+      Rooibos::Runtime.run(model:, view:, update:)
+    end
+
+    assert_no_command_errors(messages)
+
+    all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
+    refute_nil all_msg, "Expected Message::All from Command.all with mixed types"
+
+    assert_equal :dashboard, all_msg.envelope
+    assert_equal 2, all_msg.results.size
+
+    # First result should be a Timer message
+    timer_result = all_msg.results.find { |r| r.is_a?(Rooibos::Message::Timer) }
+    refute_nil timer_result, "Expected Timer result in aggregated results"
+    assert_equal :timer_result, timer_result.envelope
+
+    # Second result should be a System::Batch message
+    system_result = all_msg.results.find { |r| r.is_a?(Rooibos::Message::System::Batch) }
+    refute_nil system_result, "Expected System::Batch result in aggregated results"
+    assert_equal :shell_result, system_result.envelope
+    assert_equal 0, system_result.status
+    assert_match(/mixed/, system_result.stdout)
+
+    # Verify hash pattern matching works for heterogeneous results
+    all_msg.results.each do |result|
+      case result
+      in { type: :timer, envelope:, elapsed: _ }
+        assert_equal :timer_result, envelope
+      in { type: :system, envelope:, stdout: _, status: 0 }
+        assert_equal :shell_result, envelope
+      else
+        flunk "Unexpected result type in mixed Command.all: #{result.class}"
+      end
+    end
   end
 end

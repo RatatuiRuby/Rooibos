@@ -37,6 +37,8 @@ class TestRuntimeTimer < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
+    assert_no_command_errors(messages)
+
     # Should receive TimerResponse, not bare tag
     timer_msg = messages.find { |m| m.is_a?(Rooibos::Message::Timer) }
     refute_nil timer_msg, "Should receive TimerResponse"
@@ -69,6 +71,8 @@ class TestRuntimeTimer < Minitest::Test
       inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
+
+    assert_no_command_errors(messages)
 
     # Should receive TimerResponse, not bare tag
     timer_msg = messages.find { |m| m.is_a?(Rooibos::Message::Timer) }

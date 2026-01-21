@@ -79,6 +79,8 @@ class TestOutletSource < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
+    assert_no_command_errors(received_messages)
+
     # The final composed result should arrive
     final = received_messages.find { |m| m.is_a?(Array) && m.first == :two_step_complete }
     assert final, "Should receive composed result, got: #{received_messages.inspect}"
@@ -265,5 +267,118 @@ class TestOutletSource < Minitest::Test
 
     assert_includes received_messages, :fetch_timed_out
     assert_operator elapsed, :<, 1.0, "Should timeout quickly, not wait 10s"
+  end
+
+  # Demonstrates sync→parallel→sync orchestration within a custom command.
+  # This pattern is essential for workflows that need to:
+  # 1. Perform sequential setup (authentication, config loading)
+  # 2. Launch multiple parallel operations (fetch multiple resources)
+  # 3. Aggregate results and continue with sequential processing
+  SyncParallelSyncCommand = Data.define do
+    include Rooibos::Command::Custom
+
+    def call(out, token)
+      # Phase 1: Synchronous setup
+      setup_result = out.source(SetupCommand.new, token)
+      return if setup_result.nil?
+      out.put(:phase1_complete, setup_result.last)
+
+      # Phase 2: Parallel fetch using Command.all
+      # NOTE: Workers must be Ractor-shareable for Command.all
+      parallel_result = out.source(
+        Rooibos::Command.all(:parallel_phase,
+          Ractor.make_shareable(ParallelWorkerA.new),
+          Ractor.make_shareable(ParallelWorkerB.new),
+        ),
+        token
+      )
+      return if parallel_result.nil?
+
+      # Extract results from Message::All
+      worker_results = parallel_result.results.map(&:last)
+      out.put(:phase2_complete, Ractor.make_shareable(worker_results))
+
+      # Phase 3: Synchronous finalization using parallel results
+      final_result = out.source(FinalizeCommand.new(worker_results.sum), token)
+      return if final_result.nil?
+      out.put(:phase3_complete, final_result.last)
+    end
+  end
+
+  SetupCommand = Data.define do
+    include Rooibos::Command::Custom
+    def call(out, _token)
+      out.put(:setup_done, 100)
+    end
+  end
+
+  ParallelWorkerA = Data.define do
+    include Rooibos::Command::Custom
+    def call(out, _token)
+      out.put(:worker_a, 10)
+    end
+  end
+
+  ParallelWorkerB = Data.define do
+    include Rooibos::Command::Custom
+    def call(out, _token)
+      out.put(:worker_b, 20)
+    end
+  end
+
+  FinalizeCommand = Data.define(:accumulated_value) do
+    include Rooibos::Command::Custom
+    def call(out, _token)
+      out.put(:finalized, accumulated_value * 2)
+    end
+  end
+
+  def test_source_orchestrates_sync_parallel_sync_flow
+    received_messages = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        case msg.code
+        when "s" then [m, SyncParallelSyncCommand.new]
+        when "q" then [m, Rooibos::Command.exit]
+        else [m, nil]
+        end
+      else
+        received_messages << msg
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")  # Start the workflow
+      inject_sync      # Wait for completion
+      inject_key("q")  # Quit
+
+      Rooibos::Runtime.run(model:, view:, update:)
+    end
+
+    # Fail fast if any unexpected errors occurred
+    assert_no_command_errors(received_messages)
+
+    # Verify all three phases completed in order
+    phase1 = received_messages.find { |m| m.is_a?(Array) && m.first == :phase1_complete }
+    phase2 = received_messages.find { |m| m.is_a?(Array) && m.first == :phase2_complete }
+    phase3 = received_messages.find { |m| m.is_a?(Array) && m.first == :phase3_complete }
+
+    refute_nil phase1, "Phase 1 (sync setup) should complete"
+    refute_nil phase2, "Phase 2 (parallel fetch) should complete"
+    refute_nil phase3, "Phase 3 (sync finalize) should complete"
+
+    # Verify correct values flow through the pipeline
+    assert_equal 100, phase1.last, "Setup should return 100"
+    assert_equal [10, 20], phase2.last, "Parallel workers should return [10, 20]"
+    assert_equal 60, phase3.last, "Finalize should double the sum (10+20)*2 = 60"
+
+    # Verify ordering: phase 1 before phase 2 before phase 3
+    indices = [phase1, phase2, phase3].map { |p| received_messages.index(p) }
+    assert_equal indices, indices.sort, "Phases should execute in order: setup → parallel → finalize"
   end
 end

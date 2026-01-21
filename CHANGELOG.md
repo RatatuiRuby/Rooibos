@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Command::Custom#deconstruct_keys**: Default pattern matching support for custom commands. Introspects public query methods and returns a hash with `:type` as a snake_case discriminator. Data.define members are included automatically. Respects the `keys` argument for performance optimization. Override for hot paths or metaprogrammed methods.
 
+- **Rooibos::TestHelper#assert_no_command_errors**: Test assertion to fail fast when `Command::Error` is unexpectedly present in collected messages. Works with Minitest (via `flunk`) and raises `RuntimeError` in other frameworks (RSpec, etc). Include via `require "rooibos/test_helper"` — included automatically with `RatatuiRuby::TestHelper`.
+
 ### Changed
 
 - **BREAKING: Rooibos.delegate Message Format**: `Rooibos.delegate` now passes `message[1]` (single value) to child UPDATEs instead of `message[1..]` (array slice). This aligns child fragments with the universal `{ type:, envelope: }` pattern. Update pattern matches from `in [{ type: :system, ... }]` to `in { type: :system, ... }`.
