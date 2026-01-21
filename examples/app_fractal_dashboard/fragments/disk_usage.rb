@@ -32,9 +32,9 @@ module DiskUsage
 
   Update = -> (message, model) do
     case message
-    in [{ type: :system, envelope: :disk_usage, status: 0, stdout: }]
+    in { type: :system, envelope: :disk_usage, status: 0, stdout: }
       [model.with(output: Ractor.make_shareable(stdout.strip), loading: false), nil]
-    in [{ type: :system, envelope: :disk_usage, stderr: }]
+    in { type: :system, envelope: :disk_usage, stderr: }
       [model.with(output: Ractor.make_shareable("Error: #{stderr.strip}"), loading: false), nil]
     else
       [model, nil]

@@ -113,7 +113,7 @@ module Rooibos
   def self.delegate(message, prefix, child_update, child_model)
     return nil unless message.is_a?(Array) && message.first == prefix
 
-    rest = message[1..]
+    rest = message[1]
     new_child, command = child_update.call(rest, child_model)
     wrapped = command ? route(command, prefix) : nil
     [new_child, wrapped]

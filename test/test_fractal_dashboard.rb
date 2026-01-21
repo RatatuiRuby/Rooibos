@@ -17,7 +17,7 @@ class TestFractalDashboard < Minitest::Test
       stderr: "",
       status: 0
     )
-    msg = [:stats, :system_info, batch]
+    msg = [:stats, batch]
 
     result = DashboardManual::Update.call(msg, model)
 
@@ -34,7 +34,7 @@ class TestFractalDashboard < Minitest::Test
       stderr: "",
       status: 0
     )
-    msg = [:network, :ping, batch]
+    msg = [:network, batch]
 
     result = DashboardManual::Update.call(msg, model)
 

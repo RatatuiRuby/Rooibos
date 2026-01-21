@@ -32,11 +32,11 @@ module StatsPanel
 
   Update = -> (message, model) do
     case message
-    in [:system_info, *rest]
-      new_child, command = SystemInfo::Update.call(rest, model.system_info)
+    in { envelope: :system_info, ** }
+      new_child, command = SystemInfo::Update.call(message, model.system_info)
       [model.with(system_info: new_child), command]
-    in [:disk_usage, *rest]
-      new_child, command = DiskUsage::Update.call(rest, model.disk_usage)
+    in { envelope: :disk_usage, ** }
+      new_child, command = DiskUsage::Update.call(message, model.disk_usage)
       [model.with(disk_usage: new_child), command]
     else
       [model, nil]

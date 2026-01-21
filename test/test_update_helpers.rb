@@ -50,7 +50,7 @@ class TestUpdateHelpers < Minitest::Test
     # and returns [new_model, nil]
     child_update = -> (message, model) do
       case message
-      in [{ type: :system, envelope: :system_info, stdout: }]
+      in { type: :system, envelope: :system_info, stdout: }
         [model.merge(output: stdout).freeze, nil]
       else
         [model, nil]

@@ -20,7 +20,7 @@ class TestRouterPascalCase < Minitest::Test
     child_fragment.const_set(:Init, -> { child_model.new(value: 0) })
     child_fragment.const_set(:Update, -> (message, model) do
       case message
-      in [:increment]
+      in :increment
         [model.with(value: model.value + 1), nil]
       else
         [model, nil]

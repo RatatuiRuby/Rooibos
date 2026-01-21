@@ -32,11 +32,11 @@ module NetworkPanel
 
   Update = -> (message, model) do
     case message
-    in [:ping, *rest]
-      new_child, command = Ping::Update.call(rest, model.ping)
+    in { envelope: :ping, ** }
+      new_child, command = Ping::Update.call(message, model.ping)
       [model.with(ping: new_child), command]
-    in [:uptime, *rest]
-      new_child, command = Uptime::Update.call(rest, model.uptime)
+    in { envelope: :uptime, ** }
+      new_child, command = Uptime::Update.call(message, model.uptime)
       [model.with(uptime: new_child), command]
     else
       [model, nil]

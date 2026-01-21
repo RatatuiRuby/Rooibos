@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING: Rooibos.delegate Message Format**: `Rooibos.delegate` now passes `message[1]` (single value) to child UPDATEs instead of `message[1..]` (array slice). This aligns child fragments with the universal `{ type:, envelope: }` pattern. Update pattern matches from `in [{ type: :system, ... }]` to `in { type: :system, ... }`.
+
 ### Fixed
 
 ### Removed
