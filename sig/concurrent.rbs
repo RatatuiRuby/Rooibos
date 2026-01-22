@@ -39,6 +39,9 @@ module Concurrent
 
     # Races multiple futures/events, returning when any resolves.
     def self.any_event: (*Future[untyped] | ResolvableEvent) -> ResolvableEvent
+
+    # Joins multiple futures, resolving when all complete.
+    def self.zip_futures: (*Future[untyped]) -> Future[Array[untyped]]
   end
 
   # Single-element blocking container for synchronization.

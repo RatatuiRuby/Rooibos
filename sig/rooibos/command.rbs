@@ -192,8 +192,17 @@ module Rooibos
 
   # Messaging gateway for custom commands.
   class Outlet
+    # Internal handle for async streaming commands.
+    class AsyncHandle < Data
+      attr_reader future: Concurrent::Promises::Future[void]
+
+      def self.new: (future: Concurrent::Promises::Future[void]) -> instance
+    end
+
     @channel: Concurrent::Promises::Channel
     @live: Lifecycle
+    @pending_async: Array[AsyncHandle]
+
 
     def initialize: (Concurrent::Promises::Channel channel, lifecycle: Lifecycle) -> void
 
@@ -205,6 +214,14 @@ module Rooibos
 
     # Runs a child command synchronously, returning its result.
     def source: (_Callable command, Concurrent::Cancellation token, ?timeout: Float) -> Object?
+
+    # Spawns an async streaming command.
+    # Returns a handle for use with wait.
+    def standing: (_Callable command, Concurrent::Cancellation token) -> AsyncHandle
+
+    # Blocks until async commands complete.
+    # If no handles given, waits for all pending async commands.
+    def wait: (*AsyncHandle handles, ?token: Concurrent::Cancellation?) -> void
   end
 
   # A fire-and-forget parallel command.

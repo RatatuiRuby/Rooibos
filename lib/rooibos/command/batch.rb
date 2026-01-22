@@ -59,17 +59,12 @@ module Rooibos
 
       # Call it
       def call(out, token)
-        futures = commands.map do |command|
-          Concurrent::Promises.future { command.call(out, token) }
+        handles = commands.map { |cmd| out.standing(cmd, token) }
+        out.wait(*handles, token:)
+
+        if token.canceled?
+          out.put(Command.cancel(self))
         end
-
-        all_done = Concurrent::Promises.zip_futures(*futures)
-        Concurrent::Promises.any_event(all_done, token.origin).wait
-
-        # Re-raise any child exception for runtime to wrap in Command::Error
-        futures.each { |f| raise f.reason if f.rejected? }
-
-        out.put(Command.cancel(self)) if token.canceled?
       end
     end
     end

@@ -85,10 +85,15 @@ module Rooibos
       def initialize(message_queue, lifecycle:)
         @message_queue = message_queue
         @live = lifecycle
+        @pending_async = [] #: Array[AsyncHandle]
       end
 
-      # :nodoc: Internal infrastructure for nested command lifecycle sharing.
-      attr_reader :live
+      # Internal handle for async streaming commands.
+      AsyncHandle = Data.define(:future) # :nodoc:
+      private_constant :AsyncHandle
+
+      # Internal infrastructure for nested command lifecycle sharing.
+      attr_reader :live # :nodoc:
 
       # Sends a message to the runtime.
       #
@@ -151,6 +156,103 @@ module Rooibos
       #++
       def source(command, token, timeout: 30.0)
         @live.run_sync(command, token, timeout:)
+      end
+
+      # Spawns an async streaming command.
+      #
+      # Multiple data sources often need to stream in parallel. Dashboards,
+      # real-time feeds, and multi-provider aggregations all face this pattern.
+      # Waiting for one source before starting the next creates latency.
+      #
+      # This method spawns a child command that runs asynchronously. Messages
+      # from the child stream directly to your update function as they arrive.
+      # The child gets a full Outlet, so it can nest +source+ or +standing+ calls.
+      #
+      # Use +wait+ to block until the child completes, or fire-and-forget for
+      # long-running streams.
+      #
+      # [command] A callable with <tt>call(out, token)</tt>.
+      # [token]   The parent's cancellation token.
+      #
+      # Returns a handle for use with +wait+.
+      #
+      # === Example
+      #
+      # A dashboard that opens two SSE streams for live updates. Each stream
+      # emits chunks as they arrive — no waiting for the other.
+      #
+      #--
+      # SPDX-SnippetBegin
+      # SPDX-FileCopyrightText: 2026 Kerrick Long
+      # SPDX-License-Identifier: MIT-0
+      #++
+      #   def call(out, token)
+      #     # Authenticate first (sync)
+      #     auth = out.source(Authenticate.new, token)
+      #     return if auth.nil?
+      #
+      #     # Open two SSE streams in parallel — chunks arrive live
+      #     # Streams remain outstanding until token is cancelled
+      #     out.standing(StreamNotifications.new(auth), token)
+      #     out.standing(StreamPrices.new(auth), token)
+      #   end
+      #--
+      # SPDX-SnippetEnd
+      #++
+      def standing(command, token)
+        child_outlet = Outlet.new(@message_queue, lifecycle: @live)
+        future = Concurrent::Promises.future do
+          command.call(child_outlet, token)
+        rescue => e
+          @message_queue.push Command::Error.new(command:, exception: e)
+        end
+        handle = AsyncHandle.new(future:)
+        @pending_async << handle
+        handle
+      end
+
+      # Blocks until async commands complete.
+      #
+      # After spawning children with +standing+, the parent command normally
+      # returns immediately. Use +wait+ to block until children finish, then
+      # emit a completion signal.
+      #
+      # This is how custom commands achieve the same end-of-streams dispatch
+      # that +Command.batch+ gets automatically with +Message::Batch+.
+      #
+      # [handles] Zero or more handles from +standing+. If empty, waits for all.
+      #
+      # === Example
+      #
+      # A custom command that streams from two sources and signals when done.
+      #
+      #--
+      # SPDX-SnippetBegin
+      # SPDX-FileCopyrightText: 2026 Kerrick Long
+      # SPDX-License-Identifier: MIT-0
+      #++
+      #   def call(out, token)
+      #     h1 = out.standing(StreamPrices.new, token)
+      #     h2 = out.standing(StreamNews.new, token)
+      #     out.wait(h1, h2)
+      #     out.put(:streams_closed)  # Your custom completion signal
+      #   end
+      #--
+      # SPDX-SnippetEnd
+      #++
+      def wait(*handles, token: nil)
+        handles = @pending_async || [] if handles.empty?
+        return if handles.empty?
+
+        futures = handles.map(&:future)
+        all_done = Concurrent::Promises.zip_futures(*futures)
+
+        if token
+          # Race completion against cancellation
+          Concurrent::Promises.any_event(all_done, token.origin).wait
+        else
+          all_done.wait
+        end
       end
     end
   end
