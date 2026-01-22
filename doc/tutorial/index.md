@@ -3,18 +3,18 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Quickstart
+# Tutorial: Build a File Browser
 
 
 By the end of this guide, you will:
 
-- Run your first Rooibos application
-- Identify the three parts of an MVU app (Model, Update, View)
-- Make a change and see it reflected immediately
-- Know where to go next for deeper learning
+- Build a fully-functional file browser TUI from scratch
+- Apply all core Rooibos concepts (Model, Update, View, Commands)
+- Understand how to structure a real-world Rooibos application
+- Have a working app you can extend and customize
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 
 ---
 
-[**Previous:** Installation](./install.md)
+[**Next:** Project Setup](./01_project_setup.md)

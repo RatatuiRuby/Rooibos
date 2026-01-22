@@ -3,18 +3,18 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Quickstart
+# Messages
 
 
 By the end of this guide, you will:
 
-- Run your first Rooibos application
-- Identify the three parts of an MVU app (Model, Update, View)
-- Make a change and see it reflected immediately
-- Know where to go next for deeper learning
+- Define message types that describe what happened in your app
+- Use pattern matching (`case/in`) to route messages to handlers
+- Apply predicate helpers (`.key?`, `.q?`) for keyboard events
+- Design a message vocabulary for your domain
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 
 ---
 
-[**Previous:** Installation](./install.md)
+[**Previous:** Models](./models.md) | [**Next:** Update Functions](./update_functions.md)

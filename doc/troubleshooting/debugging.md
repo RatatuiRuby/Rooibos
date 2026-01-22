@@ -3,18 +3,18 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Quickstart
+# Debugging
 
 
 By the end of this guide, you will:
 
-- Run your first Rooibos application
-- Identify the three parts of an MVU app (Model, Update, View)
-- Make a change and see it reflected immediately
-- Know where to go next for deeper learning
+- Enable `debug: true` for verbose runtime output
+- Inspect Model state at any point in execution
+- Use file logging when stdout is unavailable
+- Trace message flow through your app
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 
 ---
 
-[**Previous:** Installation](./install.md)
+**Troubleshooting:** [Common Errors](./common_errors.md) | [Performance](./performance.md)

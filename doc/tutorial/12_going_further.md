@@ -3,18 +3,18 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Quickstart
+# Going Further
 
 
 By the end of this guide, you will:
 
-- Run your first Rooibos application
-- Identify the three parts of an MVU app (Model, Update, View)
-- Make a change and see it reflected immediately
-- Know where to go next for deeper learning
+- Know where to find the Essentials for deeper understanding
+- Identify which Scaling Up topics apply to your next project
+- Find Best Practices for common UI patterns
+- Decide what to build next
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 
 ---
 
-[**Previous:** Installation](./install.md)
+[**Previous:** Polish and Refine](./11_polish_and_refine.md)

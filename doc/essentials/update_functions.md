@@ -3,18 +3,18 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Quickstart
+# Update Functions
 
 
 By the end of this guide, you will:
 
-- Run your first Rooibos application
-- Identify the three parts of an MVU app (Model, Update, View)
-- Make a change and see it reflected immediately
-- Know where to go next for deeper learning
+- Write pure functions that return `[new_model, command]`
+- Explain why side effects are forbidden in UPDATE
+- Use `Command.none` when no async work is needed
+- Structure complex UPDATE logic with helper methods
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 
 ---
 
-[**Previous:** Installation](./install.md)
+[**Previous:** Messages](./messages.md) | [**Next:** Views](./views.md)

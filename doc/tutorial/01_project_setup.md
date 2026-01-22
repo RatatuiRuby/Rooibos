@@ -3,18 +3,18 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Quickstart
+# Project Setup
 
 
 By the end of this guide, you will:
 
-- Run your first Rooibos application
-- Identify the three parts of an MVU app (Model, Update, View)
-- Make a change and see it reflected immediately
-- Know where to go next for deeper learning
+- Create a new Rooibos project with the correct folder structure
+- Configure your Gemfile with required dependencies
+- Run a smoke test to verify your environment works
+- Understand what each file in the project does
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 
 ---
 
-[**Previous:** Installation](./install.md)
+[**Previous:** Tutorial: Build a File Browser](./index.md) | [**Next:** Hello World](./02_hello_world.md)

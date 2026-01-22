@@ -59,8 +59,7 @@ module Rooibos
       end
     end
 
-    # :nodoc:
-    def self.included(base)
+    def self.included(base) # :nodoc:
       base.extend(ClassMethods)
     end
 
@@ -254,8 +253,7 @@ module Rooibos
       # Returns the registered handlers hash.
       attr_reader :handlers
 
-      # :nodoc:
-      def initialize
+      def initialize # :nodoc:
         @handlers = {}
         @guard_stack = []
       end
@@ -369,8 +367,7 @@ module Rooibos
       # Returns the registered click handler.
       attr_reader :click_handler
 
-      # :nodoc:
-      def initialize
+      def initialize # :nodoc:
         @scroll_handlers = {}
         @click_handler = nil
       end

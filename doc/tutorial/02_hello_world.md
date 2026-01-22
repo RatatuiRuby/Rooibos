@@ -3,18 +3,18 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Quickstart
+# Hello World
 
 
 By the end of this guide, you will:
 
-- Run your first Rooibos application
-- Identify the three parts of an MVU app (Model, Update, View)
-- Make a change and see it reflected immediately
-- Know where to go next for deeper learning
+- Write your first VIEW function that renders text
+- Run your app and see output in the terminal
+- Identify the entry point that starts your application
+- Explain what a VIEW function returns (RatatuiRuby widgets)
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 
 ---
 
-[**Previous:** Installation](./install.md)
+[**Previous:** Project Setup](./01_project_setup.md) | [**Next:** Adding State](./03_adding_state.md)

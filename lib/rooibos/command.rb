@@ -542,15 +542,13 @@ module Rooibos
       Http.new(*, **)
     end
 
-    # :nodoc:
-    class Wrapped < Data.define(:callable, :grace_period)
+    class Wrapped < Data.define(:callable, :grace_period) # :nodoc:
       include Custom
       def rooibos_cancellation_grace_period
         grace_period || super
       end
 
-      # :nodoc:
-      def call(out, token)
+      def call(out, token) # :nodoc:
         callable.call(out, token)
       end
     end

@@ -19,8 +19,7 @@ module Rooibos
     #
     # The framework creates one instance at startup. All outlets share it.
     class Lifecycle
-      # :nodoc: Internal representation of a tracked async command.
-      Entry = Data.define(:future, :origin)
+      Entry = Data.define(:future, :origin) # :nodoc: Internal representation of a tracked async command.
 
       # Creates a lifecycle manager.
       #

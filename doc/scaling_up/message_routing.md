@@ -3,18 +3,18 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Quickstart
+# Message Routing
 
 
 By the end of this guide, you will:
 
-- Run your first Rooibos application
-- Identify the three parts of an MVU app (Model, Update, View)
-- Make a change and see it reflected immediately
-- Know where to go next for deeper learning
+- Define routes with `Rooibos.route`
+- Delegate messages to child fragments cleanly
+- Handle cross-cutting concerns (logging, analytics) centrally
+- Debug message routing with logging
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 
 ---
 
-[**Previous:** Installation](./install.md)
+[**Previous:** Fractal Architecture](./fractal_architecture.md) | [**Next:** Ractor Safety](./ractor_safety.md)

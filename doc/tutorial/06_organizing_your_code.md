@@ -3,18 +3,18 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Quickstart
+# Organizing Your Code
 
 
 By the end of this guide, you will:
 
-- Run your first Rooibos application
-- Identify the three parts of an MVU app (Model, Update, View)
-- Make a change and see it reflected immediately
-- Know where to go next for deeper learning
+- Extract a reusable fragment from your app
+- Define the Init callable that creates initial state
+- Compose multiple fragments into one application
+- Decide when to extract vs. keep code inline
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 
 ---
 
-[**Previous:** Installation](./install.md)
+[**Previous:** The Update Cycle](./05_the_update_cycle.md) | [**Next:** Your First Command](./07_your_first_command.md)
