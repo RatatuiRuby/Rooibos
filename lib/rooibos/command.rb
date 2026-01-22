@@ -364,28 +364,35 @@ module Rooibos
     class Mapped < Data.define(:inner_command, :mapper)
       include Custom
 
+      DONE = Object.new.freeze
+      private_constant :DONE
+
       # Grace period delegates to inner command.
       def rooibos_cancellation_grace_period
         inner_command.respond_to?(:rooibos_cancellation_grace_period) ?
           inner_command.rooibos_cancellation_grace_period : 0.1
       end
 
-      # Executes the inner command, waits for result, and transforms it.
+      # Executes the inner command and transforms each message.
       def call(out, token)
         inner_channel = Concurrent::Promises::Channel.new
         inner_outlet = Outlet.new(inner_channel, lifecycle: out.live)
 
-        # Dispatch inner command
-        if inner_command.respond_to?(:call)
-          inner_command.call(inner_outlet, token)
-        else
-          raise ArgumentError, "Inner command must respond to #call"
+        Concurrent::Promises.future do
+          if inner_command.respond_to?(:call)
+            inner_command.call(inner_outlet, token)
+          else
+            raise ArgumentError, "Inner command must respond to #call"
+          end
+          inner_channel.push(DONE)
         end
 
-        # Transform result and send
-        inner_message = inner_channel.pop
-        transformed = mapper.call(inner_message)
-        out.put(*transformed)
+        loop do
+          msg = inner_channel.pop
+          break if msg.equal?(DONE)
+          transformed = mapper.call(msg)
+          out.put(*transformed) if transformed
+        end
       end
     end
 
@@ -405,8 +412,14 @@ module Rooibos
     #
     #   # Parent wraps to route as [:sidebar, :got_files, {...}]
     #   parent_command = Command.map(child_command) { |child_result| [:sidebar, *child_result] }
-    def self.map(inner_command, &mapper)
-      Mapped.new(inner_command:, mapper:)
+    def self.map(inner_command, mapper = nil, &block)
+      if mapper && block
+        raise ArgumentError, "Pass either a mapper callable or a block, not both"
+      end
+      unless mapper || block
+        raise ArgumentError, "Pass a mapper callable or a block"
+      end
+      Mapped.new(inner_command:, mapper: mapper || block)
     end
 
     # Gives a callable unique identity for cancellation.
