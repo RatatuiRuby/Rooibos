@@ -229,7 +229,52 @@ class TestCommandMap < Minitest::Test
 
     assert_no_command_errors(received_messages)
     tagged = received_messages.select { |m| m.is_a?(Array) && m.first == :dashboard }
-    assert_equal :a_result, tagged[0].last
-    assert_equal :b_result, tagged[1].last
+    assert_equal 3, tagged.size, "Expected 3 tagged messages, got: #{received_messages.inspect}"
+    # 2 results (symbols) + 1 Message::Batch completion
+    result_one, result_two, result_three = tagged
+    assert_equal [result_one.last, result_two.last].sort, [:a_result, :b_result] # Non-deterministic order
+    assert_kind_of Rooibos::Message::Batch, result_three.last # Deterministically last
+  end
+
+  # Command.batch emits Message::Batch on completion, enabling composition
+  # with Command.map for custom completion signals.
+  def test_batch_emits_message_batch_on_completion
+    received_messages = []
+    model = Ractor.make_shareable({})
+    view = -> (_m, t) { t.clear }
+
+    fetch_a = Ractor.make_shareable(FetchA.new)
+    fetch_b = Ractor.make_shareable(FetchB.new)
+
+    update = -> (msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        if msg.code == "s"
+          batch = Rooibos::Command.batch(fetch_a, fetch_b)
+          [m, batch]
+        elsif msg.q?
+          [m, Rooibos::Command.exit]
+        else
+          [m, nil]
+        end
+      else
+        received_messages << msg
+        [m, nil]
+      end
+    end
+
+    with_test_terminal do
+      inject_key("s")
+      inject_sync
+      inject_key("q")
+      Rooibos::Runtime.run(model:, view:, update:)
+    end
+
+    assert_no_command_errors(received_messages)
+    # Should see both results AND a Message::Batch completion
+    assert_includes received_messages, :a_result
+    assert_includes received_messages, :b_result
+    completion = received_messages.find { |m| m.is_a?(Rooibos::Message::Batch) }
+    assert completion, "Expected Message::Batch, got: #{received_messages.inspect}"
   end
 end

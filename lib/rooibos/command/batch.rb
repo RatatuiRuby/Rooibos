@@ -64,6 +64,8 @@ module Rooibos
 
         if token.canceled?
           out.put(Command.cancel(self))
+        else
+          out.put(Message::Batch.new(command: self))
         end
       end
     end

@@ -100,6 +100,19 @@ module Rooibos
     def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
   end
 
+  # Completion sentinel from Command.batch.
+  # Signals when all children of a batch command have finished.
+  class Batch < Data
+    include Predicates
+
+    attr_reader command: Command::Batch
+
+    def self.new: (command: Command::Batch) -> instance
+
+    def batch?: () -> bool
+    def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+  end
+
   # Response from Command.all aggregating parallel execution.
   class All
     include Predicates
