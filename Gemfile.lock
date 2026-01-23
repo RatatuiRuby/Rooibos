@@ -121,6 +121,7 @@ GEM
     logger (1.7.0)
     method_source (1.1.0)
     minitest (5.27.0)
+    minitest-mock (5.27.0)
     mize (0.6.1)
     mutex_m (0.3.0)
     nokogiri (1.19.0-arm64-darwin)
@@ -277,6 +278,7 @@ DEPENDENCIES
   inch (~> 0.4)
   irb
   minitest (~> 5.16)
+  minitest-mock (~> 5.27)
   nokogiri
   rake (~> 13.0)
   ratatui_ruby (~> 0.10.2)
@@ -334,6 +336,7 @@ CHECKSUMS
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
   minitest (5.27.0) sha256=2d3b17f8a36fe7801c1adcffdbc38233b938eb0b4966e97a6739055a45fa77d5
+  minitest-mock (5.27.0) sha256=7040ed7185417a966920987eaa6eaf1be4ea1fc5b25bb03ff4703f98564a55b0
   mize (0.6.1) sha256=4031558979ff5426fda24c75a149b4e4c0faf4cacf2fae8938f83866ab94b780
   mutex_m (0.3.0) sha256=cfcb04ac16b69c4813777022fdceda24e9f798e48092a2b817eb4c0a782b0751
   nokogiri (1.19.0-arm64-darwin) sha256=0811dfd936d5f6dd3f6d32ef790568bf29b2b7bead9ba68866847b33c9cf5810

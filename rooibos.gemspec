@@ -47,4 +47,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
   spec.add_development_dependency "rdoc", "~> 7.0"
   spec.add_development_dependency "faker", "~> 3.5"
+  spec.add_development_dependency "minitest-mock", "~> 5.27"
 end
