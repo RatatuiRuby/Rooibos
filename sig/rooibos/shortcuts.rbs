@@ -12,5 +12,19 @@ module Rooibos
     def self.sh: (String command, Symbol | Class tag) -> Command::System
     def self.map: (Command::execution inner_command) { (Array[untyped]) -> Array[untyped] } -> Command::Mapped
   end
+
+  # Short aliases for Message types.
+  module Msg
+    Timer: singleton(Message::Timer)
+    Http: singleton(Message::HttpResponse)
+
+    module Sh
+      Batch: singleton(Message::System::Batch)
+      Stream: singleton(Message::System::Stream)
+    end
+
+    All: singleton(Message::All)
+    Batch: singleton(Message::Batch)
+  end
 end
 end

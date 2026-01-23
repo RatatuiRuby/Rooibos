@@ -6,6 +6,7 @@
 #++
 
 require_relative "command"
+require_relative "message"
 
 module Rooibos
   # Convenient short aliases for Rooibos APIs.
@@ -44,6 +45,52 @@ module Rooibos
       def self.map(inner_command, &mapper)
         Command.map(inner_command, &mapper)
       end
+    end
+
+    # Short aliases for +Message+ types.
+    #
+    # App developers pattern-match against message types frequently.
+    # The full names (+Rooibos::Message::HttpResponse+) are verbose.
+    # These shortcuts save characters and improve readability.
+    #
+    # === Example
+    #
+    #   case message
+    #   in Msg::Timer[envelope: :dismiss]
+    #     [model.with(notification: nil), nil]
+    #   in Msg::Http[status: 200, body:]
+    #     [model.with(data: JSON.parse(body)), nil]
+    #   in Msg::Sh::Batch[status: 0, stdout:]
+    #     [model.with(output: stdout), nil]
+    #   end
+    module Msg
+      # Timer message type.
+      # Alias for +Message::Timer+.
+      Timer = Message::Timer
+
+      # HTTP response message type.
+      # Alias for +Message::HttpResponse+.
+      Http = Message::HttpResponse
+
+      # Shell command message types.
+      # Mirrors +Cmd.sh+ for symmetry.
+      module Sh
+        # Batch mode shell output.
+        # Alias for +Message::System::Batch+.
+        Batch = Message::System::Batch
+
+        # Streaming mode shell output.
+        # Alias for +Message::System::Stream+.
+        Stream = Message::System::Stream
+      end
+
+      # Aggregated parallel results.
+      # Alias for +Message::All+.
+      All = Message::All
+
+      # Batch completion signal.
+      # Alias for +Message::Batch+.
+      Batch = Message::Batch
     end
   end
 end
