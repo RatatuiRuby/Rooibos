@@ -11,7 +11,97 @@
 
 ---
 
+## Story -4: Project Setup
+
+**As a** developer  
+**I want to** set up a new Ruby project with proper dependencies  
+**So that** I have a foundation to build the file browser
+
+### Acceptance Criteria
+- Project directory exists with proper structure
+- Dependencies are installed
+- Application can be started without errors
+
+### Notes
+- Absolute starting point for the tutorial
+- Establishes project foundation
+
+---
+
+## Story -3: Hello World + Quit
+
+**As a** terminal user  
+**I want to** launch a minimal TUI application that I can quit  
+**So that** I can verify the application runs
+
+### Acceptance Criteria
+- Application displays "Hello, File Browser!" text
+- Application displays "Press 'q' to quit" instruction
+- Pressing 'q' or Ctrl+C exits the application cleanly
+
+### Notes
+- First runnable TUI application
+- Demonstrates basic rendering and quit functionality
+
+---
+
+## Story -2: Static File List
+
+**As a** terminal user  
+**I want to** see a list of example files displayed  
+**So that** I can understand the basic file browser interface
+
+### Acceptance Criteria
+- Application displays a list of example filenames
+- One file is visually highlighted
+- Application can be quit with 'q'
+
+### Notes
+- Uses hardcoded example data ("README.md", "Gemfile", "lib/", "test/")
+- No navigation yet - always highlights first item
+
+---
+
+## Story -1: Arrow Key Navigation
+
+**As a** terminal user  
+**I want to** navigate through the file list with arrow keys  
+**So that** I can select different files
+
+### Acceptance Criteria
+- Up/Down arrow keys change which file is highlighted
+- 'j'/'k' vim keys also work for navigation
+- Selection wraps at top/bottom of list
+- Visual highlight follows selection
+
+### Notes
+- Still using hardcoded file list
+- Adds interactive navigation
+
+---
+
+## Story 0: Real Files
+
+**As a** terminal user  
+**I want to** see my actual files instead of example data  
+**So that** the file browser is useful for real work
+
+### Acceptance Criteria
+- Application shows actual files from the current directory
+- File list reflects real filesystem contents
+- Can navigate through real files with arrow keys
+- All previous keyboard shortcuts still work
+
+### Notes
+- **Critical transition** - from example data to real filesystem
+- Transforms toy example into functional tool
+- After this story, Story 1 is COMPLETE
+
+---
+
 ## Story 1: Walking Skeleton - View Current Directory
+
+_Note: If you started with negative-numbered stories, this happened in Story 0._
 
 **As a** terminal user  
 **I want to** see a list of files in my current directory  
@@ -26,11 +116,13 @@
 ### Notes
 - This is our tracer bullet - proves we can render TUI and read filesystem
 - No navigation, no preview, just a static list
-- Tests the entire stack: TUI rendering, file I/O, event handling, MVU cycle
+- Tests the entire stack: TUI rendering, file I/O, event handling
 
 ---
 
 ## Story 2: Basic Navigation - Move Through List
+
+_Note: If you started with negative-numbered stories, this happened in Story 0._
 
 **As a** terminal user  
 **I want to** move up and down through the file list with arrow keys  
@@ -640,21 +732,24 @@ The following features are explicitly deferred to future versions:
 ### Story Sequencing
 
 Stories are ordered to:
-1. **Start with walking skeleton** (Story 1) - proves end-to-end integration
-2. **Build core navigation** (Stories 2-3) - essential functionality
-3. **Add UI structure** (Stories 4-6) - professional appearance
-4. **Enable exploration** (Stories 7-8) - power user features
-5. **Add organization** (Stories 9-11) - finding and filtering
-6. **Enable modification** (Stories 12-17) - file operations
-7. **Improve usability** (Stories 18-19) - help and errors
-8. **Add enhancements** (Stories 20-21) - mouse and resize
-9. **Optimize and polish** (Stories 22-24) - performance and aesthetics
-10. **Ensure quality** (Story 25) - testing and documentation
-11. **Advanced features** (Stories 26-27) - color schemes and configuration
-12. **Future planning** - deferred enhancements
+1. **Start with tutorial foundation** (Stories -4 to 0) - teaches Rooibos concepts incrementally
+2. **Build walking skeleton** (Story 1) - proves end-to-end integration with real files
+3. **Build core navigation** (Stories 2-3) - essential functionality
+4. **Add UI structure** (Stories 4-6) - professional appearance
+5. **Enable exploration** (Stories 7-8) - power user features
+6. **Add organization** (Stories 9-11) - finding and filtering
+7. **Enable modification** (Stories 12-17) - file operations
+8. **Improve usability** (Stories 18-19) - help and errors
+9. **Add enhancements** (Stories 20-21) - mouse and resize
+10. **Optimize and polish** (Stories 22-24) - performance and aesthetics
+11. **Ensure quality** (Story 25) - testing and documentation
+12. **Advanced features** (Stories 26-27) - color schemes and configuration
+13. **Future planning** - deferred enhancements
 
 ### Story Sizing
 
+- Stories -4 to -1: Extra Small (tutorial foundation)
+- Story 0: Small (critical transition)
 - Stories 1-3: Small
 - Stories 4-8: Medium
 - Stories 9-17: Small-Medium
@@ -666,6 +761,11 @@ Stories are ordered to:
 
 ### Dependencies
 
+- Story -3 depends on Story -4 (need project setup)
+- Story -2 depends on Story -3 (need runnable app)
+- Story -1 depends on Story -2 (need model and state)
+- Story 0 depends on Story -1 (need navigation working with fake data)
+- Story 1 depends on Story 0 (Story 0 completes Story 1)
 - Story 4 depends on Stories 1-3 (need basic functionality before layout)
 - Story 6 depends on Story 4 (need preview pane)
 - Story 8 depends on Story 4 (need multiple panes)

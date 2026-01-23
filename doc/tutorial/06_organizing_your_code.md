@@ -17,4 +17,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** The Update Cycle](./05_the_update_cycle.md) | [**Next:** Your First Command](./07_your_first_command.md)
+[**Previous:** Adding State](./03_adding_state.md) | [**Next:** Your First Command](./07_your_first_command.md)

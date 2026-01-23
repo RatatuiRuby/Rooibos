@@ -320,13 +320,11 @@ doc/
 │   ├── for_python_developers.md     # Textual → Rooibos translation guide
 │   └── ruby_primer.md               # Ruby basics for polyglots
 │
-├── tutorial/                        # 13 files, ~100KB (Ember-style)
+├── tutorial/                        # 11 files, ~84KB (Ember-style)
 │   ├── index.md                     # Tutorial overview, what you'll build
 │   ├── 01_project_setup.md          # Creating a new Rooibos app
-│   ├── 02_hello_world.md            # Your first view function
-│   ├── 03_adding_state.md           # Introducing Model
-│   ├── 04_handling_input.md         # Messages and keyboard events
-│   ├── 05_the_update_cycle.md       # Pure update functions
+│   ├── 02_hello_world.md            # Your first view function + quit
+│   ├── 03_adding_state.md           # Model + navigation with arrow keys
 │   ├── 06_organizing_your_code.md   # Extracting reusable fragments
 │   ├── 07_your_first_command.md     # Command.wait for async file reads
 │   ├── 08_the_preview_pane.md       # Adding a second fragment
@@ -342,7 +340,7 @@ doc/
 │   ├── update_functions.md          # Pure functions, case expressions
 │   ├── views.md                     # RatatuiRuby integration, fragments
 │   ├── commands.md                  # Built-in commands reference
-│   ├── the_runtime.md               # The loop, subscriptions, debug mode
+│   ├── the_runtime.md               # The loop, debug mode
 │   └── shortcuts.md                 # Cmd, Msg module aliases
 │
 ├── scaling_up/                      # 7 files, ~70KB (Vue-inspired)
@@ -371,8 +369,8 @@ doc/
     └── ...
 ```
 
-**File count**: 46 files  
-**Target size**: ~370KB (avg ~8KB per file)
+**File count**: 44 files  
+**Target size**: ~354KB (avg ~8KB per file)
 
 ---
 
@@ -393,7 +391,7 @@ doc/
 | `for_python_developers.md` | 6 | Textual → Rooibos translation |
 | `ruby_primer.md` | 5 | Ruby basics for polyglots |
 
-### Tutorial (13 files, ~100KB)
+### Tutorial (11 files, ~84KB)
 
 A complete Ember-style tutorial building a **File Browser** using Ruby's `Pathname`/`File`.
 
@@ -401,10 +399,8 @@ A complete Ember-style tutorial building a **File Browser** using Ruby's `Pathna
 |------|---------|-------------|
 | `index.md` | 3 | What you'll build, prerequisites |
 | `01_project_setup.md` | 6 | Gemfile, folder structure |
-| `02_hello_world.md` | 8 | First view function |
-| `03_adding_state.md` | 8 | Introducing Model with Data.define |
-| `04_handling_input.md` | 10 | Messages, keyboard events |
-| `05_the_update_cycle.md` | 8 | Pure update functions, case expressions |
+| `02_hello_world.md` | 10 | First view + UPDATE for quit |
+| `03_adding_state.md` | 12 | Model + navigation with arrow keys |
 | `06_organizing_your_code.md` | 10 | Extracting reusable fragments |
 | `07_your_first_command.md` | 8 | Command.wait for async file reads |
 | `08_the_preview_pane.md` | 10 | Adding a second fragment |
@@ -425,7 +421,7 @@ Vue-style conceptual docs. Each follows **Context-Problem-Solution**.
 | `update_functions.md` | 8 | Pure functions, case expressions, Command returns |
 | `views.md` | 8 | View function contract, links to RatatuiRuby widgets |
 | `commands.md` | 15 | Built-in commands reference (wait, http, batch, all) |
-| `the_runtime.md` | 10 | The loop, debug mode, subscriptions |
+| `the_runtime.md` | 10 | The loop, debug mode |
 | `shortcuts.md` | 5 | Cmd, Msg module aliases |
 
 ### Scaling Up (7 files, ~70KB)

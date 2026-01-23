@@ -8,6 +8,7 @@
 
 By the end of this guide, you will:
 
+- Understand when Commands are needed (or better) vs. direct model updates
 - Explain why some operations cannot happen inside UPDATE (I/O, async)
 - Use `Command.system` to read a file asynchronously
 - Handle the command result as a message
