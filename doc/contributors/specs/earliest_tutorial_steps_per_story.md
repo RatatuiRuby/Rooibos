@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 > [!NOTE]
 > This is not *where* each story should go, but
 > *when* the pre-requisites for each story are met.
@@ -13,7 +19,7 @@
 ### Adding State
   - Story -2: Static File List
   - Story -1: Arrow Key Navigation
-  - Story 0: Real Files
+  - Story 0: Real Files <!-- FAKE DATA STOPS HERE; ALL DATA FETCHING UNTIL COMMANDS IS VIA RUBY STDLIB SYNCHRONOUS CALLS IN UPDATE -->
   - Story 1: Walking Skeleton - View Current Directory
   - Story 2: Basic Navigation - Move Through List
   - Story 3: Enter Directories

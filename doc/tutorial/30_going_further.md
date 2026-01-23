@@ -3,7 +3,7 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Tutorial: Build a File Browser
+# Going Further
 
 
 By the end of this guide, you will:
@@ -14,4 +14,4 @@ By the end of this guide, you will:
 
 ---
 
- | [**Next:** Project Setup](./01_project_setup.md)
+[**Previous:** Configuration](./29_configuration.md) | 

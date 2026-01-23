@@ -320,18 +320,38 @@ doc/
 │   ├── for_python_developers.md     # Textual → Rooibos translation guide
 │   └── ruby_primer.md               # Ruby basics for polyglots
 │
-├── tutorial/                        # 11 files, ~84KB (Ember-style)
+├── tutorial/                        # 31 files, ~240KB (TDD-first, one concept per step)
 │   ├── index.md                     # Tutorial overview, what you'll build
-│   ├── 01_project_setup.md          # Creating a new Rooibos app
-│   ├── 02_hello_world.md            # Your first view function + quit
-│   ├── 03_adding_state.md           # Model + navigation with arrow keys
-│   ├── 06_organizing_your_code.md   # Extracting reusable fragments
-│   ├── 07_your_first_command.md     # Command.wait for async file reads
-│   ├── 08_the_preview_pane.md       # Adding a second fragment
-│   ├── 09_loading_states.md         # Progress indicators
-│   ├── 10_testing_your_app.md       # TestHelper patterns
-│   ├── 11_polish_and_refine.md      # Error handling, edge cases
-│   └── 12_going_further.md          # Links to advanced topics
+│   ├── 01_project_setup.md          # Story -4: Creating project structure
+│   ├── 02_hello_world.md            # Story -3: VIEW, UPDATE, quit
+│   ├── 03_static_file_list.md       # Story -2: MODEL, INIT, testing intro ⭐
+│   ├── 04_arrow_navigation.md       # Story -1: State updates, more tests
+│   ├── 05_real_files.md             # Story 0: Tests break, learn mocking ⭐⭐⭐
+│   ├── 06_safe_refactoring.md       # Story 4a: Extract fragment, tests protect ⭐
+│   ├── 07_red_first_tdd.md          # Story 4b: Build second fragment via TDD ⭐
+│   ├── 08_file_metadata.md          # Story 5: Pre-calculation pattern
+│   ├── 09_text_preview.md           # Story 6: File reading, scrolling
+│   ├── 10_directory_tree.md         # Story 7: Recursive data structures
+│   ├── 11_pane_focus.md             # Story 8: Message routing
+│   ├── 12_sorting.md                # Story 9: Pre-calculation (sort in UPDATE)
+│   ├── 13_filtering.md              # Story 10: Manual text input (cursor state)
+│   ├── 14_toggle_hidden.md          # Story 11: Conditional rendering
+│   ├── 15_text_input_widget.md      # Story 12: Cancellation tokens ⭐
+│   ├── 16_rename_files.md           # Story 13: Pre-populated input
+│   ├── 17_confirmation_dialogs.md   # Story 14: Modal UI state
+│   ├── 18_progress_indicators.md    # Story 15: Long-running with progress ⭐
+│   ├── 19_atomic_operations.md      # Story 16: Fallback strategies
+│   ├── 20_external_editor.md        # Story 17: Suspend/resume
+│   ├── 21_modal_overlays.md         # Story 18: Help overlay pattern
+│   ├── 22_error_handling.md         # Story 19: Auto-dismiss timers
+│   ├── 23_terminal_capabilities.md  # Story 23: NO_COLOR, fallbacks ⭐
+│   ├── 24_mouse_events.md           # Story 20: Optional input handling
+│   ├── 25_resize_events.md          # Story 21: Responsive layouts
+│   ├── 26_loading_states.md         # Story 22: Tri-state models
+│   ├── 27_performance.md            # Story 24: Profiling, optimization
+│   ├── 28_color_schemes.md          # Story 26: Theme system
+│   ├── 29_configuration.md          # Story 27: Config files
+│   └── 30_going_further.md          # Links to advanced topics
 │
 ├── essentials/                      # 8 files, ~80KB (Vue-style concepts)
 │   ├── the_elm_architecture.md      # MVU pattern + "Why MVU?"
@@ -369,10 +389,84 @@ doc/
     └── ...
 ```
 
-**File count**: 44 files  
-**Target size**: ~354KB (avg ~8KB per file)
+**File count**: 64 files  
+**Target size**: ~510KB (avg ~8KB per file)
 
 ---
+
+## Pedagogical Innovation: TDD-First Tutorial
+
+### The Step 3 → Step 5 Teaching Arc
+
+Our tutorial introduces a **controlled failure** that teaches professional testing practices:
+
+**Step 3: Static File List + Testing Introduction**
+- Introduce `Rooibos::TestHelper`
+- Write first snapshot tests with hardcoded data
+- Tests PASS ✅ - students feel successful
+- **Teaches:** Testing is easy, tests build confidence
+
+**Step 4: Arrow Navigation + More Tests**
+- Test state transitions in UPDATE
+- Tests PASS ✅ - confidence grows
+- **Teaches:** Testing UPDATE functions, building test habits
+
+**Step 5: Real Files - Tests Break! 💥**
+- Student changes INIT to use `Dir.children(".")`
+- Runs tests → ❌ SNAPSHOT MISMATCH
+- **The Teaching Moment:** "Your tests broke! Why? The filesystem is non-deterministic."
+- Introduce mocking with `Dir.stub`
+- Tests PASS ✅ - relief and understanding
+- **Teaches:** Why mocking matters (determinism, speed, isolation)
+
+**Step 6: Safe Refactoring with Tests**
+- Extract first fragment (file list) from monolithic app
+- Run snapshot tests → still pass ✅
+- **Teaches:** Tests enable fearless refactoring, fragments are just modules
+
+**Step 7: Red-First TDD**
+- Build second fragment (directory tree) via **red-first TDD**:
+  - Write failing test for TreeFragment.view ❌ (red)
+  - Implement TreeFragment.view ✅ (green)
+  - Write failing test for TreeFragment.update ❌ (red)
+  - Implement TreeFragment.update ✅ (green)
+  - Refactor both fragments, tests keep passing ✅
+- **Teaches:** Red-Green-Refactor cycle, unit testing fragments, TDD workflow
+
+### Why This Beats the Competition
+
+| Framework | Testing in Tutorial? | When? | Approach |
+|-----------|---------------------|-------|----------|
+| **BubbleTea** | ❌ No | N/A | No testing guidance |
+| **Iced** | ❌ No | N/A | No testing guidance |
+| **textual** | ✅ Yes | After features | Testing as afterthought |
+| **Rails** | ✅ Yes | Chapter 10/12 | Testing comes late |
+| **Ember** | ✅ Yes | Throughout | Integrated testing |
+| **Rooibos** | ✅ Yes | **Step 3/25** | **TDD from the start** ⭐ |
+
+**Our advantages:**
+1. **Earlier than Rails** - Testing at Step 3, not Step 10
+2. **Integrated like Ember** - Every step includes tests
+3. **Better than BubbleTea/Iced** - They have no testing guidance at all
+4. **Experiential learning** - Students experience the pain (broken tests) then learn the solution (mocking)
+5. **Professional practices** - Mocking, snapshot testing, TDD mindset from the beginning
+
+### Alignment with Documentation Style Guide
+
+From `documentation_style.md`:
+
+> **Do first, explain after** — Show the code, let them run it, then explain
+
+Our Step 5 approach:
+1. **Do:** Change INIT to use real files
+2. **See:** Tests fail ❌
+3. **Experience:** "What happened? Why did they break?"
+4. **Do:** Add Dir.stub mocking
+5. **See:** Tests pass ✅
+6. **Understand:** "Why mocking matters for deterministic tests"
+
+This is **experiential learning** - the student discovers WHY through controlled failure, not lecture.
+
 
 ## Detailed Content Plan
 
@@ -391,23 +485,53 @@ doc/
 | `for_python_developers.md` | 6 | Textual → Rooibos translation |
 | `ruby_primer.md` | 5 | Ruby basics for polyglots |
 
-### Tutorial (11 files, ~84KB)
+### Tutorial (31 files, ~240KB)
 
-A complete Ember-style tutorial building a **File Browser** using Ruby's `Pathname`/`File`.
+A comprehensive TDD-first tutorial building a **File Browser** using Ruby's `Pathname`/`File`.
 
-| File | Est. KB | Description |
-|------|---------|-------------|
-| `index.md` | 3 | What you'll build, prerequisites |
-| `01_project_setup.md` | 6 | Gemfile, folder structure |
-| `02_hello_world.md` | 10 | First view + UPDATE for quit |
-| `03_adding_state.md` | 12 | Model + navigation with arrow keys |
-| `06_organizing_your_code.md` | 10 | Extracting reusable fragments |
-| `07_your_first_command.md` | 8 | Command.wait for async file reads |
-| `08_the_preview_pane.md` | 10 | Adding a second fragment |
-| `09_loading_states.md` | 6 | Progress indicators |
-| `10_testing_your_app.md` | 10 | TestHelper patterns |
-| `11_polish_and_refine.md` | 8 | Error handling, edge cases |
-| `12_going_further.md` | 5 | Links to scaling_up/ and best_practices/ |
+**Key Innovation:** Testing introduced at Step 3, with controlled failure at Step 5 teaching why mocking matters.
+
+| File | Est. KB | Stories | Description |
+|------|---------|---------|-------------|
+| `index.md` | 3 | — | What you'll build, prerequisites |
+| `01_project_setup.md` | 6 | -4 | Gemfile, folder structure |
+| `02_hello_world.md` | 8 | -3 | VIEW, UPDATE, Messages, Command.exit |
+| `03_static_file_list.md` | 10 | -2 | MODEL, INIT, **testing intro** ⭐ |
+| `04_arrow_navigation.md` | 8 | -1 | State updates (.with), more tests |
+| `05_real_files.md` | 12 | 0 | **Tests break, learn mocking** ⭐⭐⭐ |
+| `06_safe_refactoring.md` | 8 | 4a | **Extract fragment, tests protect** ⭐ |
+| `07_red_first_tdd.md` | 10 | 4b | **Build via red-first TDD** ⭐ |
+| `08_file_metadata.md` | 8 | 5 | Pre-calculation pattern (sort in UPDATE) |
+| `09_text_preview.md` | 8 | 6 | File reading, text detection, scrolling |
+| `10_directory_tree.md` | 10 | 7 | Recursive data structures in Model |
+| `11_pane_focus.md` | 8 | 8 | Message routing, context-sensitive keys |
+| `12_sorting.md` | 8 | 9 | **Pre-calculation (no VIEW computation!)** |
+| `13_filtering.md` | 8 | 10 | **Manual text input (cursor state)** |
+| `14_toggle_hidden.md` | 6 | 11 | Conditional rendering, visual styling |
+| `15_text_input_widget.md` | 10 | 12 | **Cancellation tokens, Command.cancel** ⭐ |
+| `16_rename_files.md` | 8 | 13 | Pre-populated input, validation |
+| `17_confirmation_dialogs.md` | 8 | 14 | Modal UI state, Y/N handling |
+| `18_progress_indicators.md` | 8 | 15 | **Long-running with progress** ⭐ |
+| `19_atomic_operations.md` | 8 | 16 | **Fallback strategies, error recovery** |
+| `20_external_editor.md` | 8 | 17 | Suspend/resume, process spawning |
+| `21_modal_overlays.md` | 8 | 18 | Help overlay pattern |
+| `22_error_handling.md` | 8 | 19 | Auto-dismiss timers (Command.wait) |
+| `23_terminal_capabilities.md` | 10 | 23 | **NO_COLOR, ANSI/ASCII fallbacks** ⭐ |
+| `24_mouse_events.md` | 8 | 20 | **Optional input, capability detection** |
+| `25_resize_events.md` | 8 | 21 | **Responsive layouts, degradation** |
+| `26_loading_states.md` | 8 | 22 | Tri-state models, cancellable Commands |
+| `27_performance.md` | 8 | 24 | Profiling, optimization, caching |
+| `28_color_schemes.md` | 8 | 26 | **Theme system, validation** |
+| `29_configuration.md` | 8 | 27 | **YAML parsing, config files** |
+| `30_going_further.md` | 5 | — | Links to scaling_up/ and best_practices/ |
+
+**Tutorial Philosophy:**
+
+1. **TDD from Step 3** - Tests are not optional, they're fundamental
+2. **Controlled failure at Step 5** - Tests break when adding real files, teaching why mocking matters
+3. **Every step includes tests** - Build confidence through green → green → red → green
+4. **One pedagogical moment per step** - Each step teaches ONE concept clearly
+5. **30 steps total** - Comprehensive coverage of all file browser stories
 
 ### Essentials (8 files, ~80KB)
 
@@ -481,9 +605,12 @@ Pattern cookbook for common scenarios.
 
 | Metric | Target |
 |--------|--------|
-| **Total size** | ~370KB |
-| **Files** | 46 |
+| **Total size** | ~510KB |
+| **Files** | 64 |
 | **Avg per file** | ~8KB |
+| **Tutorial steps** | 30 (TDD from Step 3) |
 | **Cross-refs per doc** | 3+ |
 | **Audience coverage** | Rubyists, Front-end devs, Polyglots |
+| **Testing introduced** | Step 3 (earlier than all competitors) |
+| **Pedagogical moments** | One per step (clear, focused learning) |
 
