@@ -8,7 +8,7 @@
 
 By the end of this guide, you will:
 
-- Define routes with `Rooibos.route`
+- Use the Router DSL (`include Rooibos::Router` then `route :prefix, to: Module`)
 - Delegate messages to child fragments cleanly
 - Handle cross-cutting concerns (logging, analytics) centrally
 - Debug message routing with logging

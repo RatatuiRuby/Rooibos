@@ -8,7 +8,7 @@
 
 By the end of this guide, you will:
 
-- Recognize the most common Rooibos error messages
+- Recognize all Rooibos & RatatuiRuby error messages
 - Identify the root cause for each error
 - Apply the fix and verify it works
 - Know where to ask for help if you are stuck

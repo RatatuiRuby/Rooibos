@@ -9,7 +9,8 @@
 By the end of this guide, you will:
 
 - Receive keyboard events as messages in your UPDATE function
-- Use pattern matching (`case msg`) to handle different keys
+- Use predicate helpers (`.q?`, `.ctrl_c?`) for simple key checks
+- Use pattern matching (`case msg`) for complex message routing
 - Return a new Model from UPDATE (never mutate!)
 - Navigate your file browser with arrow keys
 

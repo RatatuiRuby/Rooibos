@@ -8,7 +8,7 @@
 
 By the end of this guide, you will:
 
-- Compose child fragments using `Cmd.map`
+- Compose child fragments using `Command.map`
 - Route parent messages to the correct child
 - Use the Router DSL to simplify complex routing
 - Decide when fractal architecture is worth the complexity

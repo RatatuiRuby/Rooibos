@@ -9,7 +9,8 @@
 By the end of this guide, you will:
 
 - Test UPDATE functions as pure functions (input → output)
-- Mock commands to test async workflows
+- Mock or stub commands to avoid touching network/filesystem
+- Use `inject_key`/`inject_sync` helpers to test with real commands
 - Assert VIEW output using TestHelper
 - Structure test files for maintainability
 

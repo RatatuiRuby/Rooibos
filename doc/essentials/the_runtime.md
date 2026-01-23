@@ -9,7 +9,7 @@
 By the end of this guide, you will:
 
 - Describe how Rooibos orchestrates your Model, Update, and View
-- Enable debug mode to trace message processing
+- Enable debug mode for Ractor shareability validation
 - Explain when renders happen (after every UPDATE)
 - Use the `Cmd` and `Msg` shorthand aliases
 - Compare the runtime to Rails Rack request cycle

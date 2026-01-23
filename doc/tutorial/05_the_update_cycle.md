@@ -11,7 +11,7 @@ By the end of this guide, you will:
 - Trace data flow through the complete MVU cycle
 - Explain why UPDATE must be a pure function (no side effects)
 - Use `model.with(...)` to create updated state immutably
-- Define what a **fragment** is: a self-contained Model + Update + View
+- Understand when Commands are needed vs. direct model updates
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 

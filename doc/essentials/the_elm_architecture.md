@@ -8,6 +8,7 @@
 
 By the end of this guide, you will:
 
+- Identify the three callables: Init, Update, and View
 - Explain Model-View-Update in your own words
 - Describe how unidirectional data flow prevents bugs
 - Compare MVU to Rails request/response cycle ("unlike a web request, state persists")

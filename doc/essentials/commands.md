@@ -8,7 +8,7 @@
 
 By the end of this guide, you will:
 
-- Choose the right built-in command (`wait`, `http`, `batch`, `all`, `none`)
+- Choose the right built-in command (`system`, `wait`, `http`, `batch`, `all`, `exit`, `cancel`)
 - Explain the command lifecycle: dispatch → execute → message
 - Compare Commands to React useEffect ("Commands are explicit, not magical")
 - Combine multiple commands with `Command.batch`

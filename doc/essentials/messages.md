@@ -8,6 +8,7 @@
 
 By the end of this guide, you will:
 
+- Understand message types: RatatuiRuby::Event (user input) and Rooibos::Message (command responses)
 - Define message types that describe what happened in your app
 - Use pattern matching (`case/in`) to route messages to handlers
 - Apply predicate helpers (`.key?`, `.q?`) for keyboard events

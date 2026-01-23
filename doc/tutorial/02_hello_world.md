@@ -8,10 +8,10 @@
 
 By the end of this guide, you will:
 
-- Write your first VIEW function that renders text
+- Write your first VIEW callable that renders text
 - Run your app and see output in the terminal
 - Identify the entry point that starts your application
-- Explain what a VIEW function returns (RatatuiRuby widgets)
+- Explain what a VIEW callable returns (RatatuiRuby widgets)
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 

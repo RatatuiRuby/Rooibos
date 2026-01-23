@@ -8,9 +8,11 @@
 
 By the end of this guide, you will:
 
-- Explain what a VIEW function returns (RatatuiRuby widgets)
+- Understand that VIEW receives `(model, tui)` arguments
+- Explain what a VIEW callable returns (RatatuiRuby widgets)
 - Compose layouts using Rect, Constraint, and Layout (see RatatuiRuby docs)
 - Understand that VIEW is called on every render (keep it fast)
+- Know that VIEWs can accept kwargs for advanced composition (see Scaling Up)
 - Know when to link out to RatatuiRuby for widget details
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).

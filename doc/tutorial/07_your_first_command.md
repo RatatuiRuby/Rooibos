@@ -9,7 +9,7 @@
 By the end of this guide, you will:
 
 - Explain why some operations cannot happen inside UPDATE (I/O, async)
-- Use `Command.wait` to read a file asynchronously
+- Use `Command.system` to read a file asynchronously
 - Handle the command result as a message
 - Return `[model, command]` tuples from UPDATE
 

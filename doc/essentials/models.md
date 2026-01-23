@@ -12,7 +12,7 @@ By the end of this guide, you will:
 - Explain why Rooibos uses immutable structs instead of instance variables
 - Choose between flat and nested state structures
 - Create new state with `.with()` instead of mutation
-- Recognize when your Model is getting too complex
+- Split a complex Model into nested Models
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 
