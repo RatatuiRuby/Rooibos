@@ -37,7 +37,7 @@ module CustomShellModal
       # Delegate first, then check if user wants to close
       new_input, _cmd = CustomShellInput::Update.call(message, model.input)
 
-      if new_input.cancelled
+      if new_input.canceled
         [Init.(), nil]
       elsif new_input.submitted
         shell_cmd = new_input.text

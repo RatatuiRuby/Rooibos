@@ -67,11 +67,11 @@ module Rooibos
 
     # Creates a fresh cancellation that never fires.
     #
-    # Some I/O operations cannot be cancelled mid-execution. Ruby's <tt>Net::HTTP</tt>
+    # Some I/O operations cannot be canceled mid-execution. Ruby's <tt>Net::HTTP</tt>
     # blocks until completion or timeout — there is no way to interrupt it.
     #
     # A shared singleton would be unsafe. If any code path accidentally resolves
-    # the origin, all commands using it become cancelled.
+    # the origin, all commands using it become canceled.
     #
     # Use it for commands that wrap non-cancellable blocking I/O.
     #

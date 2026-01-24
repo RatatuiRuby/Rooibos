@@ -71,7 +71,7 @@ module Rooibos
       # it calls <tt>token.cancel!</tt> and waits this long for your command to stop.
       # If your command does not exit within this window, it is force-killed.
       #
-      # *This is NOT a lifetime limit.* Your command runs indefinitely until cancelled.
+      # *This is NOT a lifetime limit.* Your command runs indefinitely until canceled.
       # A WebSocket open for 15 minutes is fine. This timeout only applies to the
       # cleanup phase after cancellation is requested.
       #

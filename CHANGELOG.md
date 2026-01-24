@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Message::Error**: New message type for command errors. Includes `error?` predicate and `deconstruct_keys` for pattern matching with `{ type: :error, command:, exception: }`.
 
-- **Message::Canceled**: New message type for canceled commands. Includes `canceled?` predicate and `deconstruct_keys` for pattern matching with `{ type: :canceled, command: }`. Custom command authors should emit this when `token.canceled?` is true.
+- **Message::Canceled**: New message type for canceled commands. Includes `canceled?` predicate (with `cancelled?` alias for British spelling) and `deconstruct_keys` for pattern matching with `{ type: :canceled, command: }`. Custom command authors should emit this when `token.canceled?` is true.
 
 ### Changed
 

@@ -43,7 +43,7 @@ Long-running commands block the event loop. WebSocket listeners, database poller
 
 `Thread#kill` terminates immediately. Mutexes may deadlock. Resources may leak. Database transactions may abort mid-write.
 
-The `CancellationToken` signals cancellation requests. Commands check `token.cancelled?` periodically and stop at safe points. Cleanup code runs. Resources release. Transactions commit.
+The `CancellationToken` signals cancellation requests. Commands check `token.canceled?` periodically and stop at safe points. Cleanup code runs. Resources release. Transactions commit.
 
 | Aspect | `Thread#kill` | CancellationToken |
 |--------|---------------|------------------|

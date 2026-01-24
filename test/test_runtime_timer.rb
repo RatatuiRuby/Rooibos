@@ -80,7 +80,7 @@ class TestRuntimeTimer < Minitest::Test
     assert_equal :ticked, timer_msg.envelope
   end
 
-  def test_wait_returns_quickly_when_cancelled
+  def test_wait_returns_quickly_when_canceled
     messages = []
     model = Ractor.make_shareable({ cmd: nil })
     view = -> (_m, t) { t.clear }
@@ -116,11 +116,11 @@ class TestRuntimeTimer < Minitest::Test
     elapsed = Time.now - start
 
     # Must return quickly (< 2s), not wait full 10s
-    assert_operator elapsed, :<, 2.0, "Cancelled wait should return quickly, not block for grace period"
-    refute messages.include?(:should_not_arrive), "No timeout message when cancelled"
+    assert_operator elapsed, :<, 2.0, "Canceled wait should return quickly, not block for grace period"
+    refute messages.include?(:should_not_arrive), "No timeout message when canceled"
   end
 
-  def test_cancelled_wait_acknowledges_cancellation
+  def test_canceled_wait_acknowledges_cancellation
     messages = []
     original_cmd = nil
     model = Ractor.make_shareable({ cmd: nil })

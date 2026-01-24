@@ -136,7 +136,7 @@ module Rooibos
       # [token]   The parent's cancellation token, passed through to the child.
       # [timeout] Max seconds to wait for the child's result (default: 30.0).
       #
-      # Returns the message from the child, or +nil+ if cancelled/timed out.
+      # Returns the message from the child, or +nil+ if canceled/timed out.
       # Raises if the child command raised an exception.
       #
       # === Example
@@ -192,7 +192,7 @@ module Rooibos
       #     return if auth.nil?
       #
       #     # Open two SSE streams in parallel — chunks arrive live
-      #     # Streams remain outstanding until token is cancelled
+      #     # Streams remain outstanding until token is canceled
       #     out.standing(StreamNotifications.new(auth), token)
       #     out.standing(StreamPrices.new(auth), token)
       #   end

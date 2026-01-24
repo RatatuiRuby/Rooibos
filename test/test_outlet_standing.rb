@@ -465,7 +465,7 @@ class TestOutletStanding < Minitest::Test
     assert_includes received_messages, [:parent_done]
   end
 
-  # wait(token:) should return early when token is cancelled
+  # wait(token:) should return early when token is canceled
   def test_wait_returns_early_on_cancellation
     received_messages = []
     model = Ractor.make_shareable({})

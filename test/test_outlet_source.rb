@@ -100,7 +100,7 @@ class TestOutletSource < Minitest::Test
       result = out.source(SlowCommand.new, token)
 
       if result.nil?
-        out.put(:multi_step_cancelled)
+        out.put(:multi_step_canceled)
         return
       end
 
@@ -113,11 +113,11 @@ class TestOutletSource < Minitest::Test
 
     def call(out, token)
       sleep 0.02 until token.canceled?
-      # If cancelled, never puts, so source returns nil
+      # If canceled, never puts, so source returns nil
     end
   end
 
-  def test_source_returns_nil_when_parent_cancelled
+  def test_source_returns_nil_when_parent_canceled
     received_messages = []
     model = Ractor.make_shareable({ cmd: nil })
     view = -> (_m, t) { t.clear }
@@ -151,7 +151,7 @@ class TestOutletSource < Minitest::Test
     end
 
     assert_includes received_messages, :multi_step_started
-    assert_includes received_messages, :multi_step_cancelled
+    assert_includes received_messages, :multi_step_canceled
     refute received_messages.any? { |m| m.is_a?(Array) && m.first == :multi_step_finished }
   end
 

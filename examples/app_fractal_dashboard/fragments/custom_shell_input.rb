@@ -8,12 +8,12 @@
 require "rooibos"
 # Text input fragment for custom shell command modal.
 #
-# Handles text entry. Sets cancelled: or submitted: in model for parent to detect.
+# Handles text entry. Sets canceled: or submitted: in model for parent to detect.
 module CustomShellInput
-  Model = Data.define(:text, :cancelled, :submitted)
+  Model = Data.define(:text, :canceled, :submitted)
 
   Init = -> do
-    Ractor.make_shareable(Model.new(text: "", cancelled: false, submitted: false))
+    Ractor.make_shareable(Model.new(text: "", canceled: false, submitted: false))
   end
 
   View = -> (model, tui) do
@@ -57,10 +57,10 @@ module CustomShellInput
   Update = -> (message, model) do
     case message
     in _ if message.respond_to?(:esc?) && message.esc?
-      [model.with(cancelled: true), nil]
+      [model.with(canceled: true), nil]
 
     in _ if message.respond_to?(:enter?) && message.enter?
-      return [model.with(cancelled: true), nil] if model.text.strip.empty?
+      return [model.with(canceled: true), nil] if model.text.strip.empty?
       [model.with(submitted: true), nil]
 
     in _ if message.respond_to?(:backspace?) && message.backspace?

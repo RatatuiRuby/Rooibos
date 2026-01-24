@@ -147,7 +147,7 @@ class TestStreamingCommand < Minitest::Test
   # This confirms the existing cancellation mechanism works.
   def test_streaming_command_can_be_force_killed
     events = []
-    model = Ractor.make_shareable({ cmd: nil, cancelled: false })
+    model = Ractor.make_shareable({ cmd: nil, canceled: false })
     view = -> (_m, t) { t.clear }
 
     update = -> (msg, m) do
@@ -160,14 +160,14 @@ class TestStreamingCommand < Minitest::Test
             :output,
             stream: true
           )
-          [Ractor.make_shareable({ cmd:, cancelled: false }), cmd]
+          [Ractor.make_shareable({ cmd:, canceled: false }), cmd]
         else
           [m, nil]
         end
       when Rooibos::Message::System::Stream
         events << msg.stream
-        if msg.envelope == :output && msg.stdout? && !m[:cancelled]
-          new_model = Ractor.make_shareable({ cmd: m[:cmd], cancelled: true })
+        if msg.envelope == :output && msg.stdout? && !m[:canceled]
+          new_model = Ractor.make_shareable({ cmd: m[:cmd], canceled: true })
           [new_model, Rooibos::Command.cancel(m[:cmd])]
         elsif msg.envelope == :output && msg.complete?
           [m, Rooibos::Command.exit]
@@ -194,7 +194,7 @@ class TestStreamingCommand < Minitest::Test
   # This test FAILS until we implement token-based SIGTERM.
   def test_streaming_command_cancels_cooperatively
     events = []
-    model = Ractor.make_shareable({ cmd: nil, cancelled: false })
+    model = Ractor.make_shareable({ cmd: nil, canceled: false })
     view = -> (_m, t) { t.clear }
 
     update = -> (msg, m) do
@@ -208,14 +208,14 @@ class TestStreamingCommand < Minitest::Test
             :output,
             stream: true
           )
-          [Ractor.make_shareable({ cmd:, cancelled: false }), cmd]
+          [Ractor.make_shareable({ cmd:, canceled: false }), cmd]
         else
           [m, nil]
         end
       when Rooibos::Message::System::Stream
         events << msg.stream
-        if msg.envelope == :output && msg.stdout? && !m[:cancelled]
-          new_model = Ractor.make_shareable({ cmd: m[:cmd], cancelled: true })
+        if msg.envelope == :output && msg.stdout? && !m[:canceled]
+          new_model = Ractor.make_shareable({ cmd: m[:cmd], canceled: true })
           [new_model, Rooibos::Command.cancel(m[:cmd])]
         elsif msg.envelope == :output && msg.complete?
           [m, Rooibos::Command.exit]

@@ -664,12 +664,12 @@ class TestCommandHttp < Minitest::Test
   end
 
   public def test_http_respects_cancellation_before_request
-    # If cancelled before request starts, no message should be sent
+    # If canceled before request starts, no message should be sent
     channel = Concurrent::Promises::Channel.new
     lifecycle = Rooibos::Command::Lifecycle.new
     out = Rooibos::Command::Outlet.new(channel, lifecycle:)
 
-    # Create a pre-cancelled token
+    # Create a pre-canceled token
     origin = Concurrent::Promises.resolvable_event
     origin.resolve
     token = Concurrent::Cancellation.new(origin)
@@ -679,7 +679,7 @@ class TestCommandHttp < Minitest::Test
 
     # Channel should be empty—no message sent
     result = channel.pop_op.value(0.1)
-    assert_nil result, "Expected no message when cancelled before request"
+    assert_nil result, "Expected no message when canceled before request"
   end
 
   public def test_http_new_accepts_parser_keyword

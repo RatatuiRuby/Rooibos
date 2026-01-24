@@ -153,6 +153,7 @@ module Rooibos
     def self.new: (command: untyped) -> instance
 
     def canceled?: () -> bool
+    alias cancelled? canceled?
     def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
   end
 end

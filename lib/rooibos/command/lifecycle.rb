@@ -39,7 +39,7 @@ module Rooibos
       # [token]   Parent's cancellation token.
       # [timeout] Max wait seconds for the result.
       #
-      # Returns the child's message, or <tt>nil</tt> if cancelled or timed out.
+      # Returns the child's message, or <tt>nil</tt> if canceled or timed out.
       # Raises if the child raised.
       def run_sync(command, token, timeout:)
         return nil if token.canceled?

@@ -20,10 +20,10 @@ class TestLifecycle < Minitest::Test
     assert_equal [:hello, :world], result
   end
 
-  def test_run_sync_returns_nil_when_already_cancelled
+  def test_run_sync_returns_nil_when_already_canceled
     lifecycle = Rooibos::Command::Lifecycle.new
 
-    # Pre-cancelled token
+    # Pre-canceled token
     origin = Concurrent::Promises.resolvable_event
     origin.resolve
     token = Concurrent::Cancellation.new(origin)
@@ -65,7 +65,7 @@ class TestLifecycle < Minitest::Test
     assert_equal "boom", error.message
   end
 
-  def test_run_sync_returns_immediately_when_cancelled_mid_wait
+  def test_run_sync_returns_immediately_when_canceled_mid_wait
     lifecycle = Rooibos::Command::Lifecycle.new
 
     origin = Concurrent::Promises.resolvable_event
@@ -82,7 +82,7 @@ class TestLifecycle < Minitest::Test
     elapsed = Time.now - start
 
     assert_nil result
-    assert_operator elapsed, :<, 1.0, "Should return quickly when cancelled, not wait 10s or 30s"
+    assert_operator elapsed, :<, 1.0, "Should return quickly when canceled, not wait 10s or 30s"
   end
 
   # --- run_async tests ---
@@ -112,23 +112,23 @@ class TestLifecycle < Minitest::Test
     channel = Concurrent::Promises::Channel.new
 
     # Command that tracks cancellation
-    cancelled = Concurrent::AtomicBoolean.new(false)
+    canceled = Concurrent::AtomicBoolean.new(false)
     command_class = Class.new do
       include Rooibos::Command::Custom
       define_method(:rooibos_cancellation_grace_period) { 0.05 }
-      define_method(:initialize) { |flag| @cancelled = flag }
+      define_method(:initialize) { |flag| @canceled = flag }
       define_method(:call) do |out, token|
         loop do
           if token.canceled?
-            @cancelled.make_true
-            out.put(:cancelled)
+            @canceled.make_true
+            out.put(:canceled)
             break
           end
           sleep 0.01
         end
       end
     end
-    command = command_class.new(cancelled)
+    command = command_class.new(canceled)
 
     lifecycle.run_async(command, channel)
     sleep 0.01 # Let command start
@@ -137,9 +137,9 @@ class TestLifecycle < Minitest::Test
     lifecycle.cancel(command)
 
     # Should have signalled cancellation and waited
-    assert cancelled.true?, "Command should have received cancellation"
+    assert canceled.true?, "Command should have received cancellation"
     result = channel.try_pop(:EMPTY)
-    assert_equal :cancelled, result
+    assert_equal :canceled, result
 
     # Verify command removed from tracking (shutdown won't try to cancel again)
     lifecycle.shutdown # Should not hang or error
@@ -164,7 +164,7 @@ class TestLifecycle < Minitest::Test
     # Cancelling again should be a no-op (command is no longer tracked)
     lifecycle.cancel(command) # Should not hang or error
 
-    # Shutdown should not try to cancel the already-cancelled command
+    # Shutdown should not try to cancel the already-canceled command
     lifecycle.shutdown
   end
 
@@ -172,7 +172,7 @@ class TestLifecycle < Minitest::Test
     lifecycle = Rooibos::Command::Lifecycle.new
     channel = Concurrent::Promises::Channel.new
 
-    cancelled_count = Concurrent::AtomicFixnum.new(0)
+    canceled_count = Concurrent::AtomicFixnum.new(0)
     command_class = Class.new do
       include Rooibos::Command::Custom
       define_method(:rooibos_cancellation_grace_period) { 0.05 }
@@ -190,14 +190,14 @@ class TestLifecycle < Minitest::Test
     end
 
     # Start multiple commands
-    lifecycle.run_async(command_class.new(cancelled_count), channel)
-    lifecycle.run_async(command_class.new(cancelled_count), channel)
-    lifecycle.run_async(command_class.new(cancelled_count), channel)
+    lifecycle.run_async(command_class.new(canceled_count), channel)
+    lifecycle.run_async(command_class.new(canceled_count), channel)
+    lifecycle.run_async(command_class.new(canceled_count), channel)
     sleep 0.01 # Let commands start
 
     # Shutdown should cancel all
     lifecycle.shutdown
 
-    assert_equal 3, cancelled_count.value, "All three commands should have been cancelled"
+    assert_equal 3, canceled_count.value, "All three commands should have been canceled"
   end
 end

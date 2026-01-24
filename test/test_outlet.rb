@@ -92,13 +92,13 @@ class TestOutlet < Minitest::Test
     assert_equal [:result, 42], result
   end
 
-  def test_source_returns_nil_when_cancelled
+  def test_source_returns_nil_when_canceled
     channel = Concurrent::Promises::Channel.new
     out = make_outlet(channel)
 
     origin = Concurrent::Promises.resolvable_event
     token = Concurrent::Cancellation.new(origin)
-    origin.resolve # Already cancelled
+    origin.resolve # Already canceled
 
     command = -> (out, _tok) { out.put(:should_not_see_this) }
 
@@ -137,14 +137,14 @@ class TestOutlet < Minitest::Test
     assert_equal "something went wrong", error.message
   end
 
-  def test_source_returns_nil_if_cancelled_during_execution
+  def test_source_returns_nil_if_canceled_during_execution
     channel = Concurrent::Promises::Channel.new
     out = make_outlet(channel)
 
     origin = Concurrent::Promises.resolvable_event
     token = Concurrent::Cancellation.new(origin)
 
-    # Command that puts a result, then token gets cancelled
+    # Command that puts a result, then token gets canceled
     command = -> (out, _tok) {
       out.put(:result, 42)
       origin.resolve # Cancel AFTER putting result
@@ -152,10 +152,10 @@ class TestOutlet < Minitest::Test
 
     result = out.source(command, token)
 
-    assert_nil result # Should be nil because token was cancelled
+    assert_nil result # Should be nil because token was canceled
   end
 
-  def test_source_returns_immediately_when_cancelled_mid_wait
+  def test_source_returns_immediately_when_canceled_mid_wait
     channel = Concurrent::Promises::Channel.new
     out = make_outlet(channel)
 
@@ -173,6 +173,6 @@ class TestOutlet < Minitest::Test
     elapsed = Time.now - start
 
     assert_nil result
-    assert_operator elapsed, :<, 1.0, "Should return quickly when cancelled, not wait 10s or 30s"
+    assert_operator elapsed, :<, 1.0, "Should return quickly when canceled, not wait 10s or 30s"
   end
 end

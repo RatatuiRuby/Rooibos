@@ -38,6 +38,7 @@ module Rooibos
       def canceled?
         true
       end
+      alias_method :cancelled?, :canceled?
 
       # Deconstructs for pattern matching.
       #

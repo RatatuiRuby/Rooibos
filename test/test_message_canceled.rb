@@ -14,6 +14,12 @@ class TestMessageCanceled < Minitest::Test
     assert canceled.canceled?, "Message::Canceled should return true for canceled?"
   end
 
+  def test_cancelled_british_alias
+    canceled = Rooibos::Message::Canceled.new(command: :some_cmd)
+
+    assert canceled.cancelled?, "cancelled? should be an alias for canceled?"
+  end
+
   def test_includes_predicates_mixin
     canceled = Rooibos::Message::Canceled.new(command: :some_cmd)
 

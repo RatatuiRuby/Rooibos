@@ -152,14 +152,14 @@ class TestRuntimeCustomCommand < Minitest::Test
     assert_includes events, :brief_done, "Commands should finish within grace period"
   end
 
-  # Long-running command that waits until cancelled
+  # Long-running command that waits until canceled
   WaitForCancel = Data.define do
     include Rooibos::Command::Custom
 
     def call(out, token)
       out.put(:command_started)
       sleep 0.02 until token.canceled?
-      out.put(:command_cancelled)
+      out.put(:command_canceled)
     end
   end
 
@@ -197,7 +197,7 @@ class TestRuntimeCustomCommand < Minitest::Test
     end
 
     assert_includes events, :command_started, "Command should have started"
-    assert_includes events, :command_cancelled, "Command should have been cancelled"
+    assert_includes events, :command_canceled, "Command should have been canceled"
   end
 
   # Command with infinite grace that cooperates with cancellation
