@@ -543,12 +543,12 @@ class TestRuntime < Minitest::Test
     final_model = nil
 
     # View that queries terminal dimensions - raises Invariant if View is inside draw
-    view = ->(m, tui) {
+    view = -> (m, tui) {
       width = tui.viewport_area.width
       tui.paragraph(text: "Width: #{width}")
     }
 
-    update = ->(msg, m) do
+    update = -> (msg, m) do
       case msg
       when RatatuiRuby::Event::Key
         final_model = Ractor.make_shareable({ width: 80 }, copy: true)

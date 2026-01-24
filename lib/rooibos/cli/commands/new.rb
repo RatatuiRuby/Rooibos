@@ -168,7 +168,7 @@ module Rooibos
 
           # Overwrite lib/<gem_name>.rb with Rooibos template
           lib_file = lib_path / "#{gem_name}.rb"
-          File.write(lib_file.to_s, app_template(module_name))
+          File.write(lib_file.to_s, app_template(gem_name, module_name))
           puts "Updated #{lib_file}"
 
           # Update the bundler-created executable to call Rooibos.run
@@ -178,22 +178,23 @@ module Rooibos
             puts "Updated #{exe_file}"
           end
 
-          # Add rooibos dependency to Gemfile with twiddle-waka constraint
-          gemfile = app_path / "Gemfile"
-          if gemfile.exist?
-            content = File.read(gemfile.to_s)
-            # Check for exact gem declaration to avoid false positives
-            # (e.g., app named "rooibos_dashboard" contains "rooibos")
-            unless content.match?(/^gem\s+["']rooibos["']/)
+          # Add rooibos as runtime dependency to gemspec (not Gemfile) for dev/prod parity
+          gemspec_files = Dir.glob(app_path / "*.gemspec")
+          if gemspec_files.any?
+            gemspec_file = gemspec_files.first
+            content = File.read(gemspec_file)
+            # Check if already has rooibos dependency
+            unless content.match?(/add_(?:runtime_)?dependency.*rooibos/)
               # Use Gem::Version to handle prerelease versions correctly
               segments = Gem::Version.new(Rooibos::VERSION).segments
               minor_version = segments.first(2).map(&:to_s).join(".")
-              File.open(gemfile.to_s, "a") do |f|
-                f.puts ""
-                f.puts "# https://rooibos.run"
-                f.puts "gem \"rooibos\", \"~> #{minor_version}\""
-              end
-              puts "Added rooibos to #{gemfile}"
+              # Insert before the final 'end' of the Gem::Specification block
+              content = content.sub(
+                /^end\s*\z/m,
+                "\n  # https://www.rooibos.run\n  spec.add_runtime_dependency \"rooibos\", \"~> #{minor_version}\"\nend\n"
+              )
+              File.write(gemspec_file, content)
+              puts "Added rooibos to #{gemspec_file}"
             end
           end
 
@@ -267,7 +268,7 @@ module Rooibos
 
             # Stage and commit
             system("git", "add", "-A", out: File::NULL, err: File::NULL)
-            system("git", "commit", "-m", "Hello, Rooibos!\n\nhttps://rooibos.run",
+            system("git", "commit", "-m", "Hello, Rooibos!\n\nhttps://www.rooibos.run",
               out: File::NULL, err: File::NULL)
             puts "Created initial git commit"
           end
@@ -290,7 +291,7 @@ module Rooibos
         end
         private_class_method :exe_template
 
-        def self.app_template(module_name)
+        def self.app_template(gem_name, module_name)
           <<~RUBY
             # frozen_string_literal: true
 
@@ -300,7 +301,51 @@ module Rooibos
               Model = Data.define
 
               View = -> (model, tui) {
-                tui.paragraph(text: "Hello, Rooibos! (press Control + C to quit)")
+                filename = tui.style(fg: :green)
+                command = tui.style(fg: :red)
+                website = tui.style(fg: :blue, modifiers: [:reversed])
+
+                welcome_text = tui.text_line(spans: [
+                  tui.text_span(content: "Welcome to Rooibos! You will find the Ruby code " \\
+                    "for this application in "),
+                  tui.text_span(content: "lib/#{gem_name}.rb", style: filename),
+                  tui.text_span(content: ". The tests that verify it are at "),
+                  tui.text_span(content: "test/test_#{gem_name}.rb", style: filename),
+                  tui.text_span(content: ". You can run the tests with "),
+                  tui.text_span(content: "bundle exec rake test", style: command),
+                  tui.text_span(content: ". Visit "),
+                  tui.text_span(content: "www.rooibos.run", style: website),
+                  tui.text_span(content: " to learn about Rooibos and to find other " \\
+                    "Rooibos developers. You can press "),
+                  tui.text_span(content: "Control + C", style: command),
+                  tui.text_span(content: " to quit at any time."),
+                ])
+
+                # Build paragraph first to measure its height
+                paragraph = tui.paragraph(
+                  text: welcome_text,
+                  wrap: true,
+                  alignment: :left
+                )
+
+                # Calculate content width: viewport - borders(2) - padding(2+2 horiz)
+                content_width = tui.viewport_area.width - 2 - 4
+                line_count = paragraph.line_count(content_width)
+
+                tui.block(
+                  title: "Hello, Rooibos!",
+                  borders: [:all],
+                  border_style: { fg: :cyan },
+                  padding: [2, 2, 1, 1],
+                  children: [
+                    tui.layout(
+                      direction: :vertical,
+                      flex: :center,
+                      constraints: [tui.constraint_length(line_count)],
+                      children: [paragraph]
+                    )
+                  ]
+                )
               }
 
               Update = -> (message, model) {

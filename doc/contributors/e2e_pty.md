@@ -77,7 +77,20 @@ end
 reader.kill rescue nil
 ```
 
-### 4. Send Key Events as Raw Bytes
+### 5. Set the PTY Window Size
+
+**Critical**: Ruby's `PTY.spawn` creates terminals with 0×0 dimensions by default.
+TUI apps that query terminal size will get zero and may crash (e.g., negative width
+calculations). Set standard 80×24 dimensions after spawning:
+
+```ruby
+require "io/console"
+
+pty_out, pty_in, pid = PTY.spawn("rooibos", "run", chdir: app_dir)
+pty_out.winsize = [24, 80]  # rows, columns
+```
+
+### 6. Send Key Events as Raw Bytes
 
 Ctrl+C is sent as the ETX byte (0x03), not as a signal:
 

@@ -9,6 +9,7 @@ require "test_helper"
 require "open3"
 require "tmpdir"
 require "fileutils"
+require "io/console"
 
 # Integration tests for `rooibos new` command functionality.
 # Verifies that scaffolded applications have correct structure.
@@ -81,13 +82,17 @@ class TestCLINewIntegration < Minitest::Test
     end
   end
 
-  def test_new_adds_rooibos_to_gemfile
+  def test_new_adds_rooibos_to_gemspec
     Dir.chdir(@tmpdir) do
       rooibos("new", "test_app", "--no-bundle")
 
+      gemspec_content = File.read(File.join("test_app", "test_app.gemspec"))
+      assert_match(/add_runtime_dependency.*rooibos/, gemspec_content,
+        "Expected gemspec to include rooibos as runtime dependency")
+
       gemfile_content = File.read(File.join("test_app", "Gemfile"))
-      assert_match(/gem ["']rooibos["']/, gemfile_content,
-        "Expected Gemfile to include rooibos gem")
+      refute_match(/^gem ["']rooibos["']/, gemfile_content,
+        "Gemfile should not include rooibos directly (should come from gemspec)")
     end
   end
 
@@ -144,14 +149,18 @@ class TestCLINewIntegration < Minitest::Test
 
       # Must escape rooibos's Bundler context before running the generated app.
       exit_status = nil
+      output_buffer = +""
       Bundler.with_unbundled_env do
         pty_out, pty_in, pid = PTY.spawn("rooibos", "run", chdir: app_dir)
+
+        # PTY defaults to 0x0 size; set standard 80x24 terminal dimensions
+        pty_out.winsize = [24, 80]
 
         # Must drain PTY output buffer in background thread, otherwise the TUI
         # app blocks waiting to write to the terminal and never reads our input.
         reader = Thread.new do
           loop do
-            pty_out.read_nonblock(4096)
+            output_buffer << pty_out.read_nonblock(4096)
           rescue IO::WaitReadable
             pty_out.wait_readable(0.1)
           rescue EOFError, Errno::EIO
@@ -163,9 +172,14 @@ class TestCLINewIntegration < Minitest::Test
         sleep 1.5
 
         # Send Ctrl+C as the actual keypress (ETX = End of Text, byte 0x03)
-        pty_in.sync = true
-        pty_in.write("\x03")
-        pty_in.flush
+        # Note: If the app exits before we write, we get Errno::EIO — that's okay.
+        begin
+          pty_in.sync = true
+          pty_in.write("\x03")
+          pty_in.flush
+        rescue Errno::EIO
+          # App exited before we could send input — that's fine for this test
+        end
 
         # Wait for process to exit (with timeout)
         begin
@@ -194,7 +208,7 @@ class TestCLINewIntegration < Minitest::Test
       end
 
       # The app should have exited cleanly (exit 0)
-      assert exit_status&.success?, "App should have exited cleanly, got: #{exit_status}"
+      assert exit_status&.success?, "App should have exited cleanly, got: #{exit_status}\nOutput:\n#{output_buffer}"
     end
   rescue PTY::ChildExited
     # App exited before we could interact - that's okay for this test
