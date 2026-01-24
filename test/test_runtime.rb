@@ -533,4 +533,38 @@ class TestRuntime < Minitest::Test
     assert_includes messages.map(&:first), :fast_message,
       "Quit should drain pending messages before exiting"
   end
+
+  # Regression test: View must be able to query terminal dimensions.
+  # BUG: When View.call is inside the draw block, viewport_area is called during
+  #      an active draw context, which raises Error::Invariant in RatatuiRuby.
+  # FIX: Move View.call outside the draw block so queries work.
+  def test_view_can_query_viewport_area_without_deadlock
+    model = Ractor.make_shareable({ width: nil }, copy: true)
+    final_model = nil
+
+    # View that queries terminal dimensions - raises Invariant if View is inside draw
+    view = ->(m, tui) {
+      width = tui.viewport_area.width
+      tui.paragraph(text: "Width: #{width}")
+    }
+
+    update = ->(msg, m) do
+      case msg
+      when RatatuiRuby::Event::Key
+        final_model = Ractor.make_shareable({ width: 80 }, copy: true)
+        [final_model, Rooibos::Command.exit]
+      else
+        m
+      end
+    end
+
+    # This raises Error::Invariant if View.call is inside draw block.
+    with_test_terminal(80, 24) do
+      inject_key("q")
+      Rooibos::Runtime.run(model:, view:, update:)
+    end
+
+    # If we get here, no deadlock occurred
+    assert_equal 80, final_model[:width], "View should be able to query viewport_area"
+  end
 end

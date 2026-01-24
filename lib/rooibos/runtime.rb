@@ -198,9 +198,12 @@ module Rooibos
       end
 
       private def draw_view
+        # Build widget tree OUTSIDE draw context - queries work here
+        widget = @view.call(@model, @tui)
+        validate_view_return!(widget)
+        
+        # Render INSIDE draw context - only rendering happens here
         @tui.draw do |frame|
-          widget = @view.call(@model, @tui)
-          validate_view_return!(widget)
           frame.render_widget(widget, frame.area)
         end
       end
