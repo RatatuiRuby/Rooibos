@@ -13,4 +13,4 @@ RatatuiRuby::Devtools.install!
 # Import project-specific tasks
 Dir.glob("tasks/*.rake").each { |r| import r }
 
-task default: %w[lint:fix test lint reuse steep]
+task default: %w[lint:fix install:force test lint reuse steep]

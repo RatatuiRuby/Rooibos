@@ -40,6 +40,8 @@ tasks:
   - test: |
       . ~/.buildenv
       cd <%= gem_name %>
+      echo "Installing rooibos gem globally for integration tests..."
+      mise x -- bundle exec rake install:force
       echo "Testing Ruby <%= ruby_version %>"
       mise x -- bundle exec rake test
   - lint: |

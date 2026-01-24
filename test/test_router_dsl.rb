@@ -552,17 +552,16 @@ class TestRouterDsl < Minitest::Test
   end
 
   def test_keymap_nested_skip_block_allows_only_one_argument
-    handler_called = false
     guard_proc_one = -> (model) { model[:blocked] }
     guard_proc_two = -> (model) { model[:blocked] }
 
     assert_raises ArgumentError do
-      test_class = Class.new do
+      Class.new do
         include Rooibos::Router
 
         keymap do
           skip when: guard_proc_one, if: guard_proc_two do
-            key "x", -> { handler_called = true; nil }
+            key "x", -> { nil }
           end
         end
       end

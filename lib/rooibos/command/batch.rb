@@ -37,24 +37,28 @@ module Rooibos
     class Batch < Data.define(:commands) do
       include Custom
 
-      # Initialize
-      def self.new(*args)
-        # DWIM: accept (cmd1, cmd2) or ([cmd1, cmd2])
-        commands = (args.size == 1 && args.first.is_a?(Array)) ? args.first : args
+      class << self
+        undef_method :new
 
-        if RatatuiRuby::Debug.enabled?
-          commands.each do |cmd|
-            unless Ractor.shareable?(cmd)
-              raise Rooibos::Error::Invariant,
-                "Command is not Ractor-shareable: #{cmd.inspect}\n" \
-                  "Use Ractor.make_shareable or a Data.define command."
+        # Initialize
+        def new(*args)
+          # DWIM: accept (cmd1, cmd2) or ([cmd1, cmd2])
+          commands = (args.size == 1 && args.first.is_a?(Array)) ? args.first : args
+
+          if RatatuiRuby::Debug.enabled?
+            commands.each do |cmd|
+              unless Ractor.shareable?(cmd)
+                raise Rooibos::Error::Invariant,
+                  "Command is not Ractor-shareable: #{cmd.inspect}\n" \
+                    "Use Ractor.make_shareable or a Data.define command."
+              end
             end
           end
-        end
 
-        instance = allocate
-        instance.__send__(:initialize, commands: commands.freeze)
-        instance
+          instance = allocate
+          instance.__send__(:initialize, commands: commands.freeze)
+          instance
+        end
       end
 
       # Call it

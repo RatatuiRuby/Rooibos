@@ -6,11 +6,11 @@
 #++
 
 require_relative "../../test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 require_relative "../../../examples/app_file_browser/app"
 
 describe "FileBrowser integration" do
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   it "displays current directory path" do
     with_test_terminal do

@@ -6,11 +6,11 @@
 #++
 
 require_relative "../../test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 require_relative "../../../examples/app_file_browser/app"
 
 describe FileBrowser::Update do
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   it "exits on q key" do
     model = FileBrowser::Model.new(current_directory: "/test", file_names: [])

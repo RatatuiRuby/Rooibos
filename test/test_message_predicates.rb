@@ -6,10 +6,10 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 
 class TestMessagePredicates < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   # Test stub that includes Predicates mixin
   StubMessage = Data.define(:value) do
@@ -117,7 +117,7 @@ class TestMessagePredicates < Minitest::Test
         FetchWeather.new(envelope: :current)
       in { type: :key, code: "q" }
         Rooibos::Command.exit
-      in { type: :weather, envelope: :current, temperature:, conditions: }
+      in { type: :weather, envelope: :current, temperature: _, conditions: _ }
         received = message
         model
       else

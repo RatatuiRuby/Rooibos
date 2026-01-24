@@ -6,10 +6,10 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 
 class TestRuntimeCustomCommand < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   def test_normalize_update_return_recognizes_custom_command
     command_class = Class.new do

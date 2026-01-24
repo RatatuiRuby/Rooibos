@@ -6,10 +6,10 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 
 class TestRuntime < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   # Shareable command callable for testing init commands
   INIT_COMPLETE_COMMAND = Ractor.make_shareable(-> (out, _token) { out.put(:init_complete) })

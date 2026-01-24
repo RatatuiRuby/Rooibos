@@ -6,12 +6,11 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
 require "rooibos/test_helper"
 
 # Tests for out.standing and out.wait — parallel streaming commands.
 class TestOutletStanding < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   # A command that emits multiple messages
   StreamingChild = Data.define do

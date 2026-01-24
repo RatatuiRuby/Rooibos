@@ -6,11 +6,11 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 require_relative "../../../examples/verify_readme_usage/app"
 
 class TestReadmeUsage < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   def setup
     @app = VerifyReadmeUsage.new

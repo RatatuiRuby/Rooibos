@@ -6,10 +6,10 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 
 class TestCommandAll < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   def test_all_validates_commands_are_shareable
     non_shareable_command = Class.new do

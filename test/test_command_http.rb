@@ -6,12 +6,12 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 require "socket"
 require "ostruct"
 
 class TestCommandHttp < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   # Models for documentarian tests
   HttpModel = Data.define(:status, :body, :method_used, :error)

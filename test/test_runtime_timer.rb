@@ -6,10 +6,10 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 
 class TestRuntimeTimer < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   def test_wait_message_arrives_in_update
     messages = []

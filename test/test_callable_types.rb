@@ -7,12 +7,12 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 
 # Documents that procs, lambdas, Method objects, and service objects all work
 # as callable parameters for the Rooibos runtime.
 class TestCallableTypes < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   def test_procs_work_as_view_and_update
     model = Ractor.make_shareable({ text: "hello" })

@@ -6,11 +6,10 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
 require "rooibos/test_helper"
 
 class TestBuiltinCommandProtocol < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   CUSTOM_CALLABLE = Ractor.make_shareable(-> (out, _token) { out.put(:done) })
 

@@ -8,7 +8,7 @@
 $LOAD_PATH.unshift File.expand_path("../../../lib", __dir__)
 require "ratatui_ruby"
 require "rooibos"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 require "open3"
 require "minitest/autorun"
 require_relative "../../../examples/app_fractal_dashboard/dashboard/update_manual"
@@ -17,7 +17,7 @@ require_relative "../../../examples/app_fractal_dashboard/dashboard/update_route
 
 # Integration tests for the Fractal Dashboard example.
 class TestFractalDashboardSnapshots < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   # Mock Open3.capture3 to return deterministic output
   MOCK_SYSTEM_INFO = "Darwin testhost 24.0.0 Darwin Kernel Version 24.0.0: Test"

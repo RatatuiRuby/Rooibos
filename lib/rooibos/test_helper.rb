@@ -8,11 +8,33 @@
 require "ratatui_ruby/test_helper"
 
 module Rooibos
-  # Test helpers for Rooibos command validation.
+  # Assertions and test utilities for Rooibos applications.
   #
-  # This module extends RatatuiRuby::TestHelper with Rooibos-specific assertions
-  # for verifying custom commands implement the proper protocol.
+  # Custom commands run in background threads. Forgetting to include
+  # <tt>Command::Custom</tt> causes cryptic Ractor errors. Validating
+  # protocol compliance manually is tedious.
+  #
+  # This module provides Rooibos-specific assertions. It also includes
+  # {RatatuiRuby::TestHelper}[https://www.ratatui-ruby.dev/docs/v1.0/RatatuiRuby/TestHelper.html],
+  # giving you access to <tt>with_test_terminal</tt>, <tt>inject_key</tt>, etc.
+  #
+  # Use it in Minitest classes to validate commands and control test terminals.
+  #
+  # === Example
+  #
+  #   class TestMyApp < Minitest::Test
+  #     include Rooibos::TestHelper
+  #
+  #     def test_app_exits_on_ctrl_c
+  #       with_test_terminal do
+  #         inject_key(:ctrl_c)
+  #         Rooibos.run(MyApp)
+  #       end
+  #     end
+  #   end
   module TestHelper
+    include RatatuiRuby::TestHelper
+
     # Validates a command implements the Rooibos command protocol.
     #
     # Custom commands run in background threads. They dispatch work and send messages.
@@ -97,6 +119,3 @@ module Rooibos
     end
   end
 end
-
-# Attach Rooibos test helpers to RatatuiRuby::TestHelper
-RatatuiRuby::TestHelper.include(Rooibos::TestHelper)

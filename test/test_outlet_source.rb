@@ -6,14 +6,14 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 
 # Integration tests for Outlet#source demonstrating command composition.
 #
 # These tests serve as documentation for app developers who need to
 # orchestrate multi-step workflows within custom commands.
 class TestOutletSource < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   # A command that fetches a result, then uses it for a second fetch.
   # Demonstrates the basic source pattern: call a child command,

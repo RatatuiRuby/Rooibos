@@ -18,76 +18,80 @@ module Rooibos
     Http = Data.define(:method, :url, :envelope, :headers, :body, :timeout, :parser) do
       include Custom
 
-      def self.new(*args, method: nil, url: nil, envelope: nil, headers: nil, body: nil, timeout: nil, parser: nil,
-        get: nil, post: nil, put: nil, patch: nil, delete: nil
-      )
-        # Auto-splat single hash argument
-        return new(**args.first) if args.size == 1 && args.first.is_a?(Hash)
+      class << self
+        undef_method :new
 
-        # Auto-spread single array argument
-        return new(*args.first) if args.size == 1 && args.first.is_a?(Array)
+        def new(*args, method: nil, url: nil, envelope: nil, headers: nil, body: nil, timeout: nil, parser: nil,
+          get: nil, post: nil, put: nil, patch: nil, delete: nil
+        )
+          # Auto-splat single hash argument
+          return new(**args.first) if args.size == 1 && args.first.is_a?(Hash)
 
-        # DWIM: parse positional args and keyword method shortcuts
-        method_keywords = { get:, post:, put:, patch:, delete: }.compact
-        method, url, envelope, body = parse_dwim_args(args, method, url, envelope, body, method_keywords)
+          # Auto-spread single array argument
+          return new(*args.first) if args.size == 1 && args.first.is_a?(Array)
 
-        # Ractor validation
-        if RatatuiRuby::Debug.enabled? && !Ractor.shareable?(url)
-          raise Rooibos::Error::Invariant,
-            "URL is not Ractor-shareable: #{url.inspect}\n" \
-              "Use a frozen string or Ractor.make_shareable."
+          # DWIM: parse positional args and keyword method shortcuts
+          method_keywords = { get:, post:, put:, patch:, delete: }.compact
+          method, url, envelope, body = parse_dwim_args(args, method, url, envelope, body, method_keywords)
+
+          # Ractor validation
+          if RatatuiRuby::Debug.enabled? && !Ractor.shareable?(url)
+            raise Rooibos::Error::Invariant,
+              "URL is not Ractor-shareable: #{url.inspect}\n" \
+                "Use a frozen string or Ractor.make_shareable."
+          end
+
+          if RatatuiRuby::Debug.enabled? && headers && !Ractor.shareable?(headers)
+            raise Rooibos::Error::Invariant,
+              "Headers are not Ractor-shareable: #{headers.inspect}\n" \
+                "Use Ractor.make_shareable or freeze the hash and its contents."
+          end
+
+          if RatatuiRuby::Debug.enabled? && body && !Ractor.shareable?(body)
+            raise Rooibos::Error::Invariant,
+              "Body is not Ractor-shareable: #{body.inspect}\n" \
+                "Use a frozen string or Ractor.make_shareable."
+          end
+
+          if RatatuiRuby::Debug.enabled? && envelope && !Ractor.shareable?(envelope)
+            raise Rooibos::Error::Invariant,
+              "Envelope is not Ractor-shareable: #{envelope.inspect}\n" \
+                "Use a frozen string, symbol, or Ractor.make_shareable."
+          end
+
+          if RatatuiRuby::Debug.enabled? && timeout && !Ractor.shareable?(timeout)
+            raise Rooibos::Error::Invariant,
+              "Timeout is not Ractor-shareable: #{timeout.inspect}\n" \
+                "Use a number or Ractor.make_shareable."
+          end
+
+          # Parser validation
+          if parser && !parser.respond_to?(:call)
+            raise ArgumentError, "parser: must respond to :call"
+          end
+
+          if RatatuiRuby::Debug.enabled? && parser && !Ractor.shareable?(parser)
+            raise Rooibos::Error::Invariant,
+              "Parser is not Ractor-shareable: #{parser.inspect}\n" \
+                "Use a frozen Method object or Ractor.make_shareable."
+          end
+
+          # Method validation
+          unless %i[get post put patch delete].include?(method)
+            raise ArgumentError, "Unsupported HTTP method: #{method.inspect}"
+          end
+
+          instance = allocate
+          instance.__send__(:initialize, method:, url:, envelope:, headers:, body:, timeout: timeout || 10, parser:)
+          instance
         end
-
-        if RatatuiRuby::Debug.enabled? && headers && !Ractor.shareable?(headers)
-          raise Rooibos::Error::Invariant,
-            "Headers are not Ractor-shareable: #{headers.inspect}\n" \
-              "Use Ractor.make_shareable or freeze the hash and its contents."
-        end
-
-        if RatatuiRuby::Debug.enabled? && body && !Ractor.shareable?(body)
-          raise Rooibos::Error::Invariant,
-            "Body is not Ractor-shareable: #{body.inspect}\n" \
-              "Use a frozen string or Ractor.make_shareable."
-        end
-
-        if RatatuiRuby::Debug.enabled? && envelope && !Ractor.shareable?(envelope)
-          raise Rooibos::Error::Invariant,
-            "Envelope is not Ractor-shareable: #{envelope.inspect}\n" \
-              "Use a frozen string, symbol, or Ractor.make_shareable."
-        end
-
-        if RatatuiRuby::Debug.enabled? && timeout && !Ractor.shareable?(timeout)
-          raise Rooibos::Error::Invariant,
-            "Timeout is not Ractor-shareable: #{timeout.inspect}\n" \
-              "Use a number or Ractor.make_shareable."
-        end
-
-        # Parser validation
-        if parser && !parser.respond_to?(:call)
-          raise ArgumentError, "parser: must respond to :call"
-        end
-
-        if RatatuiRuby::Debug.enabled? && parser && !Ractor.shareable?(parser)
-          raise Rooibos::Error::Invariant,
-            "Parser is not Ractor-shareable: #{parser.inspect}\n" \
-              "Use a frozen Method object or Ractor.make_shareable."
-        end
-
-        # Method validation
-        unless %i[get post put patch delete].include?(method)
-          raise ArgumentError, "Unsupported HTTP method: #{method.inspect}"
-        end
-
-        instance = allocate
-        instance.__send__(:initialize, method:, url:, envelope:, headers:, body:, timeout: timeout || 10, parser:)
-        instance
       end
 
       # Net::HTTP is blocking; no cooperative cancellation possible.
       # Grace period = 0 means runtime can force-kill immediately.
       def rooibos_cancellation_grace_period = 0
 
-      def self.parse_dwim_args(args, method_kw, url_kw, envelope_kw, body_kw, method_keywords)
+      def self.parse_dwim_args(args, method_kw, url_kw, envelope_kw, body_kw, method_keywords) # :nodoc:
         # Handle keyword method shortcuts: get: 'url'
         if method_keywords.any?
           method_key, url = method_keywords.first

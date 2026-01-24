@@ -7,10 +7,10 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 
 class TestRuntimeAsync < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   def test_runtime_executes_commands_asynchronously
     model = Ractor.make_shareable({ events: [] })

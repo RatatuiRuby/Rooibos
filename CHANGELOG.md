@@ -15,11 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **rooibos CLI**: New command-line interface installed as executable when you install the gem. Provides `rooibos new APP_NAME` to scaffold a complete Rooibos application using `bundle gem` conventions, and `rooibos run` to launch the application. The scaffolded app includes a working TUI that displays "Hello, Rooibos!" and exits on q or Ctrl+C, plus a passing test demonstrating `Rooibos::TestHelper` patterns.
+
 - **Command::Custom#deconstruct_keys**: Default pattern matching support for custom commands. Introspects public query methods and returns a hash with `:type` as a snake_case discriminator. Data.define members are included automatically. Respects the `keys` argument for performance optimization. Override for hot paths or metaprogrammed methods.
 
-- **Rooibos::TestHelper#assert_no_command_errors**: Test assertion to fail fast when `Command::Error` is unexpectedly present in collected messages. Works with Minitest (via `flunk`) and raises `RuntimeError` in other frameworks (RSpec, etc). Include via `require "rooibos/test_helper"` — included automatically with `RatatuiRuby::TestHelper`.
+- **Rooibos::TestHelper#assert_no_command_errors**: Test assertion to fail fast when `Command::Error` is unexpectedly present in collected messages. Works with Minitest (via `flunk`) and RSpec (via `raise`). Include via `require "rooibos/test_helper"` — included automatically with `RatatuiRuby::TestHelper`.
 
 ### Changed
+
+- **BREAKING: Rooibos::TestHelper Include Pattern**: `Rooibos::TestHelper` now includes `RatatuiRuby::TestHelper` instead of the other way around. Previously, requiring `rooibos/test_helper` would inject Rooibos assertions into `RatatuiRuby::TestHelper`. Now, use `include Rooibos::TestHelper` to get both Rooibos assertions and RatatuiRuby test terminal helpers. Update your test classes from `include RatatuiRuby::TestHelper` to `include Rooibos::TestHelper`.
 
 - **BREAKING: Rooibos.delegate Message Format**: `Rooibos.delegate` now passes `message[1]` (single value) to child UPDATEs instead of `message[1..]` (array slice). This aligns child fragments with the universal `{ type:, envelope: }` pattern. Update pattern matches from `in [{ type: :system, ... }]` to `in { type: :system, ... }`.
 

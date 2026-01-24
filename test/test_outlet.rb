@@ -6,11 +6,11 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 require "concurrent-edge"
 
 class TestOutlet < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   private def make_outlet(channel)
     lifecycle = Rooibos::Command::Lifecycle.new

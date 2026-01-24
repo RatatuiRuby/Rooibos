@@ -6,11 +6,10 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
 require "rooibos/test_helper"
 
 class TestTeaTestHelper < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   # TDD Step 1: Test that validate_rooibos_command! raises for missing rooibos_command?
   def test_validate_rooibos_command_raises_for_missing_rooibos_command_predicate

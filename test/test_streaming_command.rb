@@ -6,11 +6,11 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
+require "rooibos/test_helper"
 
 # Documents streaming command behavior through the public Runtime.run API.
 class TestStreamingCommand < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   # Helper to run a command and collect messages
   private def run_command_and_collect(shell_cmd, tag, stream: false)

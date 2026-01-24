@@ -11,31 +11,36 @@ module Rooibos
     All = Data.define(:envelope, :commands, :nested) do
       include Custom
 
-      def self.new(tag, *args)
-        # DWIM: detect nested vs splatted based on call-site arity
-        if args.size == 1 && args.first.is_a?(Array)
-          commands = args.first
-          nested = true
-        else
-          commands = args
-          nested = false
-        end
+      class << self
+        undef_method :new
 
-        if RatatuiRuby::Debug.enabled?
-          commands.each do |cmd|
-            unless Ractor.shareable?(cmd)
-              raise Rooibos::Error::Invariant,
-                "Command is not Ractor-shareable: #{cmd.inspect}\n" \
-                  "Use Ractor.make_shareable or a Data.define command."
+        def new(tag, *args)
+          # DWIM: detect nested vs splatted based on call-site arity
+          if args.size == 1 && args.first.is_a?(Array)
+            commands = args.first
+            nested = true
+          else
+            commands = args
+            nested = false
+          end
+
+          if RatatuiRuby::Debug.enabled?
+            commands.each do |cmd|
+              unless Ractor.shareable?(cmd)
+                raise Rooibos::Error::Invariant,
+                  "Command is not Ractor-shareable: #{cmd.inspect}\n" \
+                    "Use Ractor.make_shareable or a Data.define command."
+              end
             end
           end
-        end
 
-        instance = allocate
-        instance.__send__(:initialize, envelope: tag, commands: commands.freeze, nested:)
-        instance
+          instance = allocate
+          instance.__send__(:initialize, envelope: tag, commands: commands.freeze, nested:)
+          instance
+        end
       end
 
+      # Executes the command, running all children in parallel.
       def call(out, token)
         # Early return for empty commands - prevents hang from zip_futures([])
         if commands.empty?

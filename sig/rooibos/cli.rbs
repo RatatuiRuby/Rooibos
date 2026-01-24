@@ -1,0 +1,41 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module CLI
+    COMMANDS: Hash[String, singleton(Commands::New) | singleton(Commands::Run)]
+
+    def self.call: (Array[String]) -> void
+    def self.usage: () -> String
+
+    module Commands
+      module New
+        # Options hash from parse_options.
+        type options = Hash[Symbol, bool | String]
+
+        BUNDLE_GEM_DEFAULTS: Array[String]
+
+        def self.call: (Array[String]) -> void
+        def self.usage: () -> String
+        def self.parse_options: (Array[String]) -> options
+        def self.create_app: (String, Array[String], options) -> void
+        def self.build_bundle_gem_args: (Array[String]) -> Array[String]
+        def self.git_enabled?: (Array[String]) -> bool
+        def self.make_initial_commit: (Pathname) -> void
+        def self.to_module_name: (String) -> String
+        def self.exe_template: (String, String) -> String
+        def self.app_template: (String) -> String
+        def self.test_template: (String, String) -> String
+      end
+
+      module Run
+        def self.call: (Array[String]) -> void
+        def self.usage: () -> String
+        def self.run_app: () -> void
+        def self.find_project_root: () -> Pathname?
+      end
+    end
+  end
+end

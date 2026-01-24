@@ -6,13 +6,12 @@
 #++
 
 require "test_helper"
-require "ratatui_ruby/test_helper"
 require "rooibos/test_helper"
 
 # Tests for streaming-aware Command.map behavior.
 # Command.map pumps ALL messages from inner command, not just one.
 class TestCommandMap < Minitest::Test
-  include RatatuiRuby::TestHelper
+  include Rooibos::TestHelper
 
   # A streaming command that emits multiple messages
   StreamingCommand = Data.define do
