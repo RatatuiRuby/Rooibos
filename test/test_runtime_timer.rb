@@ -37,7 +37,7 @@ class TestRuntimeTimer < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(messages)
+    assert_no_errors(messages)
 
     # Should receive TimerResponse, not bare tag
     timer_msg = messages.find { |m| m.is_a?(Rooibos::Message::Timer) }
@@ -72,7 +72,7 @@ class TestRuntimeTimer < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(messages)
+    assert_no_errors(messages)
 
     # Should receive TimerResponse, not bare tag
     timer_msg = messages.find { |m| m.is_a?(Rooibos::Message::Timer) }
@@ -154,9 +154,9 @@ class TestRuntimeTimer < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    # Cooperative cancellation sends Command.cancel(self); thread-kill sends nothing
-    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Command::Cancel) }
-    refute_nil cancel_msg, "Should receive a Cancel message"
-    assert_same original_cmd, cancel_msg.handle, "Cancel sentinel wraps the original command as .handle"
+    # Cooperative cancellation sends Message::Canceled; thread-kill sends nothing
+    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Message::Canceled) }
+    refute_nil cancel_msg, "Should receive a Canceled message"
+    assert_same original_cmd, cancel_msg.command, "Canceled message wraps the original command as .command"
   end
 end

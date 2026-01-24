@@ -62,7 +62,7 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(messages)
+    assert_no_errors(messages)
 
     # Should get Message::All with empty results, not hang forever
     all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
@@ -115,7 +115,7 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(messages)
+    assert_no_errors(messages)
 
     all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all"
@@ -158,7 +158,7 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(messages)
+    assert_no_errors(messages)
 
     # Variadic produces Message::All with nested: false
     all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
@@ -207,9 +207,9 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    # Note: This test expects Command::Cancel, not Command::Error
-    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Command::Cancel) }
-    assert_same all_cmd, cancel_msg&.handle, "Expected Cancel sentinel with self as handle"
+    # Note: This test expects Message::Canceled, not Message::Error
+    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Message::Canceled) }
+    assert_same all_cmd, cancel_msg&.command, "Expected Canceled message with self as command"
   end
 
   def test_all_runs_commands_in_parallel
@@ -280,7 +280,7 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(messages)
+    assert_no_errors(messages)
 
     # Command.all should emit Message::All, not raw arrays
     all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
@@ -333,9 +333,9 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    # Child error should surface as Command::Error
-    error_msg = messages.find { |m| m.is_a?(Rooibos::Command::Error) }
-    refute_nil error_msg, "Expected Command::Error message from failed child"
+    # Child error should surface as Message::Error
+    error_msg = messages.find { |m| m.is_a?(Rooibos::Message::Error) }
+    refute_nil error_msg, "Expected Message::Error message from failed child"
     assert_match(/intentional failure/, error_msg.exception.message)
   end
 
@@ -373,7 +373,7 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(messages)
+    assert_no_errors(messages)
 
     all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all with mixed types"

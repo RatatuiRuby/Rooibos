@@ -15,8 +15,8 @@ module Rooibos
     # Cancellation is tricky.
     #
     # This command waits, then sends a message. It responds to
-    # cancellation cooperatively. When cancelled, it sends
-    # <tt>Command.cancel(self)</tt> so you know the timer stopped.
+    # cancellation cooperatively. When canceled, it sends
+    # <tt>Message::Canceled</tt> so you know the timer stopped.
     #
     # Use it for delayed actions, debounced inputs, or animation loops.
     #
@@ -28,7 +28,7 @@ module Rooibos
     #       [model.with(notification: "Saved!"), Command.wait(3.0, :dismiss)]
     #     in :dismiss
     #       [model.with(notification: nil), nil]
-    #     in Command::Cancel
+    #     in Message::Canceled
     #       [model.with(notification: nil), nil]  # User navigated away
     #     end
     #   end
@@ -57,7 +57,7 @@ module Rooibos
       # Executes the timer.
       #
       # Waits for <tt>seconds</tt>, then sends <tt>TimerResponse</tt>.
-      # If cancelled, sends <tt>Command.cancel(self)</tt> instead.
+      # If canceled, sends <tt>Message::Canceled</tt> instead.
       #
       # [out] Outlet for sending messages.
       # [token] Cancellation token from the runtime.
@@ -68,7 +68,7 @@ module Rooibos
         combined.origin.wait
 
         if token.canceled?
-          out.put(Command.cancel(self))
+          out.put(Message::Canceled.new(command: self))
         else
           elapsed = Time.now - start_time
           response = Message::Timer.new(envelope:, elapsed:)

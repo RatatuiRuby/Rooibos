@@ -75,7 +75,7 @@ module Rooibos
       #
       # Spawns a future that executes the command. Tracks the command in the
       # active map for cancellation support. Errors are pushed to the channel
-      # as <tt>Command::Error</tt> messages.
+      # as <tt>Message::Error</tt> messages.
       #
       # [command] Callable with <tt>call(out, token)</tt>.
       # [channel] Channel to push results and errors to.
@@ -88,7 +88,7 @@ module Rooibos
         future = Concurrent::Promises.future do
           command.call(outlet, cancellation)
         rescue => e
-          channel.push Command::Error.new(command:, exception: e)
+          channel.push Message::Error.new(command:, exception: e)
         end
 
         entry = Entry.new(future:, origin:)

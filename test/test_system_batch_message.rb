@@ -42,7 +42,7 @@ class TestSystemBatchMessage < Minitest::Test
       end
     end
 
-    assert_no_command_errors(messages)
+    assert_no_errors(messages)
 
     # Should receive Message::System::Batch, not array
     batch_msg = messages.find { |m| m.is_a?(Rooibos::Message::System::Batch) }

@@ -61,7 +61,7 @@ class TestOutletStanding < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
 
     # Should receive both child chunks AND parent_done
     chunks = received_messages.select { |m| m.is_a?(Array) && m.first == :chunk }
@@ -121,7 +121,7 @@ class TestOutletStanding < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
     elapsed_msg = received_messages.find { |m| m.is_a?(Array) && m.first == :elapsed }
     assert elapsed_msg, "Expected [:elapsed, _] message, got: #{received_messages.inspect}"
     elapsed = elapsed_msg[1]
@@ -178,7 +178,7 @@ class TestOutletStanding < Minitest::Test
     end
     elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
     # The parent should have waited at least 0.1s for the slow child
     assert_operator elapsed, :>=, 0.08, "wait didn't actually block!"
     assert_includes received_messages, [:slow_child_finished]
@@ -227,7 +227,7 @@ class TestOutletStanding < Minitest::Test
     end
     elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
     # Should have waited for the slow children
     assert_operator elapsed, :>=, 0.04, "wait() didn't wait for pending handles!"
     # Both children should have emitted
@@ -294,7 +294,7 @@ class TestOutletStanding < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
     # Should see all three messages in order
     assert_includes received_messages, [:child_start]
     assert_includes received_messages, [:inner_sync_done]
@@ -348,9 +348,9 @@ class TestOutletStanding < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    # Should receive a Command::Error, NOT crash the runtime
-    error_msg = received_messages.find { |m| m.is_a?(Rooibos::Command::Error) }
-    assert error_msg, "Expected a Command::Error, got: #{received_messages.inspect}"
+    # Should receive a Message::Error, NOT crash the runtime
+    error_msg = received_messages.find { |m| m.is_a?(Rooibos::Message::Error) }
+    assert error_msg, "Expected a Message::Error, got: #{received_messages.inspect}"
     assert_match(/Boom!/, error_msg.exception.message)
   end
 
@@ -411,7 +411,7 @@ class TestOutletStanding < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
     tagged = received_messages.select { |m| m.is_a?(Array) && m.first == :tagged }
     assert_equal 2, tagged.size, "Expected 2 tagged deltas, got: #{received_messages.inspect}"
     assert_includes received_messages, [:parent_done]
@@ -459,7 +459,7 @@ class TestOutletStanding < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
     tagged = received_messages.select { |m| m.is_a?(Array) && m.first == 42 }
     assert_equal 2, tagged.size, "Expected 2 user-tagged deltas, got: #{received_messages.inspect}"
     assert_includes received_messages, [:parent_done]

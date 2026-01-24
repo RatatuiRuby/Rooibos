@@ -9,6 +9,6 @@ module Rooibos
 
     # Fails if any Command::Error is present in the messages array.
     # Relies on Minitest's flunk method being available in the including class.
-    def assert_no_command_errors: (Array[untyped] messages, ?String? msg) -> void
+    def assert_no_errors: (Array[untyped] messages, ?String? msg) -> void
   end
 end

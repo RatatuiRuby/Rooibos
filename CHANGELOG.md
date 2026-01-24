@@ -19,7 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Command::Custom#deconstruct_keys**: Default pattern matching support for custom commands. Introspects public query methods and returns a hash with `:type` as a snake_case discriminator. Data.define members are included automatically. Respects the `keys` argument for performance optimization. Override for hot paths or metaprogrammed methods.
 
-- **Rooibos::TestHelper#assert_no_command_errors**: Test assertion to fail fast when `Command::Error` is unexpectedly present in collected messages. Works with Minitest (via `flunk`) and RSpec (via `raise`). Include via `require "rooibos/test_helper"` — included automatically with `RatatuiRuby::TestHelper`.
+- **Rooibos::TestHelper#assert_no_errors**: Test assertion to fail fast when `Message::Error` is unexpectedly present in collected messages. Works with Minitest (via `flunk`) and RSpec (via `raise`). Include via `include Rooibos::TestHelper`.
+
+- **Message::Error**: New message type for command errors. Includes `error?` predicate and `deconstruct_keys` for pattern matching with `{ type: :error, command:, exception: }`.
+
+- **Message::Canceled**: New message type for canceled commands. Includes `canceled?` predicate and `deconstruct_keys` for pattern matching with `{ type: :canceled, command: }`. Custom command authors should emit this when `token.canceled?` is true.
 
 ### Changed
 
@@ -27,9 +31,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **BREAKING: Rooibos.delegate Message Format**: `Rooibos.delegate` now passes `message[1]` (single value) to child UPDATEs instead of `message[1..]` (array slice). This aligns child fragments with the universal `{ type:, envelope: }` pattern. Update pattern matches from `in [{ type: :system, ... }]` to `in { type: :system, ... }`.
 
+- **BREAKING: Command::Error → Message::Error**: Moved `Command::Error` to `Message::Error`. Commands flow *out* from Update; Messages flow *in* to Update. Error was always sent *to* Update so it belongs in the Message module. Includes `error?` predicate and `deconstruct_keys` for pattern matching with `{ type: :error, command:, exception: }`. Update pattern matches from `Command::Error` to `Message::Error`.
+
+- **BREAKING: Timer/Batch Cancellation → Message::Canceled**: When `Command.wait`, `Command.tick`, `Command.all`, or `Command.batch` are canceled, they now send `Message::Canceled` instead of `Command.cancel(self)`. Custom command authors should do the same: when `token.canceled?`, emit `Message::Canceled.new(command: self)`. Update pattern matches from `in Command::Cancel` to `in Message::Canceled` or `in { type: :canceled, command: }`.
+
 ### Fixed
 
 ### Removed
+
+- **BREAKING: Command::Error class**: Removed. Use `Message::Error` instead.
+- **BREAKING: Command.error factory**: Removed. Use `Message::Error.new(command:, exception:)` instead.
 
 ## [0.5.0] - 2026-01-16
 

@@ -15,7 +15,7 @@ module Rooibos
     #
     # This command runs children in parallel. Each child sends its own messages
     # independently. The batch completes when all children finish or when
-    # cancellation fires. On cancellation, emits <tt>Command.cancel(self)</tt>.
+    # cancellation fires. On cancellation, emits <tt>Message::Canceled</tt>.
     #
     # Use it for parallel fetches, concurrent refreshes, or any work that
     # does not need coordinated results.
@@ -67,7 +67,7 @@ module Rooibos
         out.wait(*handles, token:)
 
         if token.canceled?
-          out.put(Command.cancel(self))
+          out.put(Message::Canceled.new(command: self))
         else
           out.put(Message::Batch.new(command: self))
         end

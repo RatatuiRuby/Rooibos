@@ -72,7 +72,7 @@ module Rooibos
       end
     end
 
-    # Fails if any Command::Error is present in the messages array.
+    # Fails if any Message::Error is present in the messages array.
     #
     # Call after running the runtime and before asserting on expected messages.
     # This ensures tests fail fast with helpful error messages instead of
@@ -98,16 +98,16 @@ module Rooibos
     #       Rooibos::Runtime.run(model:, view:, update:)
     #     end
     #
-    #     assert_no_command_errors(messages)
+    #     assert_no_errors(messages)
     #     # ... rest of assertions
     #   end
     #
-    def assert_no_command_errors(messages, msg = nil)
-      error = messages.find { |m| m.is_a?(Rooibos::Command::Error) }
+    def assert_no_errors(messages, msg = nil)
+      error = messages.find { |m| m.is_a?(Rooibos::Message::Error) }
       return unless error
 
       error_detail = "#{error.exception.class}: #{error.exception.message}"
-      failure_msg = msg ? "#{msg}\n#{error_detail}" : "Unexpected Command::Error: #{error_detail}"
+      failure_msg = msg ? "#{msg}\n#{error_detail}" : "Unexpected Message::Error: #{error_detail}"
 
       if respond_to?(:flunk)
         # rubocop:disable Style/SendWithLiteralMethodName

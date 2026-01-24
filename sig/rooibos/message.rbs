@@ -130,5 +130,30 @@ module Rooibos
     def all?: () -> bool
     def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
   end
+
+  # Error message from a failed command.
+  class Error < Data
+    include Predicates
+
+    attr_reader command: Command::Custom
+    attr_reader exception: Exception
+
+    def self.new: (command: Command::Custom, exception: Exception) -> instance
+
+    def error?: () -> bool
+    def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+  end
+
+  # Cancellation notification from a canceled command.
+  class Canceled < Data
+    include Predicates
+
+    attr_reader command: untyped
+
+    def self.new: (command: untyped) -> instance
+
+    def canceled?: () -> bool
+    def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+  end
 end
 end

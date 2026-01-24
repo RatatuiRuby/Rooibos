@@ -526,7 +526,7 @@ class TestRuntime < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(messages)
+    assert_no_errors(messages)
 
     # Without graceful_exit!, this fails - message is lost
     # With graceful_exit!, this passes - message is drained before exit

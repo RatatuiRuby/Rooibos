@@ -42,7 +42,7 @@ class TestRuntimeParallel < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(messages)
+    assert_no_errors(messages)
 
     # Should receive TimerResponse messages, not bare tags
     timer_messages = messages.select { |m| m.is_a?(Rooibos::Message::Timer) }
@@ -122,13 +122,13 @@ class TestRuntimeParallel < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    # Cooperative cancellation: children emit Command.cancel(self)
-    cancel_handles = messages
-      .select { |m| m.is_a?(Rooibos::Command::Cancel) }
-      .map(&:handle)
+    # Cooperative cancellation: children emit Message::Canceled
+    cancel_commands = messages
+      .select { |m| m.is_a?(Rooibos::Message::Canceled) }
+      .map(&:command)
 
-    assert_includes cancel_handles, first_wait, "First child should emit Cancel sentinel"
-    assert_includes cancel_handles, second_wait, "Second child should emit Cancel sentinel"
+    assert_includes cancel_commands, first_wait, "First child should emit Canceled message"
+    assert_includes cancel_commands, second_wait, "Second child should emit Canceled message"
   end
 
   def test_batch_reports_child_errors
@@ -167,9 +167,9 @@ class TestRuntimeParallel < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    # Child error should surface as Command::Error (aligned with Command.all)
-    error_msg = messages.find { |m| m.is_a?(Rooibos::Command::Error) }
-    refute_nil error_msg, "Expected Command::Error message from failed child"
+    # Child error should surface as Message::Error (aligned with Command.all)
+    error_msg = messages.find { |m| m.is_a?(Rooibos::Message::Error) }
+    refute_nil error_msg, "Expected Message::Error message from failed child"
     assert_match(/intentional failure/, error_msg.exception.message)
   end
 
@@ -221,9 +221,9 @@ class TestRuntimeParallel < Minitest::Test
     # Batch races and exits fast despite stubborn child's 60s grace
     assert_operator elapsed, :<, 2.0, "Batch should exit early on cancellation"
 
-    # Batch emits Cancel sentinel
-    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Command::Cancel) }
-    assert_same batch_cmd, cancel_msg&.handle, "Batch should emit Cancel sentinel with self"
+    # Batch emits Canceled message
+    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Message::Canceled) }
+    assert_same batch_cmd, cancel_msg&.command, "Batch should emit Canceled message with self"
   end
 
   def test_batch_validates_commands_are_shareable
@@ -301,7 +301,7 @@ class TestRuntimeParallel < Minitest::Test
     refute_nil timer_msg, "Successful command should still run when sibling fails"
 
     # Error should also be reported
-    error_msg = messages.find { |m| m.is_a?(Rooibos::Command::Error) }
-    refute_nil error_msg, "Expected Command::Error from failed child"
+    error_msg = messages.find { |m| m.is_a?(Rooibos::Message::Error) }
+    refute_nil error_msg, "Expected Message::Error from failed child"
   end
 end

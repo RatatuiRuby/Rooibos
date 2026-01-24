@@ -79,7 +79,7 @@ class TestOutletSource < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
 
     # The final composed result should arrive
     final = received_messages.find { |m| m.is_a?(Array) && m.first == :two_step_complete }
@@ -361,7 +361,7 @@ class TestOutletSource < Minitest::Test
     end
 
     # Fail fast if any unexpected errors occurred
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
 
     # Verify all three phases completed in order
     phase1 = received_messages.find { |m| m.is_a?(Array) && m.first == :phase1_complete }

@@ -94,6 +94,7 @@ module Rooibos
     # on <tt>Command::Cancel</tt> and signals the token.
     class Cancel < Data.define(:handle)
       include Custom
+      include Message::Predicates
 
       # Stub - Cancel is a sentinel handled by runtime before dispatch.
       def call(_out, _token)
@@ -119,55 +120,6 @@ module Rooibos
     #     [model.with(active_fetch: nil), Command.cancel(model.active_fetch)]
     def self.cancel(handle)
       Cancel.new(handle:)
-    end
-
-    # Error message from a failed command.
-    #
-    # Commands run in background threads. Exceptions bubble up silently.
-    # Your update function never sees them. Backtraces in STDERR corrupt the TUI.
-    #
-    # The runtime catches exceptions and wraps them in Error messages.
-    # Pattern match on Error in your update function. Display the error, log it, or recover.
-    #
-    # Use it to surface failures from HTTP requests, file I/O, or external processes.
-    #
-    # === Examples
-    #
-    #   Update = ->(message, model) {
-    #     case message
-    #     in Command::Error[command:, exception:]
-    #       # Show error toast
-    #       [model.with(error: exception.message), nil]
-    #     in Command::Error[command: Command::Http, exception:]
-    #       # Retry HTTP request
-    #       [model, command]
-    #     in Command::Error
-    #       # Log and continue
-    #       warn "Command failed: #{message.exception}"
-    #       [model, nil]
-    #     end
-    #   }
-    class Error < Data.define(:command, :exception); end
-
-    # Creates an error sentinel.
-    #
-    # The runtime produces this automatically when a command raises.
-    # Use this factory for testing or for commands that want to signal
-    # error completion without raising.
-    #
-    # [command] The command that failed.
-    # [exception] The exception that was raised.
-    #
-    # === Example
-    #
-    #   def update(message, model)
-    #     case message
-    #     in Command::Error(command:, exception:)
-    #       model.with(error: "#{command.class} failed: #{exception.message}")
-    #     end
-    #   end
-    def self.error(command, exception)
-      Error.new(command:, exception:)
     end
 
     # Runs a shell command and routes its output back as messages.

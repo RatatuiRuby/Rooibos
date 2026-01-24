@@ -52,7 +52,7 @@ class TestCommandMap < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
 
     # Should receive ALL three messages, each mapped
     mapped_chunks = received_messages.select { |m| m.is_a?(Array) && m.first == :mapped }
@@ -99,7 +99,7 @@ class TestCommandMap < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
 
     mapped = received_messages.find { |m| m.is_a?(Array) && m.first == :mapped }
     refute_nil mapped, "Should receive mapped result"
@@ -141,7 +141,7 @@ class TestCommandMap < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
 
     tagged = received_messages.find { |m| m.is_a?(Array) && m.first == :tagged }
     refute_nil tagged, "Should receive tagged result"
@@ -226,7 +226,7 @@ class TestCommandMap < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
     tagged = received_messages.select { |m| m.is_a?(Array) && m.first == :dashboard }
     assert_equal 3, tagged.size, "Expected 3 tagged messages, got: #{received_messages.inspect}"
     # 2 results (symbols) + 1 Message::Batch completion
@@ -269,7 +269,7 @@ class TestCommandMap < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_command_errors(received_messages)
+    assert_no_errors(received_messages)
     # Should see both results AND a Message::Batch completion
     assert_includes received_messages, :a_result
     assert_includes received_messages, :b_result

@@ -276,7 +276,7 @@ class TestRuntimeCustomCommand < Minitest::Test
         when "q" then [m, Rooibos::Command.exit]
         else [m, nil]
         end
-      when Rooibos::Command::Error
+      when Rooibos::Message::Error
         received_error = msg
         [m, nil]
       else
@@ -292,9 +292,19 @@ class TestRuntimeCustomCommand < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    refute_nil received_error, "Update should receive Command::Error"
-    assert_kind_of Rooibos::Command::Error, received_error
+    refute_nil received_error, "Update should receive Message::Error"
+    assert_kind_of Rooibos::Message::Error, received_error
     assert_equal ExplodingCommand, received_error.command.class
     assert_equal "Boom!", received_error.exception.message
+  end
+
+  def test_command_error_includes_message_predicates
+    error = Rooibos::Message::Error.new(command: nil, exception: RuntimeError.new("boom"))
+
+    # Message::Error should include Message::Predicates so it can be safely
+    # pattern-matched in update functions alongside keyboard/mouse events
+    refute error.ctrl_c?, "Message::Error should respond to ctrl_c? via Predicates"
+    refute error.mouse?,  "Message::Error should respond to mouse? via Predicates"
+    refute error.key?,    "Message::Error should respond to key? via Predicates"
   end
 end

@@ -63,7 +63,7 @@ module Rooibos
         all_done = Concurrent::Promises.zip_futures(*futures)
         Concurrent::Promises.any_event(all_done, token.origin).wait
 
-        return out.put(Command.cancel(self)) if token.canceled?
+        return out.put(Message::Canceled.new(command: self)) if token.canceled?
 
         shareable_results = Ractor.make_shareable(all_done.value!)
         response = Message::All.new(envelope:, results: shareable_results, nested:)

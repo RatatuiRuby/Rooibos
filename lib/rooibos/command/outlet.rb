@@ -204,7 +204,7 @@ module Rooibos
         future = Concurrent::Promises.future do
           command.call(child_outlet, token)
         rescue => e
-          @message_queue.push Command::Error.new(command:, exception: e)
+          @message_queue.push Message::Error.new(command:, exception: e)
         end
         handle = AsyncHandle.new(future:)
         @pending_async << handle
