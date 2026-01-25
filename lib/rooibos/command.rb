@@ -13,6 +13,7 @@ require_relative "command/wait"
 require_relative "command/batch"
 require_relative "command/all"
 require_relative "command/http"
+require_relative "command/open"
 
 module Rooibos
   # Commands represent side effects.
@@ -492,6 +493,25 @@ module Rooibos
     # Supports DWIM arity - see Http.new for patterns.
     def self.http(*, **)
       Http.new(*, **)
+    end
+
+    # Opens a file or URL with the system's default application.
+    # Cross-platform: uses +open+ on macOS, +xdg-open+ on Linux, +start+ on Windows.
+    #
+    # On success (exit 0), sends +Message::Open+.
+    # On failure (non-zero), sends +Message::Error+.
+    #
+    # === Example
+    #
+    #   case message
+    #   in { type: :open, envelope: path }
+    #     model.with(status: "Opened #{path}")
+    #   in { type: :error, envelope: path }
+    #     model.with(error: "Could not open #{path}")
+    #   end
+    #
+    def self.open(path, envelope = path)
+      Open.new(path:, envelope:)
     end
 
     class Wrapped < Data.define(:callable, :grace_period) # :nodoc:

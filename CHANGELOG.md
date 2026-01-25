@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Message Symbol Comparison**: All `Message::*` types now support symbol comparison via `to_sym` and `==`, similar to RatatuiRuby events. Symbols use the `message_` prefix to avoid collision with event types: `msg == :message_timer`, `msg == :message_http`, `msg == :message_error`. `Message::Predicates` also provides a smart-default `deconstruct_keys` that derives `:type` from the class name.
 
+- **Command.open**: Opens a file or URL with the system's default application. Cross-platform: uses `open` on macOS, `xdg-open` on Linux, `start` on Windows. Sends `Message::Open` on success (exit 0) or `Message::Error` on failure.
+
 ### Changed
 
 - **BREAKING: Rooibos::TestHelper Include Pattern**: `Rooibos::TestHelper` now includes `RatatuiRuby::TestHelper` instead of the other way around. Previously, requiring `rooibos/test_helper` would inject Rooibos assertions into `RatatuiRuby::TestHelper`. Now, use `include Rooibos::TestHelper` to get both Rooibos assertions and RatatuiRuby test terminal helpers. Update your test classes from `include RatatuiRuby::TestHelper` to `include Rooibos::TestHelper`.
