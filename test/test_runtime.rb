@@ -567,4 +567,46 @@ class TestRuntime < Minitest::Test
     # If we get here, no deadlock occurred
     assert_equal 80, final_model[:width], "View should be able to query viewport_area"
   end
+
+  # Init runs after terminal is ready. It can query terminal dimensions,
+  # compute layout areas, or do other terminal-dependent initialization.
+  def test_init_can_query_terminal_size
+    init_called = false
+    captured_size = nil
+
+    fragment = Module.new
+    fragment.const_set(:Init, -> {
+      init_called = true
+      captured_size = RatatuiRuby.terminal_size
+      Ractor.make_shareable({ width: captured_size.width })
+    })
+    fragment.const_set(:Update, -> (msg, m) { Rooibos::Command.exit })
+    fragment.const_set(:View, -> (_m, tui) { tui.clear })
+
+    with_test_terminal(80, 24) do
+      inject_key("q")
+      Rooibos::Runtime.run(fragment)
+    end
+
+    assert init_called, "Init should have been called"
+    assert_equal 80, captured_size.width, "Init should be able to query terminal_size"
+  end
+
+  # Verifies Init is called AFTER terminal is initialized.
+  def test_init_runs_after_terminal_initialized
+    captured_size = nil
+
+    fragment = Module.new
+    fragment.const_set(:Init, -> {
+      captured_size = RatatuiRuby.terminal_size
+      Ractor.make_shareable({ width: captured_size.width })
+    })
+    fragment.const_set(:Update, -> (_msg, m) { Rooibos::Command.exit })
+    fragment.const_set(:View, -> (_m, tui) { tui.clear })
+
+    RatatuiRuby::SyntheticEvents.push(RatatuiRuby::Event::Key.new(code: "q"))
+    Rooibos::Runtime.run(fragment)
+
+    refute_nil captured_size, "Init should have captured terminal size"
+  end
 end

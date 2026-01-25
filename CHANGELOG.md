@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Init runs after terminal initialization**: `Init` callables now run after the terminal is initialized, enabling them to call `RatatuiRuby.terminal_size`, compute layout areas, or perform other terminal-dependent initialization. Previously Init ran before the terminal was ready, causing "Terminal is not initialized" errors.
+
 ### Removed
 
 - **BREAKING: Command::Error class**: Removed. Use `Message::Error` instead.

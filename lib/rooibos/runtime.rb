@@ -120,14 +120,8 @@ module Rooibos
       @fragment = fragment_from_kwargs(root_fragment, model:, view:, update:, command:)
       @view = @fragment::View
       @update = @fragment::Update
-      @model, @command = init_callable.call
+      @init_callable = init_callable
       @timeout = 1 / fps
-
-      # commands do significant work, so they run off the main thread
-      validate_ractor_shareable!(@command, "command")
-      # models get passed to and from commands on other threads
-      validate_ractor_shareable!(@model, "model")
-      # views and updates run on the main thread, so they don't need to be shareable
 
       start_runtime
     end
@@ -176,9 +170,15 @@ module Rooibos
         @lifecycle = Command::Lifecycle.new
 
         catch(QUIT) do
-          dispatch_command
           RatatuiRuby.run do |tui|
             @tui = tui
+
+            # Init runs after terminal is ready so it can query terminal_size, etc.
+            @model, @command = @init_callable.call
+            validate_ractor_shareable!(@command, "command")
+            validate_ractor_shareable!(@model, "model")
+            dispatch_command
+
             loop do
               draw_view
               handle_ratatui_event
