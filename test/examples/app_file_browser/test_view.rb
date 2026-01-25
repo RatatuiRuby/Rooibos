@@ -8,18 +8,18 @@
 require_relative "../../test_helper"
 require_relative "../../../examples/app_file_browser/app"
 
-describe FileBrowser::View do
+describe Tutorial01::FileBrowser::View do
   before do
     @tui = RatatuiRuby::TUI.new
   end
 
   it "returns a paragraph widget with current directory path" do
-    model = FileBrowser::Model.new(
+    model = Tutorial01::FileBrowser::Model.new(
       current_directory: "/home/user/projects",
       file_names: []
     )
 
-    widget = FileBrowser::View.call(model, @tui)
+    widget = Tutorial01::FileBrowser::View.call(model, @tui)
 
     assert_instance_of(RatatuiRuby::Layout::Layout, widget)
     assert_instance_of(RatatuiRuby::Widgets::Paragraph, widget.children[0])
@@ -36,12 +36,12 @@ describe FileBrowser::View do
       "test",
     ]
 
-    model = FileBrowser::Model.new(
+    model = Tutorial01::FileBrowser::Model.new(
       current_directory: "/test",
       file_names:
     )
 
-    widget = FileBrowser::View.call(model, @tui)
+    widget = Tutorial01::FileBrowser::View.call(model, @tui)
 
     assert_instance_of(RatatuiRuby::Layout::Layout, widget)
     assert_instance_of(RatatuiRuby::Widgets::Paragraph, widget.children[0])

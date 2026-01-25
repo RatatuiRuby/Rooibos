@@ -51,18 +51,15 @@ class TestCommandOpen < Minitest::Test
     mock_status.verify
   end
 
-  private
-
-  def stub_out(messages)
-    out = Object.new
-    out.define_singleton_method(:put) { |msg| messages << msg }
-    out
+  private def stub_out(messages)
+    mock = Minitest::Mock.new
+    mock.expect(:put, nil) { |msg| messages << msg; true }
+    mock
   end
 
-  def stub_token
+  private def stub_token
     token = Minitest::Mock.new
     token.expect(:canceled?, false)
     token
   end
 end
-

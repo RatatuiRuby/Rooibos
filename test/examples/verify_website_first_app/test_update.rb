@@ -186,9 +186,7 @@ class TestFileBrowserUpdate < Minitest::Test
     assert_equal FileBrowser::ERROR, result.error
   end
 
-  private
-
-  def make_model(path: "/test", entries: [], selected: nil, error: nil)
+  private def make_model(path: "/test", entries: [], selected: nil, error: nil)
     Ractor.make_shareable(
       FileBrowser::Model.new(path:, entries:, selected:, error:)
     )

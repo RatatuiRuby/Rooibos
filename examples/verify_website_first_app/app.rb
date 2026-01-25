@@ -20,14 +20,18 @@ module FileBrowser
 
   View = -> (model, tui) {
     tui.block(
-      titles: [model.error || model.path,
-               { content: KEYS, position: :bottom, alignment: :right}],
+      titles: [
+        model.error || model.path,
+        { content: KEYS, position: :bottom, alignment: :right },
+],
       borders: [:all],
       border_style: if model.error then tui.style(fg: :red) else nil end,
-      children: [tui.list(items: model.entries.map(&ListItem[model, tui]),
-                          selected_index: model.entries.index(model.selected),
-                          highlight_symbol: "",
-                          highlight_style: tui.style(modifiers: [:reversed]))]
+      children: [
+tui.list(items: model.entries.map(&ListItem[model, tui]),
+  selected_index: model.entries.index(model.selected),
+  highlight_symbol: "",
+  highlight_style: tui.style(modifiers: [:reversed])),
+]
     )
   }
 
@@ -37,24 +41,24 @@ module FileBrowser
 
     if message.ctrl_c? || message.q? then Rooibos::Command.exit
     elsif message.home? || message.g? then model.with(selected: model.entries.first)
-    elsif message.end? || message.G? then model.with(selected: model.entries.last)
-    elsif message.up_arrow? || message.k? then Select[:-, model]
-    elsif message.down_arrow? || message.j? then Select[:+, model]
+    elsif message.end? || (message.key? && message.shift_G?) then model.with(selected: model.entries.last)
+    elsif (message.key? && message.up?) || message.k? then Select[:-, model]
+    elsif (message.key? && message.down?) || message.j? then Select[:+, model]
     elsif message.enter? then Open[model]
     elsif message.escape? then Navigate[File.dirname(model.path), model]
     end
   }
 
-  private # Lines below this are implementation details
-
   KEYS  = "↑/↓/Home/End: Select | Enter: Open | Esc: Navigate Up | q: Quit"
   ERROR = "Sorry, opening the selected file failed."
 
-  ListItem = -> (model, tui) { -> (name) {
-    modifiers = name.start_with?(".") ? [:dim] : []
-    fg        = :blue if name.end_with?("/")
-    tui.list_item(content: name, style: tui.style(fg:, modifiers:))
-  } }
+  ListItem = -> (model, tui) {
+    -> (name) {
+      modifiers = name.start_with?(".") ? [:dim] : []
+      fg        = :blue if name.end_with?("/")
+      tui.list_item(content: name, style: tui.style(fg:, modifiers:))
+    }
+  }
 
   Select = -> (operator, model) {
     new_index = model.entries.index(model.selected).public_send(operator, 1)

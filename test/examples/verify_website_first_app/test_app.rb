@@ -67,15 +67,13 @@ class TestFileBrowserSystem < Minitest::Test
     end
   end
 
-  private
-
-  def make_model(path: "/test", entries: [], selected: nil, error: nil)
+  private def make_model(path: "/test", entries: [], selected: nil, error: nil)
     Ractor.make_shareable(
       FileBrowser::Model.new(path:, entries:, selected:, error:)
     )
   end
 
-  def with_test_directory(files = [], &block)
+  private def with_test_directory(files = [], &block)
     Dir.mktmpdir do |dir|
       files.each do |name|
         path = File.join(dir, name)

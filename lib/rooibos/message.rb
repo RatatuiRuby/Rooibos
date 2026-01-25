@@ -8,9 +8,22 @@
 module Rooibos
   # Messages sent from commands to update functions.
   #
-  # All built-in response types live here. Each includes the +Predicates+
+  # All built-in response types live here. Each includes the <tt>Predicates</tt>
   # mixin for safe predicate calls.
   module Message
+    # Matches built-in framework message types for case/when dispatch.
+    #
+    # Returns <tt>true</tt> only for classes under <tt>Rooibos::Message::</tt>.
+    # Rejects key events and user-defined message classes.
+    #
+    # === Example
+    #
+    #   case message
+    #   when Rooibos::Message
+    #     handle_command_response(message)
+    #   when RatatuiRuby::Event::Key
+    #     handle_key(message)
+    #   end
     def self.===(other)
       other.class.name&.start_with?("Rooibos::Message::")
     end

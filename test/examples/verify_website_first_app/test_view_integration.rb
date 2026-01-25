@@ -70,9 +70,7 @@ class TestFileBrowserViewIntegration < Minitest::Test
     end
   end
 
-  private
-
-  def make_model(path: "/test", entries: [], selected: nil, error: nil)
+  private def make_model(path: "/test", entries: [], selected: nil, error: nil)
     Ractor.make_shareable(
       FileBrowser::Model.new(path:, entries:, selected:, error:)
     )

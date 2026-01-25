@@ -165,5 +165,17 @@ module Rooibos
     alias cancelled? canceled?
     def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
   end
+
+  # Success notification from Command.open.
+  class Open < Data
+    include Predicates
+
+    attr_reader envelope: String
+
+    def self.new: (envelope: String) -> instance
+
+    def open?: () -> bool
+    def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+  end
 end
 end

@@ -37,29 +37,15 @@ module Rooibos
     class Open < Data.define(:path, :envelope)
       include Custom
 
-      # Builds the platform-specific open command.
-      def self.system_command(path, platform = RUBY_PLATFORM)
-        escaped = path.shellescape
-        case platform
-        when /darwin/
-          "open #{escaped} 2>/dev/null"
-        when /linux/
-          "xdg-open #{escaped} 2>/dev/null"
-        when /mingw|mswin|cygwin/
-          "start #{path} 2>NUL"
-        else
-          "xdg-open #{escaped} 2>/dev/null"
-        end
-      end
-
       # System commands are generally fast; no grace period needed.
       def rooibos_cancellation_grace_period = 0
 
+      # Executes the open command and sends the result message.
       def call(out, token)
         return if token.canceled?
 
         require "open3"
-        cmd = self.class.system_command(path)
+        cmd = self.class.__send__(:system_command, path)
         _stdout, stderr, status = Open3.capture3(cmd)
 
         message = if status.exitstatus == 0
@@ -79,6 +65,22 @@ module Rooibos
           exception: RuntimeError.new(e.message.freeze).freeze
         )))
       end
+
+      # Builds the platform-specific open command.
+      def self.system_command(path, platform = RUBY_PLATFORM) # :nodoc:
+        escaped = path.shellescape
+        case platform
+        when /darwin/
+          "open #{escaped}"
+        when /linux/
+          "xdg-open #{escaped}"
+        when /mingw|mswin|cygwin/
+          "start #{path}"
+        else
+          "xdg-open #{escaped}"
+        end
+      end
+      private_class_method :system_command
     end
   end
 end

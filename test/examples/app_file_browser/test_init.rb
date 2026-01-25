@@ -8,11 +8,11 @@
 require_relative "../../test_helper"
 require_relative "../../../examples/app_file_browser/app"
 
-describe FileBrowser::Init do
+describe Tutorial01::FileBrowser::Init do
   it "sets current_directory from Dir.pwd" do
     Dir.stub :pwd, "/test/directory" do
       Dir.stub :children, [] do
-        model = FileBrowser::Init.call
+        model = Tutorial01::FileBrowser::Init.call
 
         assert_equal "/test/directory", model.current_directory
       end
@@ -24,7 +24,7 @@ describe FileBrowser::Init do
 
     Dir.stub :pwd, "/test/directory" do
       Dir.stub :children, mock_files do
-        model = FileBrowser::Init.call
+        model = Tutorial01::FileBrowser::Init.call
 
         assert_equal 4, model.file_names.length
         assert_equal ["README.md", "Gemfile", "lib", "test"], model.file_names
@@ -35,7 +35,7 @@ describe FileBrowser::Init do
   it "creates file entries with name attribute" do
     Dir.stub :pwd, "/test" do
       Dir.stub :children, ["example.txt"] do
-        model = FileBrowser::Init.call
+        model = Tutorial01::FileBrowser::Init.call
 
         file = model.file_names.first
         assert_equal "example.txt", file
@@ -46,7 +46,7 @@ describe FileBrowser::Init do
   it "returns a frozen model" do
     Dir.stub :pwd, "/test" do
       Dir.stub :children, [] do
-        model = FileBrowser::Init.call
+        model = Tutorial01::FileBrowser::Init.call
 
         assert(model.frozen?)
       end

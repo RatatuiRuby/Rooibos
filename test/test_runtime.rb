@@ -54,7 +54,7 @@ class TestRuntime < Minitest::Test
 
       # Spy on poll_event to capture the timeout value
       original_poll = RatatuiRuby.method(:poll_event)
-      RatatuiRuby.stub(:poll_event, ->(timeout: nil) {
+      RatatuiRuby.stub(:poll_event, -> (timeout: nil) {
         captured_timeout = timeout
         original_poll.call(timeout:)
       }) do

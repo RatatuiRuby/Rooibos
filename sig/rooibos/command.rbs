@@ -291,5 +291,23 @@ module Rooibos
   # DWIM: accepts positional args, method keywords (get:, post:, etc.), or explicit keywords.
   # See Http class and documentation for all supported patterns.
   def self.http: (*(Symbol | String | nil), **(Symbol | String | Integer | Float | Hash[String, String] | ^(String, Hash[String, String]?, Integer?) -> Object | nil)) -> Http
+
+  # Opens a file or URL with the system's default application.
+  class Open < Data
+    include Custom
+
+    attr_reader path: String
+    attr_reader envelope: String
+
+    def self.new: (path: String, envelope: String) -> instance
+
+    # Builds the platform-specific open command.
+    def self.system_command: (String path, ?String platform) -> String
+
+    def call: (Outlet out, Concurrent::Cancellation token) -> void
+  end
+
+  # Creates an open command for launching files with system opener.
+  def self.open: (String path, ?String envelope) -> Open
 end
 end

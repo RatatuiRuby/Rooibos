@@ -19,7 +19,7 @@ class TestMessageTripleEquals < Minitest::Test
     matched = case msg
               when Rooibos::Message then true
               else false
-              end
+    end
 
     assert matched, "Rooibos::Message should === builtin System::Batch"
   end
@@ -30,7 +30,7 @@ class TestMessageTripleEquals < Minitest::Test
     matched = case msg
               when Rooibos::Message then true
               else false
-              end
+    end
 
     refute matched, "Rooibos::Message should NOT === RatatuiRuby::Event::Key"
   end
@@ -43,7 +43,7 @@ class TestMessageTripleEquals < Minitest::Test
     matched = case user_msg
               when Rooibos::Message then true
               else false
-              end
+    end
 
     refute matched, "Rooibos::Message should NOT === user-defined classes with Predicates"
   end
@@ -54,7 +54,7 @@ class TestMessageTripleEquals < Minitest::Test
     matched = case user_msg
               when Rooibos::Message then true
               else false
-              end
+    end
 
     refute matched, "Rooibos::Message should NOT === named user-defined classes"
   end
@@ -70,7 +70,7 @@ class TestMessageTripleEquals < Minitest::Test
     matched = case msg
               when Rooibos::Message then true
               else false
-              end
+    end
 
     assert matched, "Rooibos::Message should === builtin Timer"
   end
@@ -84,7 +84,7 @@ class TestMessageTripleEquals < Minitest::Test
     matched = case msg
               when Rooibos::Message then true
               else false
-              end
+    end
 
     assert matched, "Rooibos::Message should === builtin Error"
   end
@@ -95,7 +95,7 @@ class TestMessageTripleEquals < Minitest::Test
     matched = case msg
               when Rooibos::Message then true
               else false
-              end
+    end
 
     assert matched, "Rooibos::Message should === builtin Canceled"
   end
@@ -111,7 +111,7 @@ class TestMessageTripleEquals < Minitest::Test
     matched = case msg
               when Rooibos::Message then true
               else false
-              end
+    end
 
     assert matched, "Rooibos::Message should === builtin System::Stream"
   end
