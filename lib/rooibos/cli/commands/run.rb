@@ -6,6 +6,7 @@
 #++
 
 require "pathname"
+require "rbconfig"
 
 module Rooibos
   module CLI
@@ -73,9 +74,10 @@ module Rooibos
           executable = executables.first
           puts "Running #{File.basename(executable)}..."
 
-          # Run via bundler to set up the load path properly
+          # Run with bundler/setup for gem activation, but skip bundle exec CLI
+          # to produce clean stack traces without bundler/thor frames
           Dir.chdir(project_root)
-          exec("bundle", "exec", executable)
+          exec(RbConfig.ruby, "-rbundler/setup", executable)
         end
         private_class_method :run_app
 
