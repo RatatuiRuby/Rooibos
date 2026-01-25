@@ -8,8 +8,17 @@ module Rooibos
   module Message
   # Fallback predicate mixin.
   module Predicates
+    # Converts the message to a Symbol representation.
+    def to_sym: () -> Symbol
+
+    # Compares the message with another object.
+    def ==: (top other) -> bool
+
     # Returns false for unknown predicate methods.
     def method_missing: (Symbol name, *untyped args, **untyped kwargs) ?{ () -> untyped } -> bool
+
+    # Default deconstruct_keys for classes that don't define their own.
+    def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
 
     # Responds to all predicate methods.
     def respond_to_missing?: (Symbol name, ?bool include_private) -> bool

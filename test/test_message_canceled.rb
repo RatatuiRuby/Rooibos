@@ -48,4 +48,15 @@ class TestMessageCanceled < Minitest::Test
 
     assert_equal :my_timer, matched
   end
+
+  def test_to_sym
+    canceled = Rooibos::Message::Canceled.new(command: :some_cmd)
+    assert_equal :message_canceled, canceled.to_sym
+  end
+
+  def test_symbol_equality
+    canceled = Rooibos::Message::Canceled.new(command: :some_cmd)
+    assert_operator canceled, :==, :message_canceled
+    refute_operator canceled, :==, :message_timer
+  end
 end

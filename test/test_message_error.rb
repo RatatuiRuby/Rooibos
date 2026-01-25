@@ -44,4 +44,15 @@ class TestMessageError < Minitest::Test
     assert_equal :fetch, matched[:command]
     assert_equal "timeout", matched[:message]
   end
+
+  def test_to_sym
+    error = Rooibos::Message::Error.new(command: :some_cmd, exception: RuntimeError.new("oops"))
+    assert_equal :message_error, error.to_sym
+  end
+
+  def test_symbol_equality
+    error = Rooibos::Message::Error.new(command: :some_cmd, exception: RuntimeError.new("oops"))
+    assert_operator error, :==, :message_error
+    refute_operator error, :==, :message_timer
+  end
 end

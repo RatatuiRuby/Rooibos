@@ -53,6 +53,91 @@ class TestMessagePredicates < Minitest::Test
     refute msg.respond_to?(:some_random_method), "Should not respond_to? non-predicates"
   end
 
+  # === to_sym and == tests ===
+
+  # Test stub with proper deconstruct_keys for symbol comparison
+  TypedStub = Data.define(:value) do
+    include Rooibos::Message::Predicates
+
+    def deconstruct_keys(_keys)
+      { type: :custom, value: }
+    end
+  end
+
+  def test_to_sym_returns_type
+    msg = TypedStub.new(value: 42)
+    assert_equal :message_custom, msg.to_sym
+  end
+
+  def test_symbol_equality
+    msg = TypedStub.new(value: 42)
+    assert_operator msg, :==, :message_custom
+    refute_operator msg, :==, :message_timer
+  end
+
+  def test_symbol_equality_preserves_data_equality
+    msg1 = TypedStub.new(value: 42)
+    msg2 = TypedStub.new(value: 42)
+    msg3 = TypedStub.new(value: 99)
+
+    assert_equal msg1, msg2, "Same values should be equal"
+    refute_equal msg1, msg3, "Different values should not be equal"
+  end
+
+  # === Default deconstruct_keys tests ===
+
+  # Simple stub relying on default deconstruct_keys (no override)
+  class SimpleMessage
+    include Rooibos::Message::Predicates
+  end
+
+  # CamelCase name for snake_case conversion test
+  class MyCustomMessage
+    include Rooibos::Message::Predicates
+  end
+
+  def test_default_deconstruct_keys_derives_type_from_class_name
+    msg = SimpleMessage.new
+    keys = msg.deconstruct_keys(nil)
+
+    assert_equal :simple_message, keys[:type]
+  end
+
+  def test_default_deconstruct_keys_converts_camel_case_to_snake_case
+    msg = MyCustomMessage.new
+    keys = msg.deconstruct_keys(nil)
+
+    assert_equal :my_custom_message, keys[:type]
+  end
+
+  def test_default_deconstruct_keys_uses_only_basename
+    # Namespace prefix should be stripped
+    msg = SimpleMessage.new
+    # TestMessagePredicates::SimpleMessage -> simple_message
+    assert_equal :simple_message, msg.deconstruct_keys(nil)[:type]
+  end
+
+  def test_default_deconstruct_keys_anonymous_class_fallback
+    anon_class = Class.new { include Rooibos::Message::Predicates }
+    msg = anon_class.new
+    keys = msg.deconstruct_keys(nil)
+
+    assert_equal :custom, keys[:type], "Anonymous classes should default to :custom"
+  end
+
+  def test_to_sym_uses_default_deconstruct_keys
+    msg = MyCustomMessage.new
+
+    assert_equal :message_my_custom_message, msg.to_sym
+  end
+
+  def test_symbol_equality_with_default_deconstruct_keys
+    msg = MyCustomMessage.new
+
+    assert_operator msg, :==, :message_my_custom_message
+    refute_operator msg, :==, :message_simple_message
+  end
+
   # === Documentarian Example ===
   #
   # This shows how an app developer creates a custom message type

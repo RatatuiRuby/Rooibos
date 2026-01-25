@@ -55,7 +55,7 @@ class TestCLIRunIntegration < Minitest::Test
       lib_file = File.join(app_dir, "lib", "crashing_app.rb")
       content = File.read(lib_file)
       content = content.sub(
-        /Init = -> \{/,
+        "Init = -> {",
         "Init = -> {\n    raise \"Deliberate crash for testing\""
       )
       File.write(lib_file, content)
@@ -78,11 +78,23 @@ class TestCLIRunIntegration < Minitest::Test
             end
           end
         rescue Timeout::Error
-          Process.kill("KILL", pid) rescue nil
+          begin
+            Process.kill("KILL", pid)
+          rescue
+            nil
+          end
         end
 
-        Process.wait(pid) rescue nil
-        pty_out.close rescue nil
+        begin
+          Process.wait(pid)
+        rescue
+          nil
+        end
+        begin
+          pty_out.close
+        rescue
+          nil
+        end
       end
 
       # The output should contain our crash message

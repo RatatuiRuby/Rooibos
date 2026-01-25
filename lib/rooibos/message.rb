@@ -13,14 +13,73 @@ module Rooibos
   module Message
     # Fallback predicate mixin.
     #
-    # Returns +false+ for any unknown predicate method (ending in +?+).
-    # Include in custom message types for safe predicate calls.
+    # Update functions receive many message types. Checking unknown predicates
+    # crashes with NoMethodError. Verifying every predicate clutters the code.
+    #
+    # This mixin returns <tt>false</tt> for unknown predicates. It also adds
+    # symbol comparison via <tt>to_sym</tt> and <tt>==</tt>.
+    #
+    # Include in custom message types for safe predicate calls and symbol matching.
     module Predicates
-      # Returns +false+ for unknown predicate methods.
+      # Converts the message to a Symbol.
+      #
+      # Returns the <tt>:type</tt> value from <tt>deconstruct_keys</tt> prefixed
+      # with <tt>message_</tt>. The prefix avoids collision with RatatuiRuby
+      # event symbols like <tt>:resize</tt> or <tt>:mouse</tt>.
+      #
+      # === Example
+      #
+      #   timer = Message::Timer.new(envelope: :tick, elapsed: 0.016)
+      #   timer.to_sym # => :message_timer
+      def to_sym
+        :"message_#{deconstruct_keys(nil)[:type]}"
+      end
+
+      # Compares the message with another object.
+      #
+      # Symbols compare against <tt>to_sym</tt>. Other objects use default equality.
+      #
+      # === Example
+      #
+      #   if message == :message_timer
+      #     handle_tick(message)
+      #   end
+      def ==(other)
+        case other
+        when Symbol then to_sym == other
+        else super
+        end
+      end
+
+      # Returns <tt>false</tt> for unknown predicate methods.
       def method_missing(name, *args, **kwargs, &block)
         return false if name.to_s.end_with?("?") && args.empty? && kwargs.empty?
 
         super
+      end
+
+      # Fallback pattern matching for classes without explicit deconstruct_keys.
+      #
+      # Derives <tt>:type</tt> from the class name in snake_case. Anonymous
+      # classes default to <tt>:custom</tt>.
+      #
+      # === Example
+      #
+      #   class MyCustomMessage
+      #     include Rooibos::Message::Predicates
+      #   end
+      #
+      #   msg = MyCustomMessage.new
+      #   msg.deconstruct_keys(nil) # => { type: :my_custom_message }
+      #   msg.to_sym                # => :message_my_custom_message
+      def deconstruct_keys(_keys)
+        class_name = self.class.name&.split("::")&.last
+        type_name = if class_name
+          class_name.gsub(/([a-z])([A-Z])/, '\1_\2').downcase.to_sym
+        else
+          :custom
+        end
+        { type: type_name }
       end
 
       # Responds to all predicate methods.

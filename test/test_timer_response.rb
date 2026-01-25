@@ -24,4 +24,15 @@ class TestTimerResponse < Minitest::Test
       flunk "Pattern match failed"
     end
   end
+
+  def test_to_sym
+    msg = Rooibos::Message::Timer.new(envelope: :tick, elapsed: 0.016)
+    assert_equal :message_timer, msg.to_sym
+  end
+
+  def test_symbol_equality
+    msg = Rooibos::Message::Timer.new(envelope: :tick, elapsed: 0.016)
+    assert_operator msg, :==, :message_timer
+    refute_operator msg, :==, :message_http
+  end
 end

@@ -44,4 +44,19 @@ class TestHttpResponse < Minitest::Test
       flunk "Pattern match failed"
     end
   end
+
+  def test_to_sym
+    msg = Rooibos::Message::HttpResponse.new(
+      envelope: :api, status: 200, body: "OK", headers: {}, error: nil
+    )
+    assert_equal :message_http, msg.to_sym
+  end
+
+  def test_symbol_equality
+    msg = Rooibos::Message::HttpResponse.new(
+      envelope: :api, status: 200, body: "OK", headers: {}, error: nil
+    )
+    assert_operator msg, :==, :message_http
+    refute_operator msg, :==, :message_timer
+  end
 end
