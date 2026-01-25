@@ -95,13 +95,17 @@ module Rooibos
     #
     # == Explicit Parameters API
     #
-    # A root fragment is not required. You can pass individual parameters:
+    # Tests need deterministic state. Init reads from the filesystem, network, or
+    # environment—sources that change between runs. Injecting a known model makes
+    # tests reproducible.
+    #
+    # Pass <tt>model:</tt>, <tt>view:</tt>, and <tt>update:</tt> directly. The runtime
+    # skips Init and uses your model as the starting state.
     #
     #   Rooibos.run(
-    #     model: MyApp::Model.new(count: 0),
+    #     model: Ractor.make_shareable(MyApp::Model.new(count: 0)),
     #     view: MyApp::View,
-    #     update: MyApp::Update,
-    #     command: Command.http("https://api.example.com/data")
+    #     update: MyApp::Update
     #   )
     #
     # == Parameters

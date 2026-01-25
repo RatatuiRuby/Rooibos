@@ -13,8 +13,8 @@ Gem::Specification.new do |spec|
   spec.authors = ["Kerrick Long"]
   spec.email = ["me@kerricklong.com"]
 
-  spec.summary = "Part of the RatatuiRuby ecosystem"
-  spec.description = "Rooibos - part of the RatatuiRuby TUI framework ecosystem"
+  spec.summary = "☕ Confidently Build Terminal Apps"
+  spec.description = File.read(File.expand_path("README.rdoc", __dir__))
   spec.homepage = "https://rooibos.run"
   spec.license = "LGPL-3.0-or-later"
   spec.required_ruby_version = [">= 3.2.9", "< 5"]
