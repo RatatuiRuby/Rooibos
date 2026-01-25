@@ -591,22 +591,4 @@ class TestRuntime < Minitest::Test
     assert init_called, "Init should have been called"
     assert_equal 80, captured_size.width, "Init should be able to query terminal_size"
   end
-
-  # Verifies Init is called AFTER terminal is initialized.
-  def test_init_runs_after_terminal_initialized
-    captured_size = nil
-
-    fragment = Module.new
-    fragment.const_set(:Init, -> {
-      captured_size = RatatuiRuby.terminal_size
-      Ractor.make_shareable({ width: captured_size.width })
-    })
-    fragment.const_set(:Update, -> (_msg, m) { Rooibos::Command.exit })
-    fragment.const_set(:View, -> (_m, tui) { tui.clear })
-
-    RatatuiRuby::SyntheticEvents.push(RatatuiRuby::Event::Key.new(code: "q"))
-    Rooibos::Runtime.run(fragment)
-
-    refute_nil captured_size, "Init should have captured terminal size"
-  end
 end
