@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **rooibos CLI**: New command-line interface installed as executable when you install the gem. Provides `rooibos new APP_NAME` to scaffold a complete Rooibos application using `bundle gem` conventions, and `rooibos run` to launch the application. The scaffolded app includes a working TUI that displays "Hello, Rooibos!" and exits on q or Ctrl+C, plus a passing test demonstrating `Rooibos::TestHelper` patterns.
 
+- **Rooibos::Welcome**: Built-in welcome screen fragment available via `require "rooibos/welcome"`. Provides `Model`, `View`, `Update`, and `Init` constants that scaffolded apps delegate to. Features keyboard Tab/Shift+Tab focus cycling, mouse hover states, and clickable buttons for visiting the website or exiting. Use as a starting point or reference for building your own fragments.
+
 - **Command::Custom#deconstruct_keys**: Default pattern matching support for custom commands. Introspects public query methods and returns a hash with `:type` as a snake_case discriminator. Data.define members are included automatically. Respects the `keys` argument for performance optimization. Override for hot paths or metaprogrammed methods.
 
 - **Rooibos::TestHelper#assert_no_errors**: Test assertion to fail fast when `Message::Error` is unexpectedly present in collected messages. Works with Minitest (via `flunk`) and RSpec (via `raise`). Include via `include Rooibos::TestHelper`.

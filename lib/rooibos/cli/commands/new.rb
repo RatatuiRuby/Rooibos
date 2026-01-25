@@ -296,69 +296,15 @@ module Rooibos
             # frozen_string_literal: true
 
             require "rooibos"
+            require "rooibos/welcome"
 
+            # To get started, replace the following lines with your own code
+            # and remove the `require "rooibos/welcome"` line from above
             module #{module_name}
-              Model = Data.define
-
-              View = -> (model, tui) {
-                filename = tui.style(fg: :green)
-                command = tui.style(fg: :red)
-                website = tui.style(fg: :blue, modifiers: [:reversed])
-
-                welcome_text = tui.text_line(spans: [
-                  tui.text_span(content: "Welcome to Rooibos! You will find the Ruby code " \\
-                    "for this application in "),
-                  tui.text_span(content: "lib/#{gem_name}.rb", style: filename),
-                  tui.text_span(content: ". The tests that verify it are at "),
-                  tui.text_span(content: "test/test_#{gem_name}.rb", style: filename),
-                  tui.text_span(content: ". You can run the tests with "),
-                  tui.text_span(content: "bundle exec rake test", style: command),
-                  tui.text_span(content: ". Visit "),
-                  tui.text_span(content: "www.rooibos.run", style: website),
-                  tui.text_span(content: " to learn about Rooibos and to find other " \\
-                    "Rooibos developers. You can press "),
-                  tui.text_span(content: "Control + C", style: command),
-                  tui.text_span(content: " to quit at any time."),
-                ])
-
-                # Build paragraph first to measure its height
-                paragraph = tui.paragraph(
-                  text: welcome_text,
-                  wrap: true,
-                  alignment: :left
-                )
-
-                # Calculate content width: viewport - borders(2) - padding(2+2 horiz)
-                content_width = tui.viewport_area.width - 2 - 4
-                line_count = paragraph.line_count(content_width)
-
-                tui.block(
-                  title: "Hello, Rooibos!",
-                  borders: [:all],
-                  border_style: { fg: :cyan },
-                  padding: [2, 2, 1, 1],
-                  children: [
-                    tui.layout(
-                      direction: :vertical,
-                      flex: :center,
-                      constraints: [tui.constraint_length(line_count)],
-                      children: [paragraph]
-                    )
-                  ]
-                )
-              }
-
-              Update = -> (message, model) {
-                if message.ctrl_c?
-                  Rooibos::Command.exit
-                else
-                  model
-                end
-              }
-
-              Init = -> {
-                Ractor.make_shareable Model.new
-              }
+              Model  = Rooibos::Welcome::Model
+              View   = Rooibos::Welcome::View
+              Update = Rooibos::Welcome::Update
+              Init   = Rooibos::Welcome::Init
             end
           RUBY
         end

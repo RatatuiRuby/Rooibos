@@ -51,12 +51,12 @@ class TestCLIRunIntegration < Minitest::Test
 
       app_dir = File.join(@tmpdir, "crashing_app")
 
-      # Inject a crash into the app's Init
+      # Inject a crash by replacing Init delegation with a crashing lambda
       lib_file = File.join(app_dir, "lib", "crashing_app.rb")
       content = File.read(lib_file)
       content = content.sub(
-        "Init = -> {",
-        "Init = -> {\n    raise \"Deliberate crash for testing\""
+        /Init\s*=\s*Rooibos::Welcome::Init/,
+        'Init   = -> { raise "Deliberate crash for testing" }'
       )
       File.write(lib_file, content)
 

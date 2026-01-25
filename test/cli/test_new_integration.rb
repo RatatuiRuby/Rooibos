@@ -73,12 +73,14 @@ class TestCLINewIntegration < Minitest::Test
       lib_content = File.read(File.join("test_app", "lib", "test_app.rb"))
       assert_includes lib_content, "module TestApp",
         "Expected lib file to define TestApp module"
-      assert_includes lib_content, "Init =",
-        "Expected lib file to define Init"
-      assert_includes lib_content, "Update =",
-        "Expected lib file to define Update"
-      assert_includes lib_content, "View =",
-        "Expected lib file to define View"
+      assert_includes lib_content, "Model  = Rooibos::Welcome::Model",
+        "Expected lib file to delegate Model"
+      assert_includes lib_content, "View   = Rooibos::Welcome::View",
+        "Expected lib file to delegate View"
+      assert_includes lib_content, "Update = Rooibos::Welcome::Update",
+        "Expected lib file to delegate Update"
+      assert_includes lib_content, "Init   = Rooibos::Welcome::Init",
+        "Expected lib file to delegate Init"
     end
   end
 

@@ -11,6 +11,7 @@ require_relative "rooibos/message"
 require_relative "rooibos/command"
 require_relative "rooibos/runtime"
 require_relative "rooibos/router"
+require_relative "rooibos/welcome"
 
 # The Elm Architecture for Ruby.
 #

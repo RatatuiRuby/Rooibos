@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Part of the RatatuiRuby ecosystem"
   spec.description = "Rooibos - part of the RatatuiRuby TUI framework ecosystem"
-  spec.homepage = "https://sr.ht/~kerrick/ratatui_ruby/"
+  spec.homepage = "https://rooibos.run"
   spec.license = "LGPL-3.0-or-later"
   spec.required_ruby_version = [">= 3.2.9", "< 5"]
 
@@ -27,7 +27,7 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"] = "https://git.sr.ht/~kerrick/rooibos/tree/stable/item/CHANGELOG.md"
   spec.metadata["documentation_uri"] = "https://git.sr.ht/~kerrick/rooibos/tree/HEAD/doc/index.md"
   spec.metadata["wiki_uri"] = "https://man.sr.ht/~kerrick/ratatui_ruby/"
-  spec.metadata["funding_uri"] = "https://opencollective.com/ratatui" # Don't fund me, fund the upstream project.
+  spec.metadata["funding_uri"] = "https://opencollective.com/ratatui"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   gemspec = File.basename(__FILE__)

@@ -12,3 +12,9 @@ module Gem
     def segments: () -> Array[Integer | String]
   end
 end
+
+# Local shim for RatatuiRuby.terminal_size alias not in upstream RBS.
+# The Ruby gem has: alias terminal_size get_terminal_size
+module RatatuiRuby
+  def self.terminal_size: () -> RatatuiRuby::Layout::Rect
+end

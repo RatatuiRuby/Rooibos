@@ -1,0 +1,75 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  # Built-in welcome screen used by scaffolded applications.
+  module Welcome
+    WEBSITE_URL: String
+
+    # Internal UI module for styles and widgets.
+    module UI
+      module Styles
+        TEXT: RatatuiRuby::Style::Style
+        FILENAME: RatatuiRuby::Style::Style
+        COMMAND: RatatuiRuby::Style::Style
+        URL: RatatuiRuby::Style::Style
+        COMMAND_BUTTON: RatatuiRuby::Style::Style
+        COMMAND_BUTTON_FOCUS: RatatuiRuby::Style::Style
+        COMMAND_BUTTON_HOVER: RatatuiRuby::Style::Style
+        COMMAND_BUTTON_BOTH: RatatuiRuby::Style::Style
+        URL_BUTTON: RatatuiRuby::Style::Style
+        URL_BUTTON_FOCUS: RatatuiRuby::Style::Style
+        URL_BUTTON_HOVER: RatatuiRuby::Style::Style
+        URL_BUTTON_BOTH: RatatuiRuby::Style::Style
+      end
+
+      module Widgets
+        WELCOME_TEXT: Hash[String, RatatuiRuby::Style::Style]
+        PARAGRAPH: RatatuiRuby::Widgets::Paragraph
+        def self.website_button: (?focused: bool, ?hovered: bool) -> RatatuiRuby::Text::Span
+        def self.exit_button: (?focused: bool, ?hovered: bool) -> RatatuiRuby::Text::Span
+      end
+
+      BUTTON_SLOTS: Hash[Symbol, Integer]
+      FOCUS_ORDER: Array[Symbol]
+      BUTTON_BAR_CONSTRAINTS: Array[RatatuiRuby::Layout::Constraint]
+      CONTENT_CONSTRAINTS: Array[RatatuiRuby::Layout::Constraint]
+
+      def self.button_bar: (focused: Symbol?, hovered: Symbol?) -> RatatuiRuby::Layout::Layout
+      def self.content_layout: (focused: Symbol?, hovered: Symbol?) -> RatatuiRuby::Layout::Layout
+      def self.frame: (focused: Symbol?, hovered: Symbol?) -> RatatuiRuby::Widgets::Block
+
+      # Value object for button hit-test areas.
+      class ButtonAreas
+        attr_reader website: RatatuiRuby::Layout::Rect?
+        attr_reader exit: RatatuiRuby::Layout::Rect?
+        def initialize: (website: RatatuiRuby::Layout::Rect?, exit: RatatuiRuby::Layout::Rect?) -> void
+        def contains?: (Symbol name, Integer x, Integer y) -> bool
+        def button_at: (Integer x, Integer y) -> Symbol?
+        def for_viewport: (Integer width, Integer height) -> ButtonAreas
+      end
+    end
+
+    # Model for Welcome screen state.
+    class Model
+      attr_reader button_areas: UI::ButtonAreas
+      attr_reader focused: Symbol?
+      attr_reader hovered: Symbol?
+      def initialize: (button_areas: UI::ButtonAreas, focused: Symbol?, hovered: Symbol?) -> void
+      def tree: () -> RatatuiRuby::Widgets::Block
+      def active_button: () -> Symbol?
+      def with: (?button_areas: UI::ButtonAreas, ?focused: Symbol?, ?hovered: Symbol?) -> Model
+    end
+
+    View: ^(Model, untyped) -> RatatuiRuby::Widgets::Block
+    Update: ^(untyped, Model) -> (Model | Command::Exit | [Model, Command::System])
+    Init: ^() -> Model
+
+    def self.handle_click: (untyped message, Model model) -> (Model | Command::Exit | [Model, Command::System])
+    def self.handle_hover: (untyped message, Model model) -> Model
+    def self.cycle_focus: (Model model, Symbol direction) -> Model
+    def self.activate_button: (Symbol? button, Model model) -> (Model | Command::Exit | [Model, Command::System])
+  end
+end
