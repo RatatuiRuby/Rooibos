@@ -43,7 +43,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "ratatui_ruby", "~> 1.0.0.beta.3"
-  spec.add_dependency "ostruct", "~> 0.6"
   spec.add_dependency "concurrent-ruby", "~> 1.3"
   spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
   spec.add_development_dependency "rdoc", "~> 7.0"
