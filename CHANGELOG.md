@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Init runs after terminal initialization**: `Init` callables now run after the terminal is initialized, enabling them to call `RatatuiRuby.terminal_size`, compute layout areas, or perform other terminal-dependent initialization. Previously Init ran before the terminal was ready, causing "Terminal is not initialized" errors.
 
+- **FPS timeout uses float division**: The runtime now uses `1.0 / fps` instead of `1 / fps` for poll timeout calculation. Integer division caused `1 / 60` to yield 0, resulting in busy-wait CPU spinning at 100%.
+
 ### Removed
 
 - **BREAKING: Command::Error class**: Removed. Use `Message::Error` instead.

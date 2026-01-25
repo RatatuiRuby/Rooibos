@@ -40,6 +40,34 @@ class TestRuntime < Minitest::Test
     assert_equal model, result
   end
 
+  def test_fps_calculates_float_timeout
+    # fps: 60 should result in timeout ~0.0167, not 0 (integer division bug)
+    # When timeout is 0, poll_event never blocks and CPU spins at 100%
+    captured_timeout = nil
+
+    model = Ractor.make_shareable({ count: 0 }, copy: true)
+    view = -> (_m, tui) { tui.clear }
+    update = -> (_msg, _m) { Rooibos::Command.exit }
+
+    with_test_terminal do
+      inject_key("q")
+
+      # Spy on poll_event to capture the timeout value
+      original_poll = RatatuiRuby.method(:poll_event)
+      RatatuiRuby.stub(:poll_event, ->(timeout: nil) {
+        captured_timeout = timeout
+        original_poll.call(timeout:)
+      }) do
+        Rooibos::Runtime.run(model:, view:, update:, fps: 60)
+      end
+    end
+
+    # The timeout should be a float > 0, not integer 0
+    assert_kind_of Float, captured_timeout, "timeout should be a Float, not Integer"
+    assert_operator captured_timeout, :>, 0, "timeout should be positive (not 0 from integer division)"
+    assert_in_delta 1.0 / 60, captured_timeout, 0.001, "timeout should be ~0.0167 for 60fps"
+  end
+
   def test_view_receives_model_and_tui
     model = Ractor.make_shareable({ text: "hello" }, copy: true)
     view_args = nil

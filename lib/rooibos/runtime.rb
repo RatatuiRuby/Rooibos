@@ -121,7 +121,7 @@ module Rooibos
       @view = @fragment::View
       @update = @fragment::Update
       @init_callable = init_callable
-      @timeout = 1 / fps
+      @timeout = 1.0 / fps
 
       start_runtime
     end
