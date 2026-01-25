@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Message Symbol Comparison**: All `Message::*` types now support symbol comparison via `to_sym` and `==`, similar to RatatuiRuby events. Symbols use the `message_` prefix to avoid collision with event types: `msg == :message_timer`, `msg == :message_http`, `msg == :message_error`. `Message::Predicates` also provides a smart-default `deconstruct_keys` that derives `:type` from the class name.
 
+- **Rooibos::Message.=== for case/when dispatch**: The `Rooibos::Message` module now implements `===` for use in case/when statements. Matches only built-in framework message types (classes under `Rooibos::Message::`), rejecting key events and user-defined message classes. Enables Update functions to distinguish framework responses from user input.
+
 - **Command.open**: Opens a file or URL with the system's default application. Cross-platform: uses `open` on macOS, `xdg-open` on Linux, `start` on Windows. Sends `Message::Open` on success (exit 0) or `Message::Error` on failure.
 
 ### Changed

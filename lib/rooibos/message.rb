@@ -11,6 +11,10 @@ module Rooibos
   # All built-in response types live here. Each includes the +Predicates+
   # mixin for safe predicate calls.
   module Message
+    def self.===(other)
+      other.class.name&.start_with?("Rooibos::Message::")
+    end
+
     # Fallback predicate mixin.
     #
     # Update functions receive many message types. Checking unknown predicates
