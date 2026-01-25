@@ -9,9 +9,6 @@ source "https://rubygems.org"
 
 gemspec
 
-# Use local development version for cross-gem development
-gem "ratatui_ruby", "~> 0.10.2"
-
 gem "irb"
 gem "rake", "~> 13.0"
 
