@@ -15,8 +15,10 @@ packages:
   - libffi
   - clang
   - git
+artifacts:
+  - rooibos/pkg/rooibos-0.5.0.gem
 sources:
-  - https://git.sr.ht/~kerrick/ratatui_ruby-tea
+  - https://git.sr.ht/~kerrick/rooibos
 tasks:
   - setup: |
       curl https://mise.jdx.dev/install.sh | sh
@@ -27,7 +29,7 @@ tasks:
       echo 'export BINDGEN_EXTRA_CLANG_ARGS="-include stdbool.h"' >> ~/.buildenv
       . ~/.buildenv
       export CI="true"
-      cd ratatui_ruby-tea
+      cd rooibos
       sed -i 's/ruby = .*/ruby = "3.4"/' mise.toml
       mise install
       mise x -- pip install reuse
@@ -37,15 +39,17 @@ tasks:
       mise x -- bundle install
   - test: |
       . ~/.buildenv
-      cd ratatui_ruby-tea
+      cd rooibos
+      echo "Installing rooibos gem globally for integration tests..."
+      mise x -- bundle exec rake install:force
       echo "Testing Ruby 3.4"
       mise x -- bundle exec rake test
   - lint: |
       . ~/.buildenv
-      cd ratatui_ruby-tea
+      cd rooibos
       echo "Linting Ruby 3.4"
       mise x -- bundle exec rake lint
   - package: |
       . ~/.buildenv
-      cd ratatui_ruby-tea
+      cd rooibos
       mise x -- bundle exec rake build
