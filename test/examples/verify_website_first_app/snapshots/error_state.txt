@@ -1,0 +1,10 @@
+┌Sorry, opening the selected file failed.──────────────────┐
+│a                                                         │
+│b                                                         │
+│c                                                         │
+│                                                          │
+│                                                          │
+│                                                          │
+│                                                          │
+│                                                          │
+└ome/End: Select | Enter: Open | Esc: Navigate Up | q: Quit┘

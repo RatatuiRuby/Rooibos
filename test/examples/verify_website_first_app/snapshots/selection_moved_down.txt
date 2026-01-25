@@ -1,0 +1,10 @@
+┌/var/folders/8z/6dpxzjws1yb2w97h85hkwjfw0000gn/T/d20260125┐
+│a                                                         │
+│b                                                         │
+│c                                                         │
+│                                                          │
+│                                                          │
+│                                                          │
+│                                                          │
+│                                                          │
+└ome/End: Select | Enter: Open | Esc: Navigate Up | q: Quit┘
