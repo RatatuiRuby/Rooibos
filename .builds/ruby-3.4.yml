@@ -16,7 +16,7 @@ packages:
   - clang
   - git
 artifacts:
-  - rooibos/pkg/rooibos-0.5.0.gem
+  - rooibos/pkg/rooibos-0.6.0.gem
 sources:
   - https://git.sr.ht/~kerrick/rooibos
 tasks:
