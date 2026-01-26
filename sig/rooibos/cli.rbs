@@ -25,6 +25,7 @@ module Rooibos
         def self.git_enabled?: (Array[String]) -> bool
         def self.make_initial_commit: (Pathname) -> void
         def self.to_module_name: (String) -> String
+        def self.fix_gemspec_placeholders: (String) -> String
         def self.exe_template: (String, String) -> String
         def self.app_template: (String, String) -> String
         def self.test_template: (String, String) -> String

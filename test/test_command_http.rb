@@ -684,6 +684,9 @@ class TestCommandHttp < Minitest::Test
 
   public def test_http_new_accepts_parser_keyword
     # Http.new with parser: stores it on instance
+    # Method objects became Ractor-shareable in Ruby 4.0 (commit 4c893e2ff1)
+    skip "Method objects not Ractor-shareable before Ruby 4.0" if RUBY_VERSION < "4.0"
+
     require "json"
     parser = Ractor.make_shareable(JSON.method(:parse))
     cmd = Rooibos::Command::Http.new(get: "http://example.com", parser:)

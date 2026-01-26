@@ -183,6 +183,10 @@ module Rooibos
           if gemspec_files.any?
             gemspec_file = gemspec_files.first
             content = File.read(gemspec_file)
+
+            # Comment out placeholder lines that RubyGems 3.x validates
+            content = fix_gemspec_placeholders(content)
+
             # Check if already has rooibos dependency
             unless content.match?(/add_(?:runtime_)?dependency.*rooibos/)
               # Use Gem::Version to handle prerelease versions correctly
@@ -193,9 +197,10 @@ module Rooibos
                 /^end\s*\z/m,
                 "\n  # https://www.rooibos.run\n  spec.add_runtime_dependency \"rooibos\", \"~> #{minor_version}\"\nend\n"
               )
-              File.write(gemspec_file, content)
-              puts "Added rooibos to #{gemspec_file}"
             end
+
+            File.write(gemspec_file, content)
+            puts "Updated #{gemspec_file}"
           end
 
           # Run bundle install unless user passed --no-bundle
@@ -279,6 +284,13 @@ module Rooibos
           gem_name.split(/[-_]/).map(&:capitalize).join
         end
         private_class_method :to_module_name
+
+        # Comments out gemspec lines containing TODO or empty string assignments.
+        # RubyGems 3.x validates these during Bundler.setup and rejects them.
+        def self.fix_gemspec_placeholders(content)
+          content.gsub(/^(\s*spec\.\w+.*(?:"TODO:|"\s*"))/, '# \1')
+        end
+        private_class_method :fix_gemspec_placeholders
 
         def self.exe_template(gem_name, module_name)
           <<~RUBY
