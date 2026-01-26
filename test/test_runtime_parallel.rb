@@ -118,6 +118,7 @@ class TestRuntimeParallel < Minitest::Test
     with_test_terminal do
       inject_key("b")
       inject_key("c")
+      inject_sync # Wait for cancellation messages
       inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end

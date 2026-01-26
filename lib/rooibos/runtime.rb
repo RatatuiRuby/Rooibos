@@ -8,6 +8,10 @@
 require "ratatui_ruby"
 require "concurrent-edge"
 
+# Enable inline sync mode for deterministic event ordering in tests.
+# This ensures poll_event returns Event::Sync in sequence with key events.
+RatatuiRuby::SyntheticEvents.inline_sync!
+
 module Rooibos
   # Runs the Model-View-Update event loop.
   #
@@ -186,7 +190,6 @@ module Rooibos
             loop do
               draw_view
               handle_ratatui_event
-              handle_sync
               send_pending_messages
             end
           end
@@ -329,37 +332,22 @@ module Rooibos
 
       private def handle_ratatui_event
         message = @tui.poll_event(timeout: @timeout)
-        return if message.none?
+        return false if message.none?
+
+        # Handle sync events: wait for pending async work before continuing
+        if message.sync?
+          @pending_futures.each(&:wait)
+          @pending_futures.clear
+          Thread.pass
+          send_pending_messages
+          return true
+        end
 
         @model, @command = normalize_update_return(@update.call(message, @model), @model)
         validate_ractor_shareable!(@model, "model")
         throw QUIT if Command::Exit === @command
         dispatch_command
-      end
-
-      # This must come *after* handle_ratatui_event so Sync waits for commands
-      # dispatched by the preceding event. For example, in a test:
-      #
-      #   inject_key("a")
-      #   inject_sync
-      #
-      # We need <kbd>a</kbd> to call the Update and queue its message before
-      # processing the Sync.
-      private def handle_sync
-        if RatatuiRuby::SyntheticEvents.pending?
-          synthetic = RatatuiRuby::SyntheticEvents.pop
-          if synthetic&.sync?
-            # Wait for all pending futures to complete
-            @pending_futures.each(&:wait)
-            @pending_futures.clear
-
-            # Yield to ensure any final queue writes are visible
-            Thread.pass
-
-            # Process all pending message queue items
-            send_pending_messages
-          end
-        end
+        true # Event was processed
       end
 
       QUEUE_EMPTY = Object.new.freeze
@@ -387,7 +375,9 @@ module Rooibos
         future = if @command.nil?
           nil
         elsif Command::Cancel === @command
-          @lifecycle.cancel(@command.handle)
+          entry = @lifecycle.cancel(@command.handle)
+          # Remove cancelled future from pending list so sync doesn't wait for it
+          @pending_futures.delete(entry.future) if entry
           nil
         elsif @command.respond_to?(:rooibos_command?) && @command.rooibos_command?
           entry = @lifecycle.run_async(@command, @message_queue)

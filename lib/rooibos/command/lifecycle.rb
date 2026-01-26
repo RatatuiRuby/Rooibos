@@ -113,6 +113,7 @@ module Rooibos
         entry.future.wait(grace.finite? ? grace : nil)
 
         @active.delete(command)
+        entry # Return so caller can remove from pending_futures
       end
 
       # Cancels all active commands and waits for them to complete.

@@ -131,7 +131,7 @@ class TestRuntimeTimer < Minitest::Test
       when RatatuiRuby::Event::Key
         case msg.code
         when "w"
-          cmd = Rooibos::Command.wait(10.0, :timeout)
+          cmd = Rooibos::Command.wait(1.0, :timeout)
           original_cmd = cmd
           [Ractor.make_shareable({ cmd: }), cmd]
         when "c"
@@ -148,9 +148,10 @@ class TestRuntimeTimer < Minitest::Test
     end
 
     with_test_terminal do
-      inject_key("w")  # Start 10s wait
-      inject_key("c")  # Cancel it
-      inject_key("q")  # Quit
+      inject_key("w")  # Start 1s wait
+      inject_key("c")  # Cancel it before it completes
+      inject_sync # Wait for cancellation to process
+      inject_key("q") # Quit
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
