@@ -41,9 +41,9 @@ tui.list(items: model.entries.map(&ListItem[model, tui]),
 
     if message.ctrl_c? || message.q? then Rooibos::Command.exit
     elsif message.home? || message.g? then model.with(selected: model.entries.first)
-    elsif message.end? || (message.key? && message.shift_G?) then model.with(selected: model.entries.last)
-    elsif (message.key? && message.up?) || message.k? then Select[:-, model]
-    elsif (message.key? && message.down?) || message.j? then Select[:+, model]
+    elsif message.end? || message.G? then model.with(selected: model.entries.last)
+    elsif message.up_arrow? || message.k? then Select[:-, model]
+    elsif message.down_arrow? || message.j? then Select[:+, model]
     elsif message.enter? then Open[model]
     elsif message.escape? then Navigate[File.dirname(model.path), model]
     end

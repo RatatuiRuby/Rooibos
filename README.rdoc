@@ -6,7 +6,7 @@ keyboard, mouse, and async work so you can focus on behavior and user experience
 
   gem install rooibos
 
-<i>Currently in alpha. APIs may change before 1.0.</i>
+<i>Currently in beta. APIs may change before 1.0.</i>
 
 === Get Started in Seconds
 

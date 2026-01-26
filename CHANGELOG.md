@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **BREAKING: Timer/Batch Cancellation → Message::Canceled**: When `Command.wait`, `Command.tick`, `Command.all`, or `Command.batch` are canceled, they now send `Message::Canceled` instead of `Command.cancel(self)`. Custom command authors should do the same: when `token.canceled?`, emit `Message::Canceled.new(command: self)`. Update pattern matches from `in Command::Cancel` to `in Message::Canceled` or `in { type: :canceled, command: }`.
 
+- **Dependency Update**: Now requires `ratatui_ruby ~> 1.1.0` (was `~> 1.0.0.beta.3`). This is the first stable release of the core engine.
+
 ### Fixed
 
 - **Init runs after terminal initialization**: `Init` callables now run after the terminal is initialized, enabling them to call `RatatuiRuby.terminal_size`, compute layout areas, or perform other terminal-dependent initialization. Previously Init ran before the terminal was ready, causing "Terminal is not initialized" errors.

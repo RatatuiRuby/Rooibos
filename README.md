@@ -20,11 +20,11 @@ Mailing List: Announcements](https://img.shields.io/badge/mailing_list-announcem
 **ratatui_ruby** is a community wrapper that is not affiliated with [the Ratatui team](https://github.com/orgs/ratatui/people).
 
 > [!WARNING]
-> **rooibos** is currently in **ALPHA**. The API may change with minor versions.
+> **rooibos** is currently in **BETA**. The API may change with minor versions.
 
 **[Why RatatuiRuby?](https://man.sr.ht/~kerrick/ratatui_ruby/why.md)** — Native Rust performance, zero runtime overhead, and Ruby's expressiveness. [See how we compare](https://man.sr.ht/~kerrick/ratatui_ruby/why.md) to CharmRuby, raw Rust, and Go.
 
-Please join the **announce** mailing list at https://lists.sr.ht/~kerrick/ratatui_ruby-announce to stay up-to-date on new releases and announcements. See the [`trunk` branch](https://git.sr.ht/~kerrick/rooibos/tree/trunk) for alpha updates.
+Please join the **announce** mailing list at https://lists.sr.ht/~kerrick/ratatui_ruby-announce to stay up-to-date on new releases and announcements. See the [`trunk` branch](https://git.sr.ht/~kerrick/rooibos/tree/trunk) for pre-release updates.
 
 ---
 

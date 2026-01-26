@@ -66,11 +66,11 @@ gems:
   source:
     type: stdlib
 - name: prism
-  version: 1.7.0
+  version: 1.8.0
   source:
     type: rubygems
 - name: ratatui_ruby
-  version: 0.10.2
+  version: 1.1.0
   source:
     type: rubygems
 - name: ratatui_ruby-devtools
