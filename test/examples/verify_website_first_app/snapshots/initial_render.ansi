@@ -1,10 +1,10 @@
-[0m┌/var/folders/8z/6dpxzjws1yb2w97h85hkwjfw0000gn/T/d20260125┐[0m
-[0m│[0m[7m[34mlib/                                                      [0m│[0m
-[0m│[34mtest/                                                     │[0m
-[0m│Gemfile                                                   │[0m
-[0m│README.md                                                 │[0m
-[0m│                                                          │[0m
-[0m│                                                          │[0m
-[0m│                                                          │[0m
-[0m│                                                          │[0m
-[0m└ome/End: Select | Enter: Open | Esc: Navigate Up | q: Quit┘[0m
+[0m┌/tmp/test───────────────────────────────────────────────────────────────────────────────────────────────────────────┐[0m
+[0m│[0m[7m[34mlib/                                                                                                                  [0m│[0m
+[0m│[34mtest/                                                                                                                 │[0m
+[0m│Gemfile                                                                                                               │[0m
+[0m│README.md                                                                                                             │[0m
+[0m│                                                                                                                      │[0m
+[0m│                                                                                                                      │[0m
+[0m│                                                                                                                      │[0m
+[0m│                                                                                                                      │[0m
+[0m└───────────────────────────────────────────────────────↑/↓/Home/End: Select | Enter: Open | Esc: Navigate Up | q: Quit┘[0m

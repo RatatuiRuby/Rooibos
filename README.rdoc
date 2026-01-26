@@ -6,7 +6,7 @@ keyboard, mouse, and async work so you can focus on behavior and user experience
 
   gem install rooibos
 
-_Currently in beta. APIs may change before 1.0._
+<i>Currently in alpha. APIs may change before 1.0.</i>
 
 === Get Started in Seconds
 
@@ -203,7 +203,8 @@ Every command produces a message, and Update handles it the same way.
 
 ==== Testing
 
-TUIs are notoriously hard to test. \Rooibos makes them testable.
+\Rooibos makes TUIs so easy to test, you'll save more time by writing tests than
+by not testing.
 
 <b>Unit test Update, View, and Init.</b> No terminal needed. Test helpers included.
 
@@ -234,7 +235,7 @@ TUIs are notoriously hard to test. \Rooibos makes them testable.
 <b>System tests.</b> Inject events, run the full app, snapshot the result.
 
   def test_selection_moves_down
-    with_test_terminal(60, 10) do
+    with_test_terminal(120, 30) do
       Dir.mktmpdir do |dir|
         FileUtils.touch(File.join(dir, "a"))
         FileUtils.touch(File.join(dir, "b"))
@@ -251,13 +252,19 @@ TUIs are notoriously hard to test. \Rooibos makes them testable.
           update: FileBrowser::Update
         )
 
-        assert_snapshots("selection_moved_down")
+        assert_snapshots("selection_moved_down") do |lines|
+          title = "┌/tmp/test#{'─' * 107}┐"
+          lines.map do |l|
+            l.gsub(/┌#{Regexp.escape(dir)}[^┐]*┐/, title)
+          end
+        end
       end
     end
   end
 
-Snapshots record both plain text and ANSI colors. Run <tt>UPDATE_SNAPSHOTS=1
-rake test</tt> to regenerate baselines after intentional changes.
+Snapshots record both plain text and ANSI colors. Normalization blocks mask
+dynamic content (timestamps, temp paths) for cross-platform reproducibility.
+Run <tt>UPDATE_SNAPSHOTS=1 rake test</tt> to regenerate baselines.
 
 ==== Scale Up
 
@@ -282,6 +289,8 @@ The Router DSL eliminates boilerplate:
     end
 
     Update = from_router
+
+    # ... Model, Init, View below
   end
 
 Declare routes and keymaps. The router generates Update for you. Use guards to

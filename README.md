@@ -24,7 +24,7 @@ Mailing List: Announcements](https://img.shields.io/badge/mailing_list-announcem
 
 **[Why RatatuiRuby?](https://man.sr.ht/~kerrick/ratatui_ruby/why.md)** — Native Rust performance, zero runtime overhead, and Ruby's expressiveness. [See how we compare](https://man.sr.ht/~kerrick/ratatui_ruby/why.md) to CharmRuby, raw Rust, and Go.
 
-Please join the **announce** mailing list at https://lists.sr.ht/~kerrick/ratatui_ruby-announce to stay up-to-date on new releases and announcements. See the [`trunk` branch](https://git.sr.ht/~kerrick/rooibos/tree/trunk) for pre-release updates.
+Please join the **announce** mailing list at https://lists.sr.ht/~kerrick/ratatui_ruby-announce to stay up-to-date on new releases and announcements. See the [`trunk` branch](https://git.sr.ht/~kerrick/rooibos/tree/trunk) for alpha updates.
 
 ---
 
@@ -146,7 +146,7 @@ For a full tutorial, see [the Quickstart](./doc/getting_started/quickstart.md). 
 
 ## Features
 
-_Because this gem is in pre-release, it lacks documentation. Please check the source files.
+_Because this gem is in alpha, it lacks documentation. Please check the source files._
 
 
 ## Documentation

@@ -18,7 +18,7 @@ class TestFileBrowserSystem < Minitest::Test
   include Rooibos::TestHelper
 
   def test_initial_render
-    with_test_terminal(60, 10) do
+    with_test_terminal(120, 10) do
       with_test_directory(%w[README.md Gemfile lib/ test/]) do |dir|
         inject_key(:ctrl_c)
 
@@ -29,13 +29,13 @@ class TestFileBrowserSystem < Minitest::Test
           update: FileBrowser::Update
         )
 
-        assert_snapshots("initial_render")
+        assert_snapshots("initial_render") { |lines| normalize_paths(lines, dir) }
       end
     end
   end
 
   def test_selection_moves_down
-    with_test_terminal(60, 10) do
+    with_test_terminal(120, 10) do
       with_test_directory(%w[a b c]) do |dir|
         inject_key(:down)
         inject_key(:ctrl_c)
@@ -46,13 +46,13 @@ class TestFileBrowserSystem < Minitest::Test
           update: FileBrowser::Update
         )
 
-        assert_snapshots("selection_moved_down")
+        assert_snapshots("selection_moved_down") { |lines| normalize_paths(lines, dir) }
       end
     end
   end
 
   def test_error_state_render
-    with_test_terminal(60, 10) do
+    with_test_terminal(120, 10) do
       with_test_directory(%w[a b c]) do |dir|
         inject_key(:q)
 
@@ -62,7 +62,7 @@ class TestFileBrowserSystem < Minitest::Test
           update: FileBrowser::Update
         )
 
-        assert_snapshots("error_state")
+        assert_snapshots("error_state") { |lines| normalize_paths(lines, dir) }
       end
     end
   end
@@ -84,6 +84,15 @@ class TestFileBrowserSystem < Minitest::Test
         end
       end
       block.call(dir)
+    end
+  end
+
+  # Normalize platform-specific temp paths for snapshot portability.
+  # Replaces dynamic path + trailing dashes with canonical 120-char title bar.
+  private def normalize_paths(lines, dir)
+    title = "┌/tmp/test#{'─' * 107}┐"
+    lines.map do |l|
+      l.gsub(/┌#{Regexp.escape(dir)}[^┐]*┐/, title)
     end
   end
 end
