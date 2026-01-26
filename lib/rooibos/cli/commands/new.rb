@@ -285,10 +285,35 @@ module Rooibos
         end
         private_class_method :to_module_name
 
-        # Comments out gemspec lines containing TODO or empty string assignments.
-        # RubyGems 3.x validates these during Bundler.setup and rejects them.
+        # Fixes gemspec placeholder lines that RubyGems 3.x+ rejects.
+        # Required fields get valid placeholder values; optional metadata block is deleted.
         def self.fix_gemspec_placeholders(content)
-          content.gsub(/^(\s*spec\.\w+.*(?:"TODO:|"\s*"))/, '# \1')
+          result = content
+
+          # Replace required field TODOs with valid placeholders
+          result = result.gsub(
+            /^(\s*spec\.summary\s*=\s*)"TODO:[^"]*"/,
+            '\1"A Rooibos TUI application"'
+          )
+          result = result.gsub(
+            /^(\s*spec\.description\s*=\s*)"TODO:[^"]*"/,
+            '\1"A terminal user interface application built with Rooibos"'
+          )
+          result = result.gsub(
+            /^(\s*spec\.homepage\s*=\s*)"TODO:[^"]*"/,
+            '\1"https://www.rooibos.run"'
+          )
+          result = result.gsub(
+            /^(\s*spec\.authors\s*=\s*)\["TODO:[^\]]*"\]/,
+            '\1["Author"]'
+          )
+          result = result.gsub(
+            /^(\s*spec\.email\s*=\s*)\["TODO:[^\]]*"\]/,
+            '\1["author@example.com"]'
+          )
+
+          # Delete the entire metadata block (optional and causes validation issues)
+          result.gsub(/^\s*spec\.metadata\["[^"]*"\]\s*=.*\n/, "")
         end
         private_class_method :fix_gemspec_placeholders
 
