@@ -5,15 +5,211 @@
 
 # Fractal Architecture
 
+After reading this guide, you will know:
 
-By the end of this guide, you will:
+- How to compose child fragments using the Router DSL
+- How to route parent messages to the correct child
+- How to use the Router DSL to simplify complex routing
+- When fractal architecture is worth the complexity
 
-- Compose child fragments using `Command.map`
-- Route parent messages to the correct child
-- Use the Router DSL to simplify complex routing
-- Decide when fractal architecture is worth the complexity
+---
 
-> ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
+## Context
+
+Your app starts simple. One Model, one Update, one View. A file browser fits in a single module.
+
+Then features grow. The file browser gains a preview pane. A status bar. Multiple tabs. A command palette.
+
+## Problem
+
+Big apps become unmanageable. A single Update function handles dozens of message types. The Model grows to twenty fields. Testing requires mocking the entire world.
+
+Worse: you can't reuse code. The preview pane logic is tangled with the tab logic. Extracting it would mean untangling a web of dependencies.
+
+## Solution
+
+Rooibos supports **fractal architecture**. Each piece of your UI can be its own fragment with:
+
+- Its own **Init** — setting up its initial model
+- Its own **Update** — handling only its own messages
+- Its own **View** — returning only its own widget subtree
+
+The parent composes these together. It's turtles all the way down — or all the way up.
+
+---
+
+## A Fragment Is Just a Module
+
+A fragment is any module with `Model`, `Init`, `Update`, and `View`:
+
+```ruby
+module PreviewPane
+  PaneContent = Data.define(:content, :scroll_position)
+
+  Init = -> {
+    PaneContent.new(content: "", scroll_position: 0)
+  }
+
+  Update = -> (message, model) {
+    case message
+    in { type: :routed, envelope: :scroll_down }
+      model.with(scroll_position: model.scroll_position + 1)
+    in { type: :routed, envelope: :scroll_up }
+      model.with(scroll_position: [0, model.scroll_position - 1].max)
+    else
+      model
+    end
+  }
+
+  View = -> (model, tui) {
+    tui.paragraph(text: model.content)
+  }
+end
+```
+
+This fragment knows nothing about its parent. It receives messages, updates its model, renders its view. That's it.
+
+---
+
+## Model Composition
+
+The parent's Model holds child models as fields:
+
+```ruby
+module FileBrowser
+  # Parent model contains child models
+  Model = Data.define(:files, :preview, :status_bar)
+
+  Init = -> {
+    files = FileList::Init.()
+    preview = PreviewPane::Init.()
+    status = StatusBar::Init.()
+
+    Model.new(files:, preview:, status_bar: status)
+  }
+end
+```
+
+Each child model is independent. The parent just holds references.
+
+---
+
+## The Router Handles Dispatch
+
+Instead of writing dispatch logic manually, use the Router DSL:
+
+```ruby
+module FileBrowser
+  include Rooibos::Router
+
+  Model = Data.define(:files, :preview, :status_bar)
+
+  route :files, to: FileList
+  route :preview, to: PreviewPane
+  route :status_bar, to: StatusBar
+
+  action move_down: FileList, keys: %i[down j]
+  action move_up: FileList, keys: %i[up k]
+  action scroll_down: PreviewPane, key: :ctrl_j
+  action scroll_up: PreviewPane, key: :ctrl_k
+  action -> { Command.exit }, key: :q
+
+  Update = from_router
+
+  Init = -> {
+    Model.new(
+      files: FileList::Init.(),
+      preview: PreviewPane::Init.(),
+      status_bar: StatusBar::Init.()
+    )
+  }
+
+  View = -> (model, tui) {
+    tui.layout(direction: :horizontal, children: [
+      FileList::View.call(model.files, tui),
+      PreviewPane::View.call(model.preview, tui),
+    ])
+  }
+end
+```
+
+The Router:
+1. Maps keys to semantic actions
+2. Dispatches actions to the correct child fragment
+3. Routes command responses back to originating children
+4. Merges child models back into the parent
+
+See [Message Routing](./message_routing.md) for details.
+
+---
+
+## Manual Dispatch (Without Router)
+
+For full control, write the dispatch logic yourself:
+
+```ruby
+Update = -> (message, model) {
+  case message
+  # Dispatch to file list
+  in { type: :routed, envelope: :move_down | :move_up }
+    new_files, cmd = FileList::Update.call(message, model.files)
+    [model.with(files: new_files), cmd]
+
+  # Dispatch to preview
+  in { type: :routed, envelope: :scroll_down | :scroll_up }
+    new_preview, cmd = PreviewPane::Update.call(message, model.preview)
+    [model.with(preview: new_preview), cmd]
+
+  # Handle parent-level messages
+  in { type: :key } if message.q?
+    Command.exit
+
+  else
+    model
+  end
+}
+```
+
+Each child Update receives only its model slice. The parent merges the new child model back using `model.with(...)`.
+
+> **Tip**: Start with the Router. Only drop to manual dispatch if you need control the Router doesn't provide.
+
+---
+
+## When to Extract a Fragment
+
+Extract a fragment when:
+
+- **Reuse** — The same UI appears in multiple places
+- **Testing** — You want to test one piece in isolation
+- **Complexity** — The Update function is getting hard to follow
+- **Ownership** — Different team members own different pieces
+
+Keep things inline when:
+
+- The component is simple (< 50 lines total)
+- It's only used in one place
+- Extraction would add more boilerplate than it saves
+
+> **Tip**: Start inline, extract when you feel pain. Don't over-engineer upfront.
+
+---
+
+## Summary
+
+Fractal architecture means:
+
+- **Fragments are independent** — Each has its own Model, Update, View, Init
+- **Parents compose children** — Parent model holds child models as fields
+- **Router handles dispatch** — Use `from_router` to automate message routing
+- **Models merge up** — Child returns new model, parent merges with `with(...)`
+- **Commands route back** — Responses find their way to the originating child
+
+This scales to any depth. Root → Tabs → Panels → Panes → Widgets. Each level only knows about its direct children.
+
+---
+
+Related: [Message Routing](./message_routing.md) | [Command Composition](./command_composition.md) | [The Elm Architecture](../essentials/the_elm_architecture.md)
 
 ---
 
