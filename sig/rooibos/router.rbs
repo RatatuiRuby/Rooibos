@@ -48,18 +48,31 @@ module Rooibos
   module ClassMethods : Module
     @routes: Hash[Symbol, Module]
     @actions: Hash[Symbol, ^() -> Command::execution?]
-    @key_handlers: Hash[String, KeyHandlerConfig]
+    @routed_actions: Hash[Symbol, Module]
+    @key_handlers: Hash[Symbol, KeyHandlerConfig]
     @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
     @click_handler: ClickHandlerConfig?
 
-    def route: (Symbol | String prefix, to: Module) -> void
+    def route: (Symbol | String fragment_model_instance_attr, to: Module) -> void
     def routes: () -> Hash[Symbol, Module]
 
-    def action: (Symbol | String name, ^() -> Command::execution? handler) -> void
+    # Action: multiple syntax forms supported
+    def action: (
+      ?(Symbol | String | ^() -> Command::execution?) name,
+      ?(^() -> Command::execution? | Module) value,
+      ?keymap: (Symbol | Array[Symbol])?,
+      ?key: (Symbol | Array[Symbol])?,
+      ?keys: (Symbol | Array[Symbol])?,
+      ?mousemap: (Symbol | Array[Symbol])?,
+      **(^() -> Command::execution? | Module) kwargs
+    ) -> void
     def actions: () -> Hash[Symbol, ^() -> Command::execution?]
+    def routed_actions: () -> Hash[Symbol, Module]
+
+    private def register_action: (Symbol name, (^() -> Command::execution? | Module) value) -> void
 
     def keymap: () { (KeymapBuilder) [self: KeymapBuilder] -> void } -> void
-    def key_handlers: () -> Hash[String, KeyHandlerConfig]
+    def key_handlers: () -> Hash[Symbol, KeyHandlerConfig]
 
     def mousemap: () { (MousemapBuilder) [self: MousemapBuilder] -> void } -> void
     def scroll_handlers: () -> Hash[Symbol, ScrollHandlerConfig]
@@ -76,14 +89,16 @@ module Rooibos
   class RouterUpdate
     @routes: Hash[Symbol, Module]
     @actions: Hash[Symbol, ^() -> Command::execution?]
-    @key_handlers: Hash[String, KeyHandlerConfig]
+    @routed_actions: Hash[Symbol, Module]
+    @key_handlers: Hash[Symbol, KeyHandlerConfig]
     @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
     @click_handler: ClickHandlerConfig?
 
     def initialize: (
       routes: Hash[Symbol, Module],
       actions: Hash[Symbol, ^() -> Command::execution?],
-      key_handlers: Hash[String, KeyHandlerConfig],
+      routed_actions: Hash[Symbol, Module],
+      key_handlers: Hash[Symbol, KeyHandlerConfig],
       scroll_handlers: Hash[Symbol, ScrollHandlerConfig],
       click_handler: ClickHandlerConfig?
     ) -> void
@@ -104,9 +119,10 @@ module Rooibos
 
     def initialize: () -> void
 
+    # Variadic key binding: accepts multiple keys, optional action kwarg, hash bindings
     def key: (
-      String | Symbol key_name,
-      (^() -> Command::execution?) | Symbol handler_or_action,
+      *(String | Symbol | ^() -> Command::execution? | Hash[Symbol, (^() -> Command::execution?) | Symbol]) args,
+      ?action: Symbol?,
       ?route: Symbol?,
       ?when: (^(_DataModel) -> bool)?,
       ?if: (^(_DataModel) -> bool)?,
@@ -114,8 +130,12 @@ module Rooibos
       ?guard: (^(_DataModel) -> bool)?,
       ?unless: (^(_DataModel) -> bool)?,
       ?except: (^(_DataModel) -> bool)?,
-      ?skip: (^(_DataModel) -> bool)?
+      ?skip: (^(_DataModel) -> bool)?,
+      **(^() -> Command::execution? | Symbol) bindings
     ) -> void
+
+    # Alias for key (reads better with multiple keys)
+    alias keys key
 
     def only: (
       ?when: (^(_DataModel) -> bool)?,
@@ -134,6 +154,7 @@ module Rooibos
     private
 
     def with_guard: ((^(_DataModel) -> bool)?) { () -> void } -> void
+    def register_key_handler: ((Symbol | String) key_name, (^() -> Command::execution? | Symbol)? handler, (Symbol | String | ^() -> Command::execution?)? action_name, Symbol? route, (^(_DataModel) -> bool)? guard) -> void
   end
 
   # Builder for mousemap DSL.

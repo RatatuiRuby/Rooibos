@@ -65,12 +65,13 @@ module Rooibos
 
     # Class methods added when Router is included.
     module ClassMethods
-      # Declares a route to a child.
+      # Declares a route to a child fragment.
       #
-      # [prefix] Symbol or String identifying the route (normalized via +.to_s.to_sym+).
-      # [to] The child module (must have UPDATE and INITIAL constants).
-      def route(prefix, to:)
-        routes[prefix.to_s.to_sym] = to
+      # [fragment_model_instance_attr] Symbol naming the attr on the parent's model
+      #   that holds this fragment's model instance (normalized via +.to_s.to_sym+).
+      # [to] The child fragment module (must have Update and Init constants).
+      def route(fragment_model_instance_attr, to:)
+        routes[fragment_model_instance_attr.to_s.to_sym] = to
       end
 
       # Returns the registered routes hash.
@@ -84,15 +85,77 @@ module Rooibos
       # This avoids duplicating logic for keys and mouse events that do
       # the same thing.
       #
+      # Supports both positional and keyword syntax:
+      #   action :scroll_up, -> { Command.scroll(-1) }  # Positional
+      #   action scroll_up: -> { Command.scroll(-1) }   # Keyword
+      #
       # [name] Symbol or String identifying the action (normalized via +.to_s.to_sym+).
-      # [handler] Callable that returns a command or message.
-      def action(name, handler)
-        actions[name.to_s.to_sym] = handler
+      # [value] Callable that returns a command or message.
+      def action(name = nil, value = nil, keymap: nil, key: nil, keys: nil, mousemap: nil, **kwargs)
+        # key: and keys: are aliases for keymap:
+        effective_keymap = keymap || key || keys
+        action_name, action_value = if name && value
+          # Positional: action :name, handler
+          [name, value]
+        elsif name.respond_to?(:call) && value.nil?
+          # Anonymous: action -> { ... }, keymap: %i[...]
+          # No name, just handler with bindings
+          [nil, name]
+        elsif kwargs.size == 1
+          # Keyword: action name: handler
+          kwargs.first
+        else
+          raise ArgumentError, "action requires (name, value) or (name: value)"
+        end
+
+        # @type var action_name: Symbol?
+        # @type var action_value: (^() -> Command::execution? | Module)?
+        register_action(action_name, action_value) if action_name && action_value
+
+        # For anonymous actions, store handler directly in keymap
+        handler_for_keymap = action_name.nil? ? action_value : nil
+
+        # Register keymap bindings if provided
+        if effective_keymap
+          Array(effective_keymap).each do |key_name|
+            key_handlers[key_name.to_s.to_sym] = Router::KeyHandlerConfig.new(
+              handler: handler_for_keymap,
+              action: action_name&.to_s&.to_sym,
+              guard: nil,
+              route: nil
+            )
+          end
+        end
+
+        # Register mousemap bindings if provided
+        if mousemap
+          Array(mousemap).each do |mouse_event|
+            scroll_handlers[mouse_event.to_s.to_sym] = Router::ScrollHandlerConfig.new(
+              handler: handler_for_keymap,
+              action: action_name&.to_s&.to_sym
+            )
+          end
+        end
       end
 
-      # Returns the registered actions hash.
+      private def register_action(name, value)
+        key = name.to_s.to_sym
+        case value
+        when Module
+          routed_actions[key] = value
+        else
+          actions[key] = value
+        end
+      end
+
+      # Returns the registered handler actions hash.
       def actions
         @actions ||= {}
+      end
+
+      # Returns the registered routed actions hash.
+      def routed_actions
+        @routed_actions ||= {}
       end
 
       # Declares key handlers in a block.
@@ -150,6 +213,7 @@ module Rooibos
         RouterUpdate.new(
           routes:,
           actions:,
+          routed_actions:,
           key_handlers:,
           scroll_handlers:,
           click_handler:
@@ -159,9 +223,10 @@ module Rooibos
 
     # Internal UPDATE callable with proper typing.
     class RouterUpdate # :nodoc:
-      def initialize(routes:, actions:, key_handlers:, scroll_handlers:, click_handler:)
+      def initialize(routes:, actions:, routed_actions:, key_handlers:, scroll_handlers:, click_handler:)
         @routes = routes
         @actions = actions
+        @routed_actions = routed_actions
         @key_handlers = key_handlers
         @scroll_handlers = scroll_handlers
         @click_handler = click_handler
@@ -195,6 +260,24 @@ module Rooibos
             if handler.nil? && config.action
               handler = @actions[config.action]
             end
+
+            # Check for routed action if no handler found
+            if handler.nil? && config.action
+              routed_fragment = @routed_actions[config.action]
+              if routed_fragment
+                # Find the model attr for this fragment
+                fragment_model_instance_attr = @routes.key(routed_fragment)
+                next unless fragment_model_instance_attr
+
+                # Synthesize Message::Routed and dispatch to child
+                routed_message = Rooibos::Message::Routed.new(envelope: config.action, event: message)
+                child_update = routed_fragment.const_get(:Update)
+                previous_child_fragment_model_instance = model.public_send(fragment_model_instance_attr)
+                updated_child_fragment_model_instance, command = child_update.call(routed_message, previous_child_fragment_model_instance)
+                return [model.with(fragment_model_instance_attr => updated_child_fragment_model_instance), command]
+              end
+            end
+
             next unless handler
 
             command = handler.call
@@ -260,18 +343,53 @@ module Rooibos
 
       # Registers a key handler.
       #
-      # [key_name] String or Symbol for the key (normalized via +.to_s+).
-      # [handler_or_action] Callable or Symbol (action name).
+      # Supports multiple forms:
+      #   key :q, -> { Command.exit }           # Single key with handler
+      #   key :q, :quit                         # Single key with action name
+      #   key :down, :j, action: :move_down     # Multiple keys with action
+      #   key :enter, -> { ... }, route: :foo   # With options
+      #
+      # [*key_names] One or more key names (String or Symbol).
+      # [handler_or_action] Callable or Symbol (action name) - optional if action: given.
+      # [action] Action name as keyword arg (alternative to positional).
       # [route] Optional route prefix for the command result.
       # [when/if/only/guard] Guard that runs if truthy (aliases).
       # [unless/except/skip] Guard that runs if falsy (negative aliases).
-      def key(key_name, handler_or_action, route: nil, when: nil, if: nil, only: nil, guard: nil, unless: nil, except: nil, skip: nil)
+      def key(*args, action: nil, route: nil, when: nil, if: nil, only: nil, guard: nil, unless: nil, except: nil, skip: nil, **bindings)
+        # Parse args: all symbols/strings are keys, last callable is handler
+        key_names = [] #: Array[Symbol | String]
         handler = nil
-        action = nil
-        if handler_or_action.is_a?(Symbol)
-          action = handler_or_action
-        else
-          handler = handler_or_action
+        action_name = action
+
+        args.each do |arg|
+          if arg.is_a?(Hash)
+            # Hash passed positionally: key({q: -> { ... }})
+            bindings.merge!(arg)
+          elsif arg.respond_to?(:call)
+            handler = arg
+          elsif arg.is_a?(Symbol) || arg.is_a?(String)
+            # Could be a key name or action name (positional action from old API)
+            key_names << arg
+          end
+        end
+
+        # Keyword syntax: key ctrl_c: -> { ... }
+        # Each kwarg is key_name => handler
+        bindings.each do |key_name, handler_or_action|
+          if handler_or_action.respond_to?(:call)
+            register_key_handler(key_name, handler_or_action, nil, route, nil)
+          else
+            register_key_handler(key_name, nil, handler_or_action, route, nil)
+          end
+        end
+
+        # If we had keyword bindings, skip positional processing
+        return if bindings.any?
+
+        # Old API: key :q, :quit - last symbol is the action
+        if handler.nil? && action_name.nil? && key_names.size >= 2
+          # Check if last "key" is actually an action by seeing if it looks like a handler
+          action_name = key_names.pop
         end
 
         guards = @guard_stack.dup
@@ -293,13 +411,23 @@ module Rooibos
           -> (model) { guards.all? { |g| g.call(model) } }
         end
 
+        # Register each key
+        key_names.each do |key_name|
+          register_key_handler(key_name, handler, action_name, route, combined_guard)
+        end
+      end
+
+      private def register_key_handler(key_name, handler, action_name, route, guard)
         @handlers[key_name.to_s] = KeyHandlerConfig.new(
           handler:,
-          action:,
+          action: action_name,
           route:,
-          guard: combined_guard
+          guard:
         )
       end
+
+      # Alias for key (reads better with multiple keys)
+      alias_method :keys, :key
 
       # Applies a guard to all keys in the block.
       #

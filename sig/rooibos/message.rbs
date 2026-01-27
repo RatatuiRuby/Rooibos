@@ -181,5 +181,22 @@ module Rooibos
     def open?: () -> bool
     def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
   end
+
+  # Routed message from parent Router to child fragment.
+  class Routed < Data
+    include Predicates
+
+    attr_reader envelope: Symbol
+    attr_reader event: RatatuiRuby::Event?
+
+    def self.new: (envelope: Symbol, event: RatatuiRuby::Event?) -> instance
+
+    def routed?: () -> bool
+    def deconstruct_keys: (Array[Symbol]? keys) -> { type: Symbol, envelope: Symbol, event: RatatuiRuby::Event? }
+
+    # Predicate methods via method_missing (e.g., move_down?, go_back?)
+    def respond_to_missing?: (Symbol name, ?bool include_private) -> bool
+    def method_missing: (Symbol name, *untyped args, **untyped kwargs) ?{ () -> untyped } -> bool
+  end
 end
 end

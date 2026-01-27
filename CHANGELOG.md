@@ -15,6 +15,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Router `action` DSL Enhancements**: Multiple syntax forms for declaring actions with inline keybindings:
+  - Positional: `action :quit, -> { Command.exit }` (original)
+  - Keyword: `action quit: -> { Command.exit }` (cleaner)
+  - Inline keymap: `action quit: -> { Command.exit }, keymap: %i[ctrl_c q]`
+  - `key:` singular alias: `action go_home: FileList, key: :~`
+  - `keys:` plural alias: `action move_down: FileList, keys: %i[down j]`
+  - Anonymous: `action -> { Command.exit }, keymap: %i[ctrl_c q]` (no name, just binding)
+  - `mousemap:` for scroll bindings: `action scroll_up: ..., mousemap: %i[scroll_up]`
+
+- **Routed Actions**: Actions can now target child fragments. When the value is a `Module`, the Router synthesizes a `Message::Routed` and dispatches to the child's Update:
+  - `action move_down: FileList` — declares `FileList` as target
+  - Key presses trigger `Message::Routed.new(envelope: :move_down, event: key_event)`
+
+- **Message::Routed**: New message type for routed actions between parent and child fragments:
+  - `deconstruct_keys` returns `{ type: :routed, envelope:, event: }`
+  - Predicate methods via `method_missing`: `msg.move_down?`, `msg.go_back?`
+  - Carries original event for full context in child Update
+
+- **Keymap `key` DSL Enhancements**: Multiple syntax forms for declaring key handlers:
+  - Variadic keys: `key :down, :j, action: :move_down` (multiple keys, one action)
+  - `action:` keyword: `key :q, action: :quit` (explicit action reference)
+  - Keyword syntax: `key q: -> { Command.exit }` (hash-style)
+  - Multi-keyword: `keys ctrl_c: -> { ... }, q: -> { ... }` (multiple bindings)
+  - Hash metaprogramming: `key(exit_bindings)` where `exit_bindings = { q: ..., esc: ... }`
+  - `keys` alias: `alias_method :keys, :key` for readability
+
 ### Changed
 
 ### Fixed
