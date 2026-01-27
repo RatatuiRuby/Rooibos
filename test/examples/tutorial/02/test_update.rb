@@ -12,10 +12,14 @@ require_relative "../../../../examples/tutorial/02/app"
 describe Tutorial02::FileBrowser::Update do
   include Rooibos::TestHelper
 
-  def make_model(file_names: %w[a b c], selected_index: 0)
+  def make_entries(*names)
+    names.map { |n| Tutorial02::FileBrowser::Entry.new(name: n, directory?: false) }
+  end
+
+  def make_model(entries: make_entries("a", "b", "c"), selected_index: 0)
     Tutorial02::FileBrowser::Model.new(
       current_directory: "/test",
-      file_names:,
+      entries:,
       selected_index:
     )
   end

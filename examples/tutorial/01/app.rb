@@ -10,12 +10,15 @@ require "rooibos"
 
 module Tutorial01
   module FileBrowser
-    Model = Data.define(:current_directory, :file_names)
+    Entry = Data.define(:name, :directory?)
+
+    Model = Data.define(:current_directory, :entries)
 
     View = -> (model, tui) {
+      items = model.entries.map { |e| e.directory? ? "#{e.name}/" : e.name }
       tui.layout(children: [
         tui.paragraph(text: model.current_directory),
-        tui.list(items: model.file_names),
+        tui.list(items:),
       ])
     }
 
@@ -27,10 +30,17 @@ module Tutorial01
       end
     }
 
+    ReadEntries = -> (path) {
+      Dir.children(path).map { |name|
+        full_path = File.join(path, name)
+        Entry.new(name:, directory?: File.directory?(full_path))
+      }.sort_by { |e| [e.directory? ? 0 : 1, e.name.downcase] }
+    }
+
     Init = -> {
       current_directory = Dir.pwd
-      file_names = Dir.children(current_directory)
-      Ractor.make_shareable Model.new(current_directory, file_names)
+      entries = ReadEntries.call(current_directory)
+      Ractor.make_shareable Model.new(current_directory, entries)
     }
   end
 end

@@ -7,15 +7,15 @@
 
 require_relative "../../../test_helper"
 require "rooibos/test_helper"
-require_relative "../../../../examples/tutorial/01/app"
+require_relative "../../../../examples/tutorial/03/app"
 
-describe "Tutorial01::FileBrowser integration" do
+describe "Tutorial03::FileBrowser integration" do
   include Rooibos::TestHelper
 
   it "displays current directory path" do
     with_test_terminal do
       inject_key(:q)
-      Rooibos.run(Tutorial01::FileBrowser)
+      Rooibos.run(Tutorial03::FileBrowser)
 
       buffer = buffer_content.join("\n")
       current_dir = Dir.pwd
@@ -26,7 +26,7 @@ describe "Tutorial01::FileBrowser integration" do
   it "displays file names from current directory" do
     with_test_terminal do
       inject_key(:q)
-      Rooibos.run(Tutorial01::FileBrowser)
+      Rooibos.run(Tutorial03::FileBrowser)
 
       buffer = buffer_content.join("\n")
       # Check that directories appear with / suffix (sorted first)
@@ -35,17 +35,36 @@ describe "Tutorial01::FileBrowser integration" do
     end
   end
 
-  it "quits with q key without hanging" do
+  it "quits with q key" do
     with_test_terminal do
       inject_key(:q)
-      Rooibos.run(Tutorial01::FileBrowser)
+      Rooibos.run(Tutorial03::FileBrowser)
     end
   end
 
-  it "quits with Ctrl+C without hanging" do
+  it "quits with Ctrl+C" do
     with_test_terminal do
       inject_key(:ctrl_c)
-      Rooibos.run(Tutorial01::FileBrowser)
+      Rooibos.run(Tutorial03::FileBrowser)
+    end
+  end
+
+  it "navigates down with arrow key" do
+    with_test_terminal do
+      inject_key(:down)
+      inject_key(:q)
+      Rooibos.run(Tutorial03::FileBrowser)
+      # Test passes if no hang/crash
+    end
+  end
+
+  it "navigates with vim keys" do
+    with_test_terminal do
+      inject_key(:j)
+      inject_key(:k)
+      inject_key(:q)
+      Rooibos.run(Tutorial03::FileBrowser)
+      # Test passes if no hang/crash
     end
   end
 end

@@ -6,19 +6,19 @@
 #++
 
 require_relative "../../../test_helper"
-require_relative "../../../../examples/tutorial/02/app"
+require_relative "../../../../examples/tutorial/03/app"
 
-describe Tutorial02::FileBrowser::View do
+describe Tutorial03::FileBrowser::View do
   before do
     @tui = RatatuiRuby::TUI.new
   end
 
   def make_entry(name, directory: false)
-    Tutorial02::FileBrowser::Entry.new(name:, directory?: directory)
+    Tutorial03::FileBrowser::Entry.new(name:, directory?: directory)
   end
 
   def make_model(current_directory: "/test", entries: [], selected_index: 0)
-    Tutorial02::FileBrowser::Model.new(
+    Tutorial03::FileBrowser::Model.new(
       current_directory:,
       entries:,
       selected_index:
@@ -31,7 +31,7 @@ describe Tutorial02::FileBrowser::View do
       entries: []
     )
 
-    widget = Tutorial02::FileBrowser::View.call(model, @tui)
+    widget = Tutorial03::FileBrowser::View.call(model, @tui)
 
     assert_instance_of(RatatuiRuby::Layout::Layout, widget)
     assert_instance_of(RatatuiRuby::Widgets::Paragraph, widget.children[0])
@@ -41,7 +41,7 @@ describe Tutorial02::FileBrowser::View do
   it "displays current directory in paragraph" do
     model = make_model(current_directory: "/home/user/projects")
 
-    widget = Tutorial02::FileBrowser::View.call(model, @tui)
+    widget = Tutorial03::FileBrowser::View.call(model, @tui)
 
     assert_equal("/home/user/projects", widget.children[0].text)
   end
@@ -54,7 +54,7 @@ describe Tutorial02::FileBrowser::View do
     ]
     model = make_model(entries:)
 
-    widget = Tutorial02::FileBrowser::View.call(model, @tui)
+    widget = Tutorial03::FileBrowser::View.call(model, @tui)
 
     assert_equal(["lib/", "README.md", "test/"], widget.children[1].items)
   end
@@ -63,7 +63,7 @@ describe Tutorial02::FileBrowser::View do
     entries = [make_entry("a"), make_entry("b"), make_entry("c")]
     model = make_model(entries:, selected_index: 1)
 
-    widget = Tutorial02::FileBrowser::View.call(model, @tui)
+    widget = Tutorial03::FileBrowser::View.call(model, @tui)
 
     assert_equal(1, widget.children[1].selected_index)
   end
@@ -72,7 +72,7 @@ describe Tutorial02::FileBrowser::View do
     entries = [make_entry("a"), make_entry("b"), make_entry("c")]
     model = make_model(entries:, selected_index: 0)
 
-    widget = Tutorial02::FileBrowser::View.call(model, @tui)
+    widget = Tutorial03::FileBrowser::View.call(model, @tui)
 
     assert widget.children[1].highlight_style, "Expected highlight_style to be set"
     assert_includes widget.children[1].highlight_style.modifiers, :reversed

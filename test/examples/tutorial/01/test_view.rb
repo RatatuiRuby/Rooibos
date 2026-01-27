@@ -13,10 +13,14 @@ describe Tutorial01::FileBrowser::View do
     @tui = RatatuiRuby::TUI.new
   end
 
-  it "returns a paragraph widget with current directory path" do
+  def make_entry(name, directory: false)
+    Tutorial01::FileBrowser::Entry.new(name:, directory?: directory)
+  end
+
+  it "returns a layout with paragraph and list" do
     model = Tutorial01::FileBrowser::Model.new(
       current_directory: "/home/user/projects",
-      file_names: []
+      entries: []
     )
 
     widget = Tutorial01::FileBrowser::View.call(model, @tui)
@@ -28,25 +32,19 @@ describe Tutorial01::FileBrowser::View do
     assert_equal([], widget.children[1].items)
   end
 
-  it "displays file names in the widget" do
-    file_names = [
-      "README.md",
-      "Gemfile",
-      "lib",
-      "test",
+  it "displays entry names in list with / suffix for directories" do
+    entries = [
+      make_entry("lib", directory: true),
+      make_entry("README.md"),
+      make_entry("test", directory: true),
     ]
-
     model = Tutorial01::FileBrowser::Model.new(
       current_directory: "/test",
-      file_names:
+      entries:
     )
 
     widget = Tutorial01::FileBrowser::View.call(model, @tui)
 
-    assert_instance_of(RatatuiRuby::Layout::Layout, widget)
-    assert_instance_of(RatatuiRuby::Widgets::Paragraph, widget.children[0])
-    assert_instance_of(RatatuiRuby::Widgets::List, widget.children[1])
-    assert_equal("/test", widget.children[0].text)
-    assert_equal(file_names, widget.children[1].items)
+    assert_equal(["lib/", "README.md", "test/"], widget.children[1].items)
   end
 end

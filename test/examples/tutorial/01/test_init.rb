@@ -11,7 +11,7 @@ require_relative "../../../../examples/tutorial/01/app"
 describe Tutorial01::FileBrowser::Init do
   it "sets current_directory from Dir.pwd" do
     Dir.stub :pwd, "/test/directory" do
-      Dir.stub :children, [] do
+      Tutorial01::FileBrowser::ReadEntries.stub(:call, []) do
         model = Tutorial01::FileBrowser::Init.call
 
         assert_equal "/test/directory", model.current_directory
@@ -19,33 +19,27 @@ describe Tutorial01::FileBrowser::Init do
     end
   end
 
-  it "loads files from Dir.children" do
-    mock_files = ["README.md", "Gemfile", "lib", "test"]
+  it "loads entries from ReadEntries" do
+    mock_entries = [
+      Tutorial01::FileBrowser::Entry.new(name: "lib", directory?: true),
+      Tutorial01::FileBrowser::Entry.new(name: "README.md", directory?: false),
+    ]
 
     Dir.stub :pwd, "/test/directory" do
-      Dir.stub :children, mock_files do
+      Tutorial01::FileBrowser::ReadEntries.stub(:call, mock_entries) do
         model = Tutorial01::FileBrowser::Init.call
 
-        assert_equal 4, model.file_names.length
-        assert_equal ["README.md", "Gemfile", "lib", "test"], model.file_names
-      end
-    end
-  end
-
-  it "creates file entries with name attribute" do
-    Dir.stub :pwd, "/test" do
-      Dir.stub :children, ["example.txt"] do
-        model = Tutorial01::FileBrowser::Init.call
-
-        file = model.file_names.first
-        assert_equal "example.txt", file
+        assert_equal 2, model.entries.length
+        assert_equal "lib", model.entries[0].name
+        assert model.entries[0].directory?
+        refute model.entries[1].directory?
       end
     end
   end
 
   it "returns a frozen model" do
     Dir.stub :pwd, "/test" do
-      Dir.stub :children, [] do
+      Tutorial01::FileBrowser::ReadEntries.stub(:call, []) do
         model = Tutorial01::FileBrowser::Init.call
 
         assert(model.frozen?)

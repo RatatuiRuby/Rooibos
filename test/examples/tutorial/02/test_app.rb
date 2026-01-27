@@ -29,10 +29,9 @@ describe "Tutorial02::FileBrowser integration" do
       Rooibos.run(Tutorial02::FileBrowser)
 
       buffer = buffer_content.join("\n")
-      files = Dir.children(Dir.pwd).first(3)
-      files.each do |file|
-        _(buffer).must_include file
-      end
+      # Check that directories appear with / suffix (sorted first)
+      _(buffer).must_include "bin/"
+      _(buffer).must_include "doc/"
     end
   end
 

@@ -6,13 +6,13 @@
 #++
 
 require_relative "../../../test_helper"
-require_relative "../../../../examples/tutorial/02/app"
+require_relative "../../../../examples/tutorial/03/app"
 
-describe Tutorial02::FileBrowser::Init do
+describe Tutorial03::FileBrowser::Init do
   it "sets current_directory from Dir.pwd" do
     Dir.stub :pwd, "/test/directory" do
-      Tutorial02::FileBrowser::ReadEntries.stub(:call, []) do
-        model = Tutorial02::FileBrowser::Init.call
+      Tutorial03::FileBrowser::ReadEntries.stub(:call, []) do
+        model = Tutorial03::FileBrowser::Init.call
 
         assert_equal "/test/directory", model.current_directory
       end
@@ -21,13 +21,13 @@ describe Tutorial02::FileBrowser::Init do
 
   it "loads entries from ReadEntries" do
     mock_entries = [
-      Tutorial02::FileBrowser::Entry.new(name: "lib", directory?: true),
-      Tutorial02::FileBrowser::Entry.new(name: "README.md", directory?: false),
+      Tutorial03::FileBrowser::Entry.new(name: "lib", directory?: true),
+      Tutorial03::FileBrowser::Entry.new(name: "README.md", directory?: false),
     ]
 
     Dir.stub :pwd, "/test/directory" do
-      Tutorial02::FileBrowser::ReadEntries.stub(:call, mock_entries) do
-        model = Tutorial02::FileBrowser::Init.call
+      Tutorial03::FileBrowser::ReadEntries.stub(:call, mock_entries) do
+        model = Tutorial03::FileBrowser::Init.call
 
         assert_equal 2, model.entries.length
         assert_equal "lib", model.entries[0].name
@@ -39,8 +39,8 @@ describe Tutorial02::FileBrowser::Init do
 
   it "initializes selected_index to 0" do
     Dir.stub :pwd, "/test" do
-      Tutorial02::FileBrowser::ReadEntries.stub(:call, []) do
-        model = Tutorial02::FileBrowser::Init.call
+      Tutorial03::FileBrowser::ReadEntries.stub(:call, []) do
+        model = Tutorial03::FileBrowser::Init.call
 
         assert_equal 0, model.selected_index
       end
@@ -49,8 +49,8 @@ describe Tutorial02::FileBrowser::Init do
 
   it "returns a frozen model" do
     Dir.stub :pwd, "/test" do
-      Tutorial02::FileBrowser::ReadEntries.stub(:call, []) do
-        model = Tutorial02::FileBrowser::Init.call
+      Tutorial03::FileBrowser::ReadEntries.stub(:call, []) do
+        model = Tutorial03::FileBrowser::Init.call
 
         assert(model.frozen?)
       end

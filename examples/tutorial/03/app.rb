@@ -8,7 +8,7 @@
 
 require "rooibos"
 
-module Tutorial02
+module Tutorial03
   module FileBrowser
     Entry = Data.define(:name, :directory?)
 
@@ -39,6 +39,29 @@ module Tutorial02
         model.with(selected_index: 0)
       elsif message.end? or message.G?
         model.with(selected_index: model.entries.length - 1)
+      elsif message.enter? or message.right_arrow? or message.l?
+        selected_entry = model.entries[model.selected_index]
+        if selected_entry.directory?
+          new_dir = File.join(model.current_directory, selected_entry.name)
+          new_entries = read_entries(new_dir)
+          model.with(current_directory: new_dir, entries: new_entries, selected_index: 0)
+        else
+          model
+        end
+      elsif message.backspace? or message.left_arrow? or message.h?
+        parent_dir = File.dirname(model.current_directory)
+        new_entries = read_entries(parent_dir)
+        model.with(current_directory: parent_dir, entries: new_entries, selected_index: 0)
+      elsif message.tilde?
+        home_dir = Dir.home
+        new_entries = read_entries(home_dir)
+        model.with(current_directory: home_dir, entries: new_entries, selected_index: 0)
+      elsif message.slash?
+        new_entries = read_entries("/")
+        model.with(current_directory: "/", entries: new_entries, selected_index: 0)
+      elsif message.R?
+        new_entries = read_entries(model.current_directory)
+        model.with(entries: new_entries)
       else
         model
       end
@@ -56,9 +79,13 @@ module Tutorial02
       entries = ReadEntries.call(current_directory)
       Ractor.make_shareable Model.new(current_directory, entries, 0)
     }
+
+    private_class_method def self.read_entries(path)
+      ReadEntries.call(path)
+    end
   end
 end
 
 if __FILE__ == $0
-  Rooibos.run(Tutorial02::FileBrowser)
+  Rooibos.run(Tutorial03::FileBrowser)
 end

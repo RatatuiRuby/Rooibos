@@ -12,8 +12,12 @@ require_relative "../../../../examples/tutorial/01/app"
 describe Tutorial01::FileBrowser::Update do
   include Rooibos::TestHelper
 
+  def make_model(entries: [])
+    Tutorial01::FileBrowser::Model.new(current_directory: "/test", entries:)
+  end
+
   it "exits on q key" do
-    model = Tutorial01::FileBrowser::Model.new(current_directory: "/test", file_names: [])
+    model = make_model
     message = RatatuiRuby::Event::Key.new(code: "q")
 
     result = Tutorial01::FileBrowser::Update.call(message, model)
@@ -22,7 +26,7 @@ describe Tutorial01::FileBrowser::Update do
   end
 
   it "exits on Ctrl+C" do
-    model = Tutorial01::FileBrowser::Model.new(current_directory: "/test", file_names: [])
+    model = make_model
     message = RatatuiRuby::Event::Key.new(code: "c", modifiers: [:ctrl])
 
     result = Tutorial01::FileBrowser::Update.call(message, model)
@@ -31,7 +35,7 @@ describe Tutorial01::FileBrowser::Update do
   end
 
   it "returns unchanged model for unhandled keys" do
-    model = Tutorial01::FileBrowser::Model.new(current_directory: "/test", file_names: [])
+    model = make_model
     message = RatatuiRuby::Event::Key.new(code: "a")
 
     result = Tutorial01::FileBrowser::Update.call(message, model)
