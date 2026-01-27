@@ -5,9 +5,9 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 #++
 
-require_relative "../../test_helper"
+require_relative "../../../test_helper"
 require "rooibos/test_helper"
-require_relative "../../../examples/app_file_browser/app"
+require_relative "../../../../examples/tutorial/01/app"
 
 describe "Tutorial01::FileBrowser integration" do
   include Rooibos::TestHelper

@@ -5,8 +5,8 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 #++
 
-require_relative "../../test_helper"
-require_relative "../../../examples/app_file_browser/app"
+require_relative "../../../test_helper"
+require_relative "../../../../examples/tutorial/01/app"
 
 describe Tutorial01::FileBrowser::Init do
   it "sets current_directory from Dir.pwd" do

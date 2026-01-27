@@ -133,6 +133,8 @@ _Note: If you started with negative-numbered stories, this happened in Story 0._
 - Selected item is visually highlighted
 - Selection wraps at top/bottom of list
 - `j`/`k` vim keys also work
+- `Home`/`g` jumps to first item
+- `End`/`G` jumps to last item
 
 ### Notes
 - Introduces state management (current selection index)
@@ -152,7 +154,11 @@ _Note: If you started with negative-numbered stories, this happened in Story 0._
 - File list updates to show new directory contents
 - Current path display updates
 - Enter on regular file does nothing (for now)
-- Backspace goes to parent directory
+- Backspace or `←`/`h` goes to parent directory
+- `→`/`l` enters directory (same as Enter)
+- `~` jumps to home directory
+- `/` jumps to root directory
+- `R` refreshes current view
 
 ### Notes
 - Introduces directory traversal
@@ -215,6 +221,8 @@ _Note: If you started with negative-numbered stories, this happened in Story 0._
 - Binary files show "Binary file" message
 - Preview pane scrolls if content is long
 - File type is detected (text vs binary)
+- `Space` toggles preview pane visibility
+- `PgUp`/`PgDn` pages through preview content (when focused)
 
 ### Notes
 - Introduces file reading
@@ -256,10 +264,12 @@ _Note: If you started with negative-numbered stories, this happened in Story 0._
 - Active pane has visual indicator (highlighted border)
 - Keyboard shortcuts work in context of focused pane
 - Arrow keys navigate within focused pane
+- `PgUp`/`PgDn` pages by visible height
 
 ### Notes
 - Introduces focus management
 - Introduces context-sensitive key handling
+- Introduces cached layout pattern (store pane dimensions for dynamic paging)
 - Preview pane becomes interactive (scrollable)
 
 ---
