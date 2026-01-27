@@ -14,13 +14,64 @@ module Rooibos
     # New code should use Rooibos::Message::HttpResponse.
     HttpResponse = Message::HttpResponse
 
-    # An HTTP request command.
-    Http = Data.define(:method, :url, :envelope, :headers, :body, :timeout, :parser) do
+    # Performs HTTP requests and sends the response as a message.
+    #
+    # Applications fetch data from APIs. Users expect responsive interfaces
+    # while requests complete. Managing HTTP connections, timeouts, and
+    # threading manually is error-prone.
+    #
+    # This command executes HTTP requests off the main thread. The runtime
+    # dispatches it and routes the response back to your update function
+    # as a <tt>Message::HttpResponse</tt>.
+    #
+    # Use it to fetch API data, post forms, or interact with web services.
+    #
+    # Prefer the <tt>Command.http</tt> factory method for convenience.
+    # The constructor supports flexible DWIM (Do What I Mean) arity.
+    #
+    # === Example
+    #
+    #   # Using the factory method (recommended)
+    #   Command.http(:get, "/api/users", :users)
+    #   Command.http(get: "/api/users", envelope: :users)
+    #   Command.http(:post, "/api/users", '{"name":"Jo"}', :created)
+    #
+    #   # Using the class directly
+    #   Http.new(:get, "/api/users", :users)
+    #
+    #   # Pattern-match on the response
+    #   def update(message, model)
+    #     case message
+    #     in { type: :http, envelope: :users, status: 200, body: }
+    #       model.with(users: JSON.parse(body))
+    #     in { type: :http, envelope: :users, error: }
+    #       model.with(error:)
+    #     end
+    #   end
+    class Http < Data.define(:method, :url, :envelope, :headers, :body, :timeout, :parser)
       include Custom
 
       class << self
         undef_method :new
 
+        # Creates an HTTP request command.
+        #
+        # Supports flexible DWIM arity for convenience:
+        # <tt>Http.new("url")</tt>:: GET, URL as envelope
+        # <tt>Http.new("url", :tag)</tt>:: GET, custom envelope
+        # <tt>Http.new(:post, "url")</tt>:: POST, URL as envelope
+        # <tt>Http.new(:post, "url", :tag)</tt>:: POST, custom envelope
+        # <tt>Http.new(:post, "url", "body", :tag)</tt>:: POST with body
+        # <tt>Http.new(get: "url")</tt>:: keyword shortcut
+        #
+        # [method] HTTP method symbol: <tt>:get</tt>, <tt>:post</tt>,
+        #          <tt>:put</tt>, <tt>:patch</tt>, or <tt>:delete</tt>.
+        # [url] Request URL (String).
+        # [envelope] Symbol to tag the response message.
+        # [headers] Optional hash of HTTP headers.
+        # [body] Optional request body (String).
+        # [timeout] Optional timeout in seconds (default 10).
+        # [parser] Optional callable to transform response body.
         def new(*args, method: nil, url: nil, envelope: nil, headers: nil, body: nil, timeout: nil, parser: nil,
           get: nil, post: nil, put: nil, patch: nil, delete: nil
         )
@@ -134,6 +185,17 @@ module Rooibos
       end
       private_class_method :parse_dwim_args
 
+      # Executes the HTTP request and sends the response.
+      #
+      # Sends <tt>Message::HttpResponse</tt> with status, body, and headers.
+      # On network errors, sends the same message type with <tt>error</tt>
+      # populated instead.
+      #
+      # Note: Ruby's <tt>Net::HTTP</tt> blocks until completion. Cancellation
+      # cannot interrupt a request in progress. The grace period is 0.
+      #
+      # [out] Outlet for sending messages.
+      # [token] Cancellation token from the runtime.
       def call(out, token)
         return if token.canceled?
 

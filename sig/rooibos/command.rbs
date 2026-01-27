@@ -18,6 +18,10 @@ module Rooibos
     # Grace period for cooperative cancellation (seconds).
     # Runtime waits this long before force-killing the thread.
     def rooibos_cancellation_grace_period: () -> Float
+
+    # Runtime type checking (from Kernel).
+    # Required for DWIM nested detection in All.new.
+    def is_a?: (Module | Class module_or_class) -> bool
   end
 
   # Sentinel value for application termination.
@@ -114,9 +118,9 @@ module Rooibos
     include Custom
 
     attr_reader seconds: Float
-    attr_reader tag: Symbol
+    attr_reader envelope: Symbol
 
-    def self.new: (seconds: Float, tag: Symbol) -> instance
+    def self.new: (seconds: Float, envelope: Symbol) -> instance
 
     # Execute the timer with cooperative cancellation.
     def call: (Outlet out, Concurrent::Cancellation token) -> void
@@ -210,7 +214,7 @@ module Rooibos
     attr_reader live: Lifecycle
 
     # Sends a message to the runtime.
-    def put: (*Object args) -> void
+    def put: (*message args) -> void
 
     # Runs a child command synchronously, returning its result.
     def source: (_Callable command, Concurrent::Cancellation token, ?timeout: Float) -> Object?
@@ -242,17 +246,17 @@ module Rooibos
   class All
     include Custom
 
-    attr_reader tag: Symbol
-    attr_reader commands: Array[Custom]
+    attr_reader envelope: Symbol
+    attr_reader commands: Array[_Command]
     attr_reader nested: bool
 
-    def self.new: (Symbol tag, *Custom | Array[Custom]) -> instance
+    def self.new: (Symbol envelope, *_Command | Array[_Command]) -> instance
 
     def call: (Outlet outlet, Concurrent::Cancellation token) -> void
   end
 
   # Creates an aggregating parallel command.
-  def self.all: (Symbol tag, *Custom | Array[Custom]) -> All
+  def self.all: (Symbol envelope, *_Command | Array[_Command]) -> All
 
   # HTTP response shapes for pattern matching
   type http_success_shape = { type: :http, envelope: Symbol, status: Integer, body: String, headers: Hash[String, String] }

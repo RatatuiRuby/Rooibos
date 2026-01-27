@@ -7,22 +7,63 @@
 
 module Rooibos
   module Command
-    # An aggregating parallel command.
-    All = Data.define(:envelope, :commands, :nested) do
+    # Aggregates parallel commands and returns all results together.
+    #
+    # Dashboards load user profiles, settings, and stats before rendering.
+    # Fetching sequentially is slow. Fire-and-forget batches lose correlation
+    # between commands and their results.
+    #
+    # This command runs children in parallel and collects their results into
+    # a single <tt>Message::All</tt> response. Pattern-match on the envelope
+    # to correlate results. Each result appears in the same order as commands.
+    #
+    # Use it for coordinated fetches where you need all results before proceeding.
+    #
+    # Prefer the <tt>Command.all</tt> factory method for convenience.
+    #
+    # === Example
+    #
+    #   # Using the factory method (recommended)
+    #   Command.all(:dashboard,
+    #     Command.http(:get, "/users", :_),
+    #     Command.http(:get, "/stats", :_),
+    #   )
+    #
+    #   # Using the class directly
+    #   All.new(:dashboard,
+    #     Command.http(:get, "/users", :_),
+    #     Command.http(:get, "/stats", :_),
+    #   )
+    #
+    #   # Pattern-match on the aggregated result
+    #   def update(message, model)
+    #     case message
+    #     in { type: :all, envelope: :dashboard, results: [users, stats] }
+    #       model.with(users:, stats:, loading: false)
+    #     end
+    #   end
+    class All < Data.define(:envelope, :commands, :nested)
       include Custom
 
       class << self
         undef_method :new
 
+        # Creates an aggregating parallel command.
+        #
+        # [tag] Symbol to tag the result message.
+        # [args] Commands to run in parallel. Pass as multiple arguments
+        #        or a single array.
+        #
+        # === Example
+        #
+        #   All.new(:dashboard,
+        #     Command.http(:get, "/users", :_),
+        #     Command.http(:get, "/stats", :_),
+        #   )
         def new(tag, *args)
-          # DWIM: detect nested vs splatted based on call-site arity
-          if args.size == 1 && args.first.is_a?(Array)
-            commands = args.first
-            nested = true
-          else
-            commands = args
-            nested = false
-          end
+          # DWIM: flatten single-array arg to support both call patterns
+          nested = args.size == 1 && args.first.is_a?(Array)
+          commands = [args].flatten(2)
 
           if RatatuiRuby::Debug.enabled?
             commands.each do |cmd|
@@ -40,11 +81,18 @@ module Rooibos
         end
       end
 
-      # Executes the command, running all children in parallel.
+      # Executes all child commands in parallel and aggregates results.
+      #
+      # Sends <tt>Message::All</tt> when all children complete. Results appear
+      # in the same order as commands. If canceled, sends <tt>Message::Canceled</tt>.
+      #
+      # [out] Outlet for sending messages.
+      # [token] Cancellation token from the runtime.
       def call(out, token)
         # Early return for empty commands - prevents hang from zip_futures([])
         if commands.empty?
-          response = Message::All.new(envelope:, results: [].freeze, nested:)
+          results = [] #: Array[Object]
+          response = Message::All.new(envelope:, results: results.freeze, nested:)
           out.put(Ractor.make_shareable(response))
           return
         end

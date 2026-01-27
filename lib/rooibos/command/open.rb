@@ -16,24 +16,31 @@ module Rooibos
     # platform-specific commands.
     #
     # This command detects the platform and runs the appropriate opener:
-    # +open+ on macOS, +xdg-open+ on Linux, +start+ on Windows.
+    # <tt>open</tt> on macOS, <tt>xdg-open</tt> on Linux, <tt>start</tt> on Windows.
     #
-    # On success (exit 0), sends +Message::Open+.
-    # On failure (non-zero), sends +Message::Error+.
+    # On success (exit 0), sends <tt>Message::Open</tt>.
+    # On failure (non-zero), sends <tt>Message::Error</tt>.
+    #
+    # Prefer the <tt>Command.open</tt> factory method for convenience.
     #
     # === Example
     #
+    #   # Using the factory method (recommended)
+    #   Command.open(model.selected_file)
+    #   Command.open("https://rooibos.run")
+    #
+    #   # Using the class directly
+    #   Open.new(path: model.selected_file, envelope: model.selected_file)
+    #
+    #   # Pattern-match on the response
     #   def update(msg, model)
     #     case msg
-    #     in :view_clicked
-    #       [model, Command.open(model.selected_file)]
     #     in { type: :open, envelope: path }
     #       model.with(status: "Opened #{path}")
     #     in { type: :error, envelope: path }
     #       model.with(error: "Could not open #{path}")
     #     end
     #   end
-    #
     class Open < Data.define(:path, :envelope)
       include Custom
 

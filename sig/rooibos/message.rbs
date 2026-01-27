@@ -4,6 +4,10 @@
 #++
 
 module Rooibos
+  # Any value passed through Outlet#put to the runtime.
+  # Commands may produce any type; Predicates mixin is optional.
+  type message = Object
+
   # Messages sent from commands to update functions.
   module Message
   # Fallback predicate mixin.
@@ -127,12 +131,12 @@ module Rooibos
     include Predicates
 
     attr_reader envelope: Symbol
-    attr_reader results: Array[untyped]
+    attr_reader results: Array[message]
     attr_reader nested: bool
 
     def initialize: (
       envelope: Symbol,
-      results: Array[untyped],
+      results: Array[message],
       nested: bool
     ) -> void
 

@@ -20,6 +20,9 @@ module Rooibos
     #
     # Use it for delayed actions, debounced inputs, or animation loops.
     #
+    # Prefer the <tt>Command.wait</tt> or <tt>Command.tick</tt> factory
+    # methods for convenience. Both are aliases for the same behavior.
+    #
     # === Example: Notification dismissal
     #
     #   def update(msg, model)
@@ -44,7 +47,7 @@ module Rooibos
     #       [model.with(frame:), Command.tick(0.1, :animate)]
     #     end
     #   end
-    Wait = Data.define(:seconds, :envelope) do
+    class Wait < Data.define(:seconds, :envelope)
       include Custom
 
       # Cooperative cancellation needs no grace period.

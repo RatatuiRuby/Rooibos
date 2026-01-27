@@ -20,18 +20,29 @@ module Rooibos
     # Use it for parallel fetches, concurrent refreshes, or any work that
     # does not need coordinated results.
     #
+    # Prefer the <tt>Command.batch</tt> factory method for convenience.
+    #
     # === Example
     #
+    #   # Using the factory method (recommended)
+    #   Command.batch(
+    #     Command.http(:get, "/users", :users),
+    #     Command.http(:get, "/stats", :stats),
+    #   )
+    #
+    #   # Using the class directly
+    #   Batch.new(
+    #     Command.http(:get, "/users", :users),
+    #     Command.http(:get, "/stats", :stats),
+    #   )
+    #
+    #   # Handle each response independently
     #   def update(msg, model)
     #     case msg
-    #     in :refresh_all
-    #       batch = Command.batch(
-    #         Command.http(:get, "/users", :users),
-    #         Command.http(:get, "/stats", :stats),
-    #       )
-    #       [model.with(loading: true), batch]
-    #     in :users | :stats
-    #       [model.with(msg => data), nil]
+    #     in { type: :http, envelope: :users, body: }
+    #       model.with(users: JSON.parse(body))
+    #     in { type: :http, envelope: :stats, body: }
+    #       model.with(stats: JSON.parse(body))
     #     end
     #   end
     class Batch < Data.define(:commands) do
@@ -40,7 +51,15 @@ module Rooibos
       class << self
         undef_method :new
 
-        # Initialize
+        # Creates a parallel batch command.
+        #
+        # [args] Commands to run in parallel. Pass as multiple arguments
+        #        or a single array.
+        #
+        # === Example
+        #
+        #   Batch.new(cmd1, cmd2, cmd3)
+        #   Batch.new([cmd1, cmd2, cmd3])
         def new(*args)
           # DWIM: accept (cmd1, cmd2) or ([cmd1, cmd2])
           commands = (args.size == 1 && args.first.is_a?(Array)) ? args.first : args
@@ -61,7 +80,14 @@ module Rooibos
         end
       end
 
-      # Call it
+      # Executes all child commands in parallel.
+      #
+      # Each child sends its results independently via the runtime.
+      # When all complete, sends <tt>Message::Batch</tt>. If canceled,
+      # sends <tt>Message::Canceled</tt> instead.
+      #
+      # [out] Outlet for sending messages.
+      # [token] Cancellation token from the runtime.
       def call(out, token)
         handles = commands.map { |cmd| out.standing(cmd, token) }
         out.wait(*handles, token:)

@@ -36,9 +36,21 @@ module Rooibos
   #   # No side effect
   #   [model, nil]
   module Command
-    # Sentinel value for application termination.
+    # Terminates the application.
     #
-    # The runtime detects this before dispatching. It breaks the loop immediately.
+    # Users press a key or click a button to quit. The update function returns
+    # a command, and the runtime executes it. Termination is special: the
+    # runtime detects this sentinel before dispatching and breaks the loop.
+    #
+    # Prefer the <tt>Command.exit</tt> factory method for convenience.
+    #
+    # === Example
+    #
+    #   # Using the factory method (recommended)
+    #   [model, Command.exit]
+    #
+    #   # Using the class directly
+    #   [model, Exit.new]
     class Exit < Data.define
       include Custom
 
@@ -85,14 +97,25 @@ module Rooibos
       cancellation
     end
 
-    # Sentinel value for command cancellation.
+    # Cancels a running command.
     #
-    # Long-running commands (WebSocket listeners, database pollers) run until stopped.
-    # Stopping them requires signaling from outside the command. The runtime tracks
-    # active commands by their object identity and routes cancel requests.
+    # Long-running commands (WebSocket listeners, database pollers) run until
+    # stopped. Stopping them requires signaling from outside the command. The
+    # runtime tracks active commands by their object identity and routes cancel
+    # requests.
     #
-    # This type carries the handle (command object) to cancel. The runtime pattern-matches
-    # on <tt>Command::Cancel</tt> and signals the token.
+    # This type carries the handle (command object) to cancel. The runtime
+    # pattern-matches on <tt>Command::Cancel</tt> and signals the token.
+    #
+    # Prefer the <tt>Command.cancel</tt> factory method for convenience.
+    #
+    # === Example
+    #
+    #   # Using the factory method (recommended)
+    #   [model, Command.cancel(model.active_fetch)]
+    #
+    #   # Using the class directly
+    #   [model, Cancel.new(handle: model.active_fetch)]
     class Cancel < Data.define(:handle)
       include Custom
       include Message::Predicates
@@ -133,20 +156,29 @@ module Rooibos
     #
     # Use it to run builds, lint files, execute scripts, or invoke any CLI tool.
     #
+    # Prefer the <tt>Command.system</tt> factory method for convenience.
+    #
     # === Batch Mode (default)
     #
     # A single message arrives when the command finishes:
-    # <tt>[tag, {stdout:, stderr:, status:}]</tt>
+    # <tt>Message::System::Batch</tt> with <tt>stdout</tt>, <tt>stderr</tt>, <tt>status</tt>.
     #
     # === Streaming Mode
     #
-    # Messages arrive incrementally:
-    # - <tt>[tag, :stdout, line]</tt> for each stdout line
-    # - <tt>[tag, :stderr, line]</tt> for each stderr line
-    # - <tt>[tag, :complete, {status:}]</tt> when the command finishes
-    # - <tt>[tag, :error, {message:}]</tt> if the command cannot start
+    # <tt>Message::System::Stream</tt> messages arrive incrementally:
+    # <tt>stream: :stdout</tt>:: for each stdout chunk
+    # <tt>stream: :stderr</tt>:: for each stderr chunk
+    # <tt>stream: :complete</tt>:: when the command finishes
+    # <tt>stream: :error</tt>:: if the command cannot start
     #
-    # The <tt>status</tt> is the integer exit code (0 = success).
+    # === Example
+    #
+    #   # Using the factory method (recommended)
+    #   Command.system("ls -la", :got_files)
+    #   Command.system("tail -f log.txt", :log, stream: true)
+    #
+    #   # Using the class directly
+    #   System.new(command: "ls -la", envelope: :got_files, stream: false)
     class System < Data.define(:command, :envelope, :stream)
       include Custom
 
@@ -314,6 +346,16 @@ module Rooibos
     # adds its routing prefix. Clean separation. No coupling.
     #
     # Use it to compose child fragments that return their own commands.
+    #
+    # Prefer the <tt>Command.map</tt> factory method for convenience.
+    #
+    # === Example
+    #
+    #   # Using the factory method (recommended)
+    #   Command.map(child_command) { |msg| [:sidebar, msg] }
+    #
+    #   # Using the class directly
+    #   Mapped.new(inner_command: child_command, mapper: ->(msg) { [:sidebar, msg] })
     class Mapped < Data.define(:inner_command, :mapper)
       include Custom
 

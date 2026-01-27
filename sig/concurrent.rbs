@@ -31,6 +31,7 @@ module Concurrent
       def rejected?: () -> bool
       def wait: (?Numeric? timeout) -> self
       def value: () -> T?
+      def value!: () -> T
       def reason: () -> Exception?
     end
 
