@@ -15,7 +15,7 @@ module DashboardManual
   Command = Rooibos::Command
 
   # Shared with other UPDATE variants
-  Model = DashboardBase::Model
+  Model = DashboardBase::Dashboard
   Init = DashboardBase::Init
   View = DashboardBase::View
 

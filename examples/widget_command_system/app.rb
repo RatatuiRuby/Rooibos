@@ -24,9 +24,9 @@ require "rooibos"
 #
 # rdoc-image:/doc/images/widget_cmd_exec.png
 class WidgetCommandSystem
-  Model = Data.define(:result, :loading, :last_command)
+  CommandResult = Data.define(:result, :loading, :last_command)
   Init = -> {
-    Model.new(
+    CommandResult.new(
       result: "Press a key to run a command...",
       loading: false,
       last_command: nil

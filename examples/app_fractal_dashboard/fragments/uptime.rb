@@ -11,10 +11,10 @@ require "rooibos"
 module Uptime
   Command = Rooibos::Command
 
-  Model = Data.define(:output, :loading)
+  CommandResult = Data.define(:output, :loading)
 
   Init = -> do
-    Model.new(output: "Press 'u' for uptime", loading: false)
+    CommandResult.new(output: "Press 'u' for uptime", loading: false)
   end
 
   View = -> (model, tui, disabled: false) do

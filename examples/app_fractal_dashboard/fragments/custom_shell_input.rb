@@ -10,10 +10,10 @@ require "rooibos"
 #
 # Handles text entry. Sets canceled: or submitted: in model for parent to detect.
 module CustomShellInput
-  Model = Data.define(:text, :canceled, :submitted)
+  InputBuffer = Data.define(:text, :canceled, :submitted)
 
   Init = -> do
-    Ractor.make_shareable(Model.new(text: "", canceled: false, submitted: false))
+    Ractor.make_shareable(InputBuffer.new(text: "", canceled: false, submitted: false))
   end
 
   View = -> (model, tui) do

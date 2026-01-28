@@ -17,7 +17,7 @@ describe Tutorial02::FileBrowser::Update do
   end
 
   def make_model(entries: make_entries("a", "b", "c"), selected_index: 0)
-    Tutorial02::FileBrowser::Model.new(
+    Tutorial02::FileBrowser::DirectoryListing.new(
       current_directory: "/test",
       entries:,
       selected_index:

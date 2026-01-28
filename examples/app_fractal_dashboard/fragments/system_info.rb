@@ -11,10 +11,10 @@ require "rooibos"
 module SystemInfo
   Command = Rooibos::Command
 
-  Model = Data.define(:output, :loading)
+  CommandResult = Data.define(:output, :loading)
 
   Init = -> do
-    Model.new(output: "Press 's' for system info", loading: false)
+    CommandResult.new(output: "Press 's' for system info", loading: false)
   end
 
   View = -> (model, tui, disabled: false) do

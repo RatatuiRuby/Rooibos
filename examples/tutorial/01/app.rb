@@ -12,7 +12,7 @@ module Tutorial01
   module FileBrowser
     Entry = Data.define(:name, :directory?)
 
-    Model = Data.define(:current_directory, :entries)
+    DirectoryListing = Data.define(:current_directory, :entries)
 
     View = -> (model, tui) {
       items = model.entries.map { |e| e.directory? ? "#{e.name}/" : e.name }
@@ -40,7 +40,7 @@ module Tutorial01
     Init = -> {
       current_directory = Dir.pwd
       entries = ReadEntries.call(current_directory)
-      Ractor.make_shareable Model.new(current_directory, entries)
+      Ractor.make_shareable DirectoryListing.new(current_directory, entries)
     }
   end
 end

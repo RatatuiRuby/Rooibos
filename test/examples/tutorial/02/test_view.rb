@@ -18,7 +18,7 @@ describe Tutorial02::FileBrowser::View do
   end
 
   def make_model(current_directory: "/test", entries: [], selected_index: 0)
-    Tutorial02::FileBrowser::Model.new(
+    Tutorial02::FileBrowser::DirectoryListing.new(
       current_directory:,
       entries:,
       selected_index:

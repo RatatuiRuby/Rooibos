@@ -14,7 +14,7 @@ module Tutorial06
   module FileList
     Entry = Data.define(:name, :directory?)
 
-    Model = Data.define(:current_directory, :entries, :selected_index)
+    DirectoryListing = Data.define(:current_directory, :entries, :selected_index)
 
     View = -> (model, tui) {
       items = model.entries.map { |e| e.directory? ? "#{e.name}/" : e.name }
@@ -76,7 +76,7 @@ module Tutorial06
     Init = -> {
       current_directory = Dir.pwd
       entries = ReadEntries.call(current_directory)
-      Ractor.make_shareable Model.new(current_directory, entries, 0)
+      Ractor.make_shareable DirectoryListing.new(current_directory, entries, 0)
     }
 
     private_class_method def self.read_entries(path)

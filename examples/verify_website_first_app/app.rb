@@ -8,14 +8,14 @@
 require "rooibos"
 
 module FileBrowser
-  # Model: What state does your app need?
-  Model = Data.define(:path, :entries, :selected, :error)
+  # DirectoryListing: What state does your app need?
+  DirectoryListing = Data.define(:path, :entries, :selected, :error)
 
   Init = -> {
     path    = Dir.pwd
     entries = Entries[path]
     Ractor.make_shareable( # Ensures thread safety
-      Model.new(path:, entries:, selected: entries.first, error: nil))
+      DirectoryListing.new(path:, entries:, selected: entries.first, error: nil))
   }
 
   View = -> (model, tui) {

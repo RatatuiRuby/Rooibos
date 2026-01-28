@@ -24,7 +24,7 @@ class TestFileBrowserInit < Minitest::Test
         model = FileBrowser::Init.call
 
         assert Ractor.shareable?(model), "Model should be Ractor-shareable"
-        assert_instance_of FileBrowser::Model, model
+        assert_instance_of FileBrowser::DirectoryListing, model
       end
     end
   end

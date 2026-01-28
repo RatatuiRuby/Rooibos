@@ -11,10 +11,10 @@ require "rooibos"
 module Ping
   Command = Rooibos::Command
 
-  Model = Data.define(:output, :loading)
+  CommandResult = Data.define(:output, :loading)
 
   Init = -> do
-    Model.new(output: "Press 'p' for ping", loading: false)
+    CommandResult.new(output: "Press 'p' for ping", loading: false)
   end
 
   View = -> (model, tui, disabled: false) do

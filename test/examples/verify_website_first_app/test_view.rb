@@ -57,7 +57,7 @@ class TestFileBrowserView < Minitest::Test
 
   private def make_model(path: "/test", entries: [], selected: nil, error: nil)
     Ractor.make_shareable(
-      FileBrowser::Model.new(path:, entries:, selected:, error:)
+      FileBrowser::DirectoryListing.new(path:, entries:, selected:, error:)
     )
   end
 end

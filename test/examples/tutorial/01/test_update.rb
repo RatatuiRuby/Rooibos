@@ -13,7 +13,7 @@ describe Tutorial01::FileBrowser::Update do
   include Rooibos::TestHelper
 
   def make_model(entries: [])
-    Tutorial01::FileBrowser::Model.new(current_directory: "/test", entries:)
+    Tutorial01::FileBrowser::DirectoryListing.new(current_directory: "/test", entries:)
   end
 
   it "exits on q key" do

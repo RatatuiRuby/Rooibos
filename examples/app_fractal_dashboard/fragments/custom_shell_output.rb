@@ -12,10 +12,10 @@ require "rooibos"
 # Sets dismissed: in model for parent to detect.
 module CustomShellOutput
   Chunk = Data.define(:stream, :text)
-  Model = Data.define(:command, :chunks, :running, :exit_status, :dismissed)
+  ProcessOutput = Data.define(:command, :chunks, :running, :exit_status, :dismissed)
 
   Init = -> do
-    Ractor.make_shareable(Model.new(command: "", chunks: [].freeze, running: false, exit_status: nil, dismissed: false))
+    Ractor.make_shareable(ProcessOutput.new(command: "", chunks: [].freeze, running: false, exit_status: nil, dismissed: false))
   end
 
   View = -> (model, tui) do

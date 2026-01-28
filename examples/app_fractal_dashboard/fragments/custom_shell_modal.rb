@@ -12,12 +12,12 @@ require_relative "custom_shell_output"
 module CustomShellModal
   Command = Rooibos::Command
 
-  Model = Data.define(:mode, :input, :output)
+  ShellSession = Data.define(:mode, :input, :output)
 
   Init = -> do
     input, = Rooibos.normalize_init(CustomShellInput::Init.())
     output, = Rooibos.normalize_init(CustomShellOutput::Init.())
-    Ractor.make_shareable(Model.new(mode: :none, input:, output:))
+    Ractor.make_shareable(ShellSession.new(mode: :none, input:, output:))
   end
 
   View = -> (model, tui) do

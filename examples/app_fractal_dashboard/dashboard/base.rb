@@ -14,13 +14,13 @@ require_relative "../fragments/custom_shell_modal"
 module DashboardBase
   Command = Rooibos::Command
 
-  Model = Data.define(:stats, :network, :shell_modal)
+  Dashboard = Data.define(:stats, :network, :shell_modal)
 
   Init = -> do
     stats, = Rooibos.normalize_init(StatsPanel::Init.())
     network, = Rooibos.normalize_init(NetworkPanel::Init.())
     shell_modal, = Rooibos.normalize_init(CustomShellModal::Init.())
-    Model.new(stats:, network:, shell_modal:)
+    Dashboard.new(stats:, network:, shell_modal:)
   end
 
   View = -> (model, tui) do

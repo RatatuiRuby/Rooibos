@@ -17,7 +17,7 @@ describe Tutorial03::FileBrowser::Update do
   end
 
   def make_model(entries: make_entries("a", "b", "c"), selected_index: 0)
-    Tutorial03::FileBrowser::Model.new(
+    Tutorial03::FileBrowser::DirectoryListing.new(
       current_directory: "/test",
       entries:,
       selected_index:
@@ -174,7 +174,7 @@ describe Tutorial03::FileBrowser::Update do
     end
 
     it "goes to parent directory on Backspace" do
-      model = Tutorial03::FileBrowser::Model.new(
+      model = Tutorial03::FileBrowser::DirectoryListing.new(
         current_directory: "/test/subdir",
         entries: [make_file_entry("file.txt")],
         selected_index: 0
@@ -190,7 +190,7 @@ describe Tutorial03::FileBrowser::Update do
     end
 
     it "goes to parent directory on left arrow" do
-      model = Tutorial03::FileBrowser::Model.new(
+      model = Tutorial03::FileBrowser::DirectoryListing.new(
         current_directory: "/test/subdir",
         entries: [make_file_entry("file.txt")],
         selected_index: 0
@@ -206,7 +206,7 @@ describe Tutorial03::FileBrowser::Update do
     end
 
     it "goes to parent directory on h" do
-      model = Tutorial03::FileBrowser::Model.new(
+      model = Tutorial03::FileBrowser::DirectoryListing.new(
         current_directory: "/test/subdir",
         entries: [make_file_entry("file.txt")],
         selected_index: 0
@@ -275,7 +275,7 @@ describe Tutorial03::FileBrowser::Update do
 
     it "refreshes current view on R" do
       original_entries = [make_file_entry("old.txt")]
-      model = Tutorial03::FileBrowser::Model.new(
+      model = Tutorial03::FileBrowser::DirectoryListing.new(
         current_directory: "/test",
         entries: original_entries,
         selected_index: 0

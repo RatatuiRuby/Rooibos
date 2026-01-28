@@ -18,7 +18,7 @@ describe Tutorial01::FileBrowser::View do
   end
 
   it "returns a layout with paragraph and list" do
-    model = Tutorial01::FileBrowser::Model.new(
+    model = Tutorial01::FileBrowser::DirectoryListing.new(
       current_directory: "/home/user/projects",
       entries: []
     )
@@ -38,7 +38,7 @@ describe Tutorial01::FileBrowser::View do
       make_entry("README.md"),
       make_entry("test", directory: true),
     ]
-    model = Tutorial01::FileBrowser::Model.new(
+    model = Tutorial01::FileBrowser::DirectoryListing.new(
       current_directory: "/test",
       entries:
     )
