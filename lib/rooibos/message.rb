@@ -89,14 +89,21 @@ module Rooibos
       #   msg = MyCustomMessage.new
       #   msg.deconstruct_keys(nil) # => { type: :my_custom_message }
       #   msg.to_sym                # => :message_my_custom_message
-      def deconstruct_keys(_keys)
+      def deconstruct_keys(keys)
         class_name = self.class.name&.split("::")&.last
         type_name = if class_name
           class_name.gsub(/([a-z])([A-Z])/, '\1_\2').downcase.to_sym
         else
           :custom
         end
-        { type: type_name }
+
+        # Preserve parent's fields (e.g., Data.define members) and add :type
+        parent_keys = begin
+          super
+        rescue NoMethodError
+          {} #: Hash[Symbol, untyped]
+        end
+        parent_keys.merge(type: type_name)
       end
 
       # Responds to all predicate methods.

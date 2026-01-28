@@ -159,8 +159,7 @@ module Leaf
 
   # Leaf receives :increment from outer fragment, not raw keyboard events
   Update = -> (message, model) {
-    case message
-    in :increment
+    if message == :increment
       new_count = model.count + 1
       if new_count >= 10
         [Model.new(count: 0), nil, OutwardMessage::Reached10.new]
@@ -239,9 +238,8 @@ module Root
 
   # Root receives ALL keyboard events from the runtime
   Update = -> (message, model) {
-    case message
-    # Root's own counter
-    in _ if message.enter?
+    if message.enter?
+      # Root's own counter
       new_count = model.count + 1
       if new_count >= 10
         # Root counts its own reset
@@ -249,35 +247,20 @@ module Root
       else
         [model.with(count: new_count), nil]
       end
-
-    # PanelA's counter
-    in _ if message.a?
+    elsif message.a?
       dispatch_to_panel(:panel_a, :increment, model)
-
-    # PanelB's counter
-    in _ if message.b?
+    elsif message.b?
       dispatch_to_panel(:panel_b, :increment, model)
-
-    # Leaf1 under PanelA
-    in _ if message.one?
+    elsif message.one?
       dispatch_to_panel(:panel_a, [:leaf1, :increment], model)
-
-    # Leaf2 under PanelA
-    in _ if message.two?
+    elsif message.two?
       dispatch_to_panel(:panel_a, [:leaf2, :increment], model)
-
-    # Leaf3 under PanelB (mapped to leaf1 in PanelB)
-    in _ if message.three?
+    elsif message.three?
       dispatch_to_panel(:panel_b, [:leaf1, :increment], model)
-
-    # Leaf4 under PanelB (mapped to leaf2 in PanelB)
-    in _ if message.four?
+    elsif message.four?
       dispatch_to_panel(:panel_b, [:leaf2, :increment], model)
-
-    # Exit
-    in _ if message.ctrl_c? || message.q?
+    elsif message.ctrl_c? || message.q?
       Rooibos::Command.exit
-
     else
       [model, nil]
     end
@@ -346,8 +329,7 @@ module Leaf
   end
 
   Update = -> (message, model) {
-    case message
-    in :increment
+    if message == :increment
       new_count = model.count + 1
       if new_count >= 10
         Action::Reached10.new(model: Model.new(count: 0), command: nil)
@@ -435,9 +417,8 @@ module Root
 
   # Root receives ALL keyboard events from the runtime
   Update = -> (message, model) {
-    case message
-    # Root's own counter
-    in _ if message.enter?
+    if message.enter?
+      # Root's own counter
       new_count = model.count + 1
       if new_count >= 10
         # Root counts its own reset
@@ -445,35 +426,20 @@ module Root
       else
         [model.with(count: new_count), nil]
       end
-
-    # PanelA's counter
-    in _ if message.a?
+    elsif message.a?
       dispatch_to_panel(:panel_a, :increment, model)
-
-    # PanelB's counter
-    in _ if message.b?
+    elsif message.b?
       dispatch_to_panel(:panel_b, :increment, model)
-
-    # Leaf1 under PanelA
-    in _ if message.one?
+    elsif message.one?
       dispatch_to_panel(:panel_a, [:leaf1, :increment], model)
-
-    # Leaf2 under PanelA
-    in _ if message.two?
+    elsif message.two?
       dispatch_to_panel(:panel_a, [:leaf2, :increment], model)
-
-    # Leaf3 under PanelB
-    in _ if message.three?
+    elsif message.three?
       dispatch_to_panel(:panel_b, [:leaf1, :increment], model)
-
-    # Leaf4 under PanelB
-    in _ if message.four?
+    elsif message.four?
       dispatch_to_panel(:panel_b, [:leaf2, :increment], model)
-
-    # Exit
-    in _ if message.ctrl_c? || message.q?
+    elsif message.ctrl_c? || message.q?
       Rooibos::Command.exit
-
     else
       [model, nil]
     end
@@ -510,24 +476,38 @@ end
 
 ## Pattern 3: Command-Based Message Dispatch
 
-Nested returns a command that produces a message. Runtime dispatches message to root, which routes down.
+Nested returns a command that produces a message. Runtime dispatches message to Root asynchronously.
 
 **Inspiration**: Bubble Tea (Go)
+
+### Custom Command for Outward Signals
+
+First, define a reusable command that emits a message immediately:
+
+```ruby
+# A command that sends a message to Root via the runtime
+class DeliverRootMessage < Data.define(:envelope)
+  include Rooibos::Command::Custom
+
+  def call(out, _token)
+    out.put(envelope)
+  end
+end
+```
 
 ### Leaf
 
 ```ruby
 module Leaf
-  Model = Data.define(:count)
+  Model = Data.define(:count, :name)
 
   Update = -> (message, model) {
-    case message
-    in :increment
+    if message == :increment
       new_count = model.count + 1
       if new_count >= 10
         # Return a command that will produce a message for Root
-        cmd = Rooibos::Command.send_message([:leaf_reached_10, { count: new_count }])
-        [Model.new(count: 0), cmd]
+        cmd = DeliverRootMessage.new(envelope: [:leaf_reached_10, { leaf_name: model.name }])
+        [Model.new(count: 0, name: model.name), cmd]
       else
         [model.with(count: new_count), nil]
       end
@@ -551,7 +531,7 @@ module Panel
       new_count = model.count + 1
       if new_count >= 10
         # Emit command to notify Root asynchronously
-        cmd = Rooibos::Command.send_message([:panel_reached_10, { panel_name: model.name }])
+        cmd = DeliverRootMessage.new(envelope: [:panel_reached_10, { panel_name: model.name }])
         [model.with(count: 0), cmd]
       else
         [model.with(count: new_count), nil]
@@ -580,58 +560,44 @@ end
 module Root
   Model = Data.define(:panel_a, :panel_b, :count, :total_resets)
 
-  # Root receives ALL keyboard events from the runtime
+  # Root receives ALL keyboard events AND command-produced messages
   Update = -> (message, model) {
+    # Handle command-produced messages (async, from DeliverRootMessage)
     case message
-    # Handle command-produced messages (async, from runtime)
-    in [:leaf_reached_10, { count: }]
-      puts "Leaf reached #{count}, resetting"
+    in [:leaf_reached_10, { leaf_name: }]
+      puts "Leaf reset: #{leaf_name}"
       [model.with(total_resets: model.total_resets + 1), nil]
-
     in [:panel_reached_10, { panel_name: }]
       puts "Panel reset: #{panel_name}"
       [model.with(total_resets: model.total_resets + 1), nil]
-
-    # Root's own counter
-    in _ if message.respond_to?(:enter?) && message.enter?
-      new_count = model.count + 1
-      if new_count >= 10
-        # Root counts its own reset
-        [model.with(count: 0, total_resets: model.total_resets + 1), nil]
-      else
-        [model.with(count: new_count), nil]
-      end
-
-    # PanelA's counter
-    in _ if message.respond_to?(:a?) && message.a?
-      dispatch_to_panel(:panel_a, :increment, model)
-
-    # PanelB's counter
-    in _ if message.respond_to?(:b?) && message.b?
-      dispatch_to_panel(:panel_b, :increment, model)
-
-    # Leaf1 under PanelA
-    in _ if message.respond_to?(:one?) && message.one?
-      dispatch_to_panel(:panel_a, [:leaf1, :increment], model)
-
-    # Leaf2 under PanelA
-    in _ if message.respond_to?(:two?) && message.two?
-      dispatch_to_panel(:panel_a, [:leaf2, :increment], model)
-
-    # Leaf3 under PanelB
-    in _ if message.respond_to?(:three?) && message.three?
-      dispatch_to_panel(:panel_b, [:leaf1, :increment], model)
-
-    # Leaf4 under PanelB
-    in _ if message.respond_to?(:four?) && message.four?
-      dispatch_to_panel(:panel_b, [:leaf2, :increment], model)
-
-    # Exit
-    in _ if message.respond_to?(:ctrl_c?) && message.ctrl_c?
-      Rooibos::Command.exit
-
     else
-      [model, nil]
+      # Handle keyboard events
+      if message.enter?
+        # Root's own counter
+        new_count = model.count + 1
+        if new_count >= 10
+          # Root counts its own reset
+          [model.with(count: 0, total_resets: model.total_resets + 1), nil]
+        else
+          [model.with(count: new_count), nil]
+        end
+      elsif message.a?
+        dispatch_to_panel(:panel_a, :increment, model)
+      elsif message.b?
+        dispatch_to_panel(:panel_b, :increment, model)
+      elsif message.one?
+        dispatch_to_panel(:panel_a, [:leaf1, :increment], model)
+      elsif message.two?
+        dispatch_to_panel(:panel_a, [:leaf2, :increment], model)
+      elsif message.three?
+        dispatch_to_panel(:panel_b, [:leaf1, :increment], model)
+      elsif message.four?
+        dispatch_to_panel(:panel_b, [:leaf2, :increment], model)
+      elsif message.ctrl_c?
+        Rooibos::Command.exit
+      else
+        [model, nil]
+      end
     end
   }
 
@@ -652,8 +618,9 @@ Inward: User presses '1'
         → Panel::Update receives [:leaf1, :increment], calls Leaf::Update.call(:increment, ...)
         → Leaf::Update receives :increment, increments counter
 
-Outward: Leaf returns [model, Rooibos::Command.send_message([:leaf_reached_10, ...])]
-         → Command executes asynchronously
+Outward: Leaf returns [model, DeliverRootMessage.new(envelope: [:leaf_reached_10, ...])]
+         → Runtime executes command asynchronously
+         → DeliverRootMessage calls out.put([:leaf_reached_10, {...}])
          → Runtime delivers [:leaf_reached_10, {...}] to Root::Update
          → Root handles message, increments total_resets
 ```
@@ -665,6 +632,7 @@ Outward: Leaf returns [model, Rooibos::Command.send_message([:leaf_reached_10, .
 | Uses standard `[model, cmd]` signature | Indirect — messages route through runtime |
 | Natural fit with Rooibos command system | Async — timing is non-deterministic |
 | Nested fragments fully decoupled | Root must handle all command-produced messages |
+| App devs define their own message shapes | Requires defining custom DeliverRootMessage command |
 
 ---
 
@@ -756,9 +724,8 @@ module Root
 
   # Root receives ALL keyboard events from the runtime
   Update = -> (message, model) {
-    case message
-    # Root's own counter
-    in _ if message.enter?
+    if message.enter?
+      # Root's own counter
       new_count = model.count + 1
       if new_count >= 10
         # Root counts its own reset
@@ -766,35 +733,20 @@ module Root
       else
         [model.with(count: new_count), nil]
       end
-
-    # PanelA's counter
-    in _ if message.a?
+    elsif message.a?
       dispatch_to_panel(:panel_a, :increment, model)
-
-    # PanelB's counter
-    in _ if message.b?
+    elsif message.b?
       dispatch_to_panel(:panel_b, :increment, model)
-
-    # Leaf1 under PanelA
-    in _ if message.one?
+    elsif message.one?
       dispatch_to_panel(:panel_a, [:leaf1, :increment], model)
-
-    # Leaf2 under PanelA
-    in _ if message.two?
+    elsif message.two?
       dispatch_to_panel(:panel_a, [:leaf2, :increment], model)
-
-    # Leaf3 under PanelB
-    in _ if message.three?
+    elsif message.three?
       dispatch_to_panel(:panel_b, [:leaf1, :increment], model)
-
-    # Leaf4 under PanelB
-    in _ if message.four?
+    elsif message.four?
       dispatch_to_panel(:panel_b, [:leaf2, :increment], model)
-
-    # Exit
-    in _ if message.ctrl_c? || message.q?
+    elsif message.ctrl_c? || message.q?
       Rooibos::Command.exit
-
     else
       [model, nil]
     end
@@ -851,8 +803,7 @@ module Leaf
   RESET_THRESHOLD = 10
 
   Update = -> (message, model) {
-    case message
-    in :increment
+    if message == :increment
       new_count = model.count + 1
       if new_count >= RESET_THRESHOLD
         [Model.new(count: 0), nil]
@@ -942,9 +893,8 @@ module Root
 
   # Root receives ALL keyboard events from the runtime
   Update = -> (message, model) {
-    case message
-    # Root's own counter
-    in _ if message.enter?
+    if message.enter?
+      # Root's own counter
       new_count = model.count + 1
       if new_count >= RESET_THRESHOLD
         # Root counts its own reset
@@ -952,35 +902,20 @@ module Root
       else
         [model.with(count: new_count), nil]
       end
-
-    # PanelA's counter
-    in _ if message.a?
+    elsif message.a?
       dispatch_to_panel(:panel_a, :increment, model)
-
-    # PanelB's counter
-    in _ if message.b?
+    elsif message.b?
       dispatch_to_panel(:panel_b, :increment, model)
-
-    # Leaf1 under PanelA
-    in _ if message.one?
+    elsif message.one?
       dispatch_to_panel(:panel_a, [:leaf1, :increment], model)
-
-    # Leaf2 under PanelA
-    in _ if message.two?
+    elsif message.two?
       dispatch_to_panel(:panel_a, [:leaf2, :increment], model)
-
-    # Leaf3 under PanelB
-    in _ if message.three?
+    elsif message.three?
       dispatch_to_panel(:panel_b, [:leaf1, :increment], model)
-
-    # Leaf4 under PanelB
-    in _ if message.four?
+    elsif message.four?
       dispatch_to_panel(:panel_b, [:leaf2, :increment], model)
-
-    # Exit
-    in _ if message.ctrl_c? || message.q?
+    elsif message.ctrl_c? || message.q?
       Rooibos::Command.exit
-
     else
       [model, nil]
     end

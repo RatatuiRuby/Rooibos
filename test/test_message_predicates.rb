@@ -125,6 +125,21 @@ class TestMessagePredicates < Minitest::Test
     assert_equal :custom, keys[:type], "Anonymous classes should default to :custom"
   end
 
+  # Data.define provides its own deconstruct_keys with field values.
+  # Predicates should preserve those fields while adding :type.
+  DataDefineMessage = Data.define(:envelope, :count) do
+    include Rooibos::Message::Predicates
+  end
+
+  def test_default_deconstruct_keys_preserves_data_define_fields
+    msg = DataDefineMessage.new(envelope: :profile, count: 42)
+    keys = msg.deconstruct_keys(nil)
+
+    assert_equal :data_define_message, keys[:type], "Should derive type from class name"
+    assert_equal :profile, keys[:envelope], "Should preserve Data.define :envelope field"
+    assert_equal 42, keys[:count], "Should preserve Data.define :count field"
+  end
+
   def test_to_sym_uses_default_deconstruct_keys
     msg = MyCustomMessage.new
 

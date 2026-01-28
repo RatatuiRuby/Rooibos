@@ -100,16 +100,26 @@ module Rooibos
       # Custom commands produce results. Those results feed back into your
       # update function. This method handles the wiring.
       #
-      # Call with one argument to send it directly. Call with multiple
-      # arguments and they arrive as an array.
+      # For structured data and to avoid NoMethodError, define a custom
+      # Message class with +envelope+ and domain-specific fields, and mix in
+      # <tt>Rooibos::Message::Predicates</tt>. This follows the same pattern as
+      # built-in Message types and RatatuiRuby events.
       #
       # Use it for complex data flows or transports Rooibos doesn't ship with.
       #
-      # === Example
+      # === Structured Messages
       #
-      #   out.put(:done)              # Update receives :done
-      #   out.put(current_user)       # Update receives current_user
-      #   out.put(:user, alice)       # Update receives [:user, alice]
+      #   class UserFetched < Data.define(:envelope, :user)
+      #     include Rooibos::Message::Predicates
+      #   end
+      #
+      #   out.put(UserFetched.new(envelope: :profile, user: alice))
+      #
+      #   # Update can pattern match:
+      #   # in { type: :user_fetched, envelope: :profile, user: }
+      #
+      #   # Update can also use predicates:
+      #   # if message.user_fetched?
       #
       # Debug mode validates Ractor-shareability.
       def put(*args)
