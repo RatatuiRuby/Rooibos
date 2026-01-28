@@ -68,11 +68,17 @@ module Rooibos
         end
       end
 
-      # Returns <tt>false</tt> for unknown predicate methods.
+      # Returns <tt>true</tt> if predicate matches <tt>:type</tt> or
+      # <tt>:envelope</tt> from <tt>deconstruct_keys</tt>. Returns
+      # <tt>false</tt> for unknown predicate methods.
       def method_missing(name, *args, **kwargs, &block)
-        return false if name.to_s.end_with?("?") && args.empty? && kwargs.empty?
-
-        super
+        if name.to_s.end_with?("?") && args.empty? && kwargs.empty?
+          predicate = name.to_s.chomp("?").to_sym
+          keys = deconstruct_keys(nil)
+          keys[:type] == predicate || keys[:envelope] == predicate
+        else
+          super
+        end
       end
 
       # Fallback pattern matching for classes without explicit deconstruct_keys.

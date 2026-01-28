@@ -15,11 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`Message::Predicates` new predicates**: Added `milestone?` and `custom?` predicate methods. Use `message.milestone?` to check for milestone messages (e.g., completion signals) and `message.custom?` to check for custom user-defined message types.
+
 - **`Command.deliver(message)`**: New built-in command for sending structured messages to Update. Wraps any message and delivers it via the runtime. Works with pattern matching and predicates.
 
 ### Changed
 
 ### Fixed
+
+- **Message::Predicates `deconstruct_keys`**: Now calls `super` to preserve Data.define fields. Previously, including `Predicates` in a `Data.define` class would shadow all fields, returning only `{ type: ... }`. Now correctly returns `{ type: :my_message, envelope:, ...all_fields }`.
+
+- **Message::Predicates type-based predicates**: Predicates like `message.user_fetched?` now return `true` when the predicate matches the message's `:type`. Previously all unknown predicates returned `false`, even when they matched the type.
+
+- **Message::Predicates envelope-based predicates**: Predicates like `message.profile?` now return `true` when the predicate matches the message's `:envelope`. This enables convenient checks like `if message.profile?` alongside type checks.
 
 ### Removed
 

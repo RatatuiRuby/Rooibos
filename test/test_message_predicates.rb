@@ -140,6 +140,32 @@ class TestMessagePredicates < Minitest::Test
     assert_equal 42, keys[:count], "Should preserve Data.define :count field"
   end
 
+  # Type-based predicates should return true when predicate matches :type
+  def test_type_predicate_returns_true_when_matches
+    msg = DataDefineMessage.new(envelope: :profile, count: 42)
+
+    assert msg.data_define_message?, "Predicate matching :type should return true"
+  end
+
+  def test_type_predicate_returns_false_when_does_not_match
+    msg = DataDefineMessage.new(envelope: :profile, count: 42)
+
+    refute msg.user_fetched?, "Predicate not matching :type should return false"
+  end
+
+  # Envelope-based predicates should return true when predicate matches :envelope
+  def test_envelope_predicate_returns_true_when_matches
+    msg = DataDefineMessage.new(envelope: :profile, count: 42)
+
+    assert msg.profile?, "Predicate matching :envelope should return true"
+  end
+
+  def test_envelope_predicate_returns_false_when_does_not_match
+    msg = DataDefineMessage.new(envelope: :profile, count: 42)
+
+    refute msg.settings?, "Predicate not matching :envelope should return false"
+  end
+
   def test_to_sym_uses_default_deconstruct_keys
     msg = MyCustomMessage.new
 

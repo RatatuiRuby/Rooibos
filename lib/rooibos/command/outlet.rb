@@ -97,15 +97,15 @@ module Rooibos
 
       # Sends a message to the runtime.
       #
-      # Custom commands produce results. Those results feed back into your
-      # update function. This method handles the wiring.
+      # Custom commands produce results. Messages about those results feed back
+      # into your update function. This method handles the wiring.
+      #
+      # Use it for complex data flows or transports Rooibos doesn't ship with.
       #
       # For structured data and to avoid NoMethodError, define a custom
       # Message class with +envelope+ and domain-specific fields, and mix in
       # <tt>Rooibos::Message::Predicates</tt>. This follows the same pattern as
       # built-in Message types and RatatuiRuby events.
-      #
-      # Use it for complex data flows or transports Rooibos doesn't ship with.
       #
       # === Structured Messages
       #
@@ -119,7 +119,7 @@ module Rooibos
       #   # in { type: :user_fetched, envelope: :profile, user: }
       #
       #   # Update can also use predicates:
-      #   # if message.user_fetched?
+      #   # message.user if message.user_fetched? and message.profile?
       #
       # Debug mode validates Ractor-shareability.
       def put(*args)
