@@ -480,20 +480,23 @@ Nested returns a command that produces a message. Runtime dispatches message to 
 
 **Inspiration**: Bubble Tea (Go)
 
-### Custom Command for Outward Signals
+### Message Types for Outward Messages
 
-First, define a reusable command that emits a message immediately:
+Define structured Message classes following the blessed pattern:
 
 ```ruby
-# A command that sends a message to Root via the runtime
-class DeliverRootMessage < Data.define(:envelope)
-  include Rooibos::Command::Custom
+# Message when a leaf fragment resets
+class LeafReset < Data.define(:envelope, :count)
+  include Rooibos::Message::Predicates
+end
 
-  def call(out, _token)
-    out.put(envelope)
-  end
+# Message when a panel resets
+class PanelReset < Data.define(:envelope, :count)
+  include Rooibos::Message::Predicates
 end
 ```
+
+Rooibos ships `Command.deliver(message)` for exactly this purpose.
 
 ### Leaf
 
@@ -505,9 +508,9 @@ module Leaf
     if message == :increment
       new_count = model.count + 1
       if new_count >= 10
-        # Return a command that will produce a message for Root
-        cmd = DeliverRootMessage.new(envelope: [:leaf_reached_10, { leaf_name: model.name }])
-        [Model.new(count: 0, name: model.name), cmd]
+        # Return a command that delivers a LeafReset message to Root
+        reset_msg = LeafReset.new(envelope: model.name.to_sym, count: new_count)
+        [Model.new(count: 0, name: model.name), Command.deliver(reset_msg)]
       else
         [model.with(count: new_count), nil]
       end
@@ -522,7 +525,7 @@ end
 
 ```ruby
 module Panel
-  Model = Data.define(:leaf1, :leaf2, :name, :count, :nested_resets)
+  Model = Data.define(:leaf1, :leaf2, :name, :count)
 
   Update = -> (message, model) {
     case message
@@ -531,8 +534,8 @@ module Panel
       new_count = model.count + 1
       if new_count >= 10
         # Emit command to notify Root asynchronously
-        cmd = DeliverRootMessage.new(envelope: [:panel_reached_10, { panel_name: model.name }])
-        [model.with(count: 0), cmd]
+        reset_msg = PanelReset.new(envelope: model.name.to_sym, count: new_count)
+        [model.with(count: 0), Command.deliver(reset_msg)]
       else
         [model.with(count: new_count), nil]
       end
@@ -562,16 +565,17 @@ module Root
 
   # Root receives ALL keyboard events AND command-produced messages
   Update = -> (message, model) {
-    # Handle command-produced messages (async, from DeliverRootMessage)
+    # Handle structured messages (async, from DeliverToRoot)
+    # Pattern match on :type and :envelope
     case message
-    in [:leaf_reached_10, { leaf_name: }]
-      puts "Leaf reset: #{leaf_name}"
+    in { type: :leaf_reset, envelope:, count: }
+      puts "Leaf #{envelope} reset at #{count}"
       [model.with(total_resets: model.total_resets + 1), nil]
-    in [:panel_reached_10, { panel_name: }]
-      puts "Panel reset: #{panel_name}"
+    in { type: :panel_reset, envelope:, count: }
+      puts "Panel #{envelope} reset at #{count}"
       [model.with(total_resets: model.total_resets + 1), nil]
     else
-      # Handle keyboard events
+      # Handle keyboard events — also use predicates!
       if message.enter?
         # Root's own counter
         new_count = model.count + 1
@@ -618,11 +622,12 @@ Inward: User presses '1'
         → Panel::Update receives [:leaf1, :increment], calls Leaf::Update.call(:increment, ...)
         → Leaf::Update receives :increment, increments counter
 
-Outward: Leaf returns [model, DeliverRootMessage.new(envelope: [:leaf_reached_10, ...])]
+Outward: Leaf returns [model, Command.deliver(LeafReset.new(...))]
          → Runtime executes command asynchronously
-         → DeliverRootMessage calls out.put([:leaf_reached_10, {...}])
-         → Runtime delivers [:leaf_reached_10, {...}] to Root::Update
-         → Root handles message, increments total_resets
+         → Command::Deliver calls out.put(LeafReset.new(...))
+         → Runtime delivers LeafReset to Root::Update
+         → Root pattern matches { type: :leaf_reset, envelope:, count: }
+         → Or uses predicates: message.leaf_reset? and message.leaf1?
 ```
 
 ### Trade-offs
@@ -632,7 +637,8 @@ Outward: Leaf returns [model, DeliverRootMessage.new(envelope: [:leaf_reached_10
 | Uses standard `[model, cmd]` signature | Indirect — messages route through runtime |
 | Natural fit with Rooibos command system | Async — timing is non-deterministic |
 | Nested fragments fully decoupled | Root must handle all command-produced messages |
-| App devs define their own message shapes | Requires defining custom DeliverRootMessage command |
+| Structured messages with pattern matching | Requires defining Message classes |
+| Predicates work: `message.leaf_reset?` | |
 
 ---
 

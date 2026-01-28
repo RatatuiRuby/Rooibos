@@ -14,6 +14,7 @@ require_relative "command/batch"
 require_relative "command/all"
 require_relative "command/http"
 require_relative "command/open"
+require_relative "command/deliver"
 
 module Rooibos
   # Commands represent side effects.
@@ -76,6 +77,30 @@ module Rooibos
     #   end
     def self.exit
       Exit.new
+    end
+
+    # Delivers a message to Update.
+    #
+    # Custom commands produce results. Those results feed back into your update
+    # function. This factory method wraps a message in a command that delivers
+    # it when executed.
+    #
+    # === Example
+    #
+    #   # Define a message type
+    #   class FetchComplete < Data.define(:envelope, :data)
+    #     include Rooibos::Message::Predicates
+    #   end
+    #
+    #   # Send after a synchronous operation
+    #   result = fetch_data_sync()
+    #   [model, Command.deliver(FetchComplete.new(envelope: :items, data: result))]
+    #
+    #   # Receive in Update
+    #   in { type: :fetch_complete, envelope: :items, data: }
+    #     model.with(items: data)
+    def self.deliver(message)
+      Deliver.new(message:)
     end
 
     # Creates a fresh cancellation that never fires.

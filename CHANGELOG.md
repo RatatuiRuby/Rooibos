@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`Command.deliver(message)`**: New built-in command for sending structured messages to Update. Wraps any message and delivers it via the runtime. Works with pattern matching and predicates.
+
 ### Changed
 
 ### Fixed
