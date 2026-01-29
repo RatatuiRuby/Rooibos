@@ -27,9 +27,9 @@ module Rooibos
   #     route :stats, to: StatsPanel
   #     route :network, to: NetworkPanel
   #
-  #     keymap do
-  #       key "s", -> { SystemInfo.fetch_command }, route: :stats
-  #       key "q", -> { Command.exit }
+  #     keymap do |map|
+  #       map.key "s", -> { SystemInfo.fetch_command }, route: :stats
+  #       map.key "q", -> { Command.exit }
   #     end
   #
   #     Model = Data.define(:stats, :network)
@@ -197,13 +197,13 @@ module Rooibos
       #
       # === Example
       #
-      #   keymap do
-      #     key "q", -> { Command.exit }
-      #     key :up, :scroll_up  # Delegate to action
+      #   keymap do |map|
+      #     map.key "q", -> { Command.exit }
+      #     map.key :up, :scroll_up  # Delegate to action
       #   end
-      def keymap(&)
+      def keymap
         builder = KeymapBuilder.new
-        builder.instance_eval(&)
+        yield builder
         @key_handlers = builder.handlers
       end
 
@@ -211,13 +211,13 @@ module Rooibos
       #
       # === Example
       #
-      #   mousemap do
-      #     click -> (x, y) { [:clicked, x, y] }
-      #     scroll :up, :scroll_up  # Delegate to action
+      #   mousemap do |map|
+      #     map.click -> (x, y) { [:clicked, x, y] }
+      #     map.scroll :up, :scroll_up  # Delegate to action
       #   end
-      def mousemap(&)
+      def mousemap
         builder = MousemapBuilder.new
-        builder.instance_eval(&)
+        yield builder
         @scroll_handlers = builder.scroll_handlers
         @click_handler = builder.click_handler
       end

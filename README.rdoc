@@ -279,12 +279,12 @@ The Router DSL eliminates boilerplate:
     route :stats, to: StatsPanel
     route :network, to: NetworkPanel
 
-    keymap do
-      key :ctrl_c, -> { Rooibos::Command.exit }
-      only when: -> (model) { !model.modal_open } do
-        key :q, -> { Rooibos::Command.exit }
-        key :s, -> { StatsPanel.fetch_command }
-        key :p, -> { NetworkPanel.ping_command }
+    keymap do |map|
+      map.key :ctrl_c, -> { Rooibos::Command.exit }
+      map.only when: -> (model) { !model.modal_open } do
+        map.key :q, -> { Rooibos::Command.exit }
+        map.key :s, -> { StatsPanel.fetch_command }
+        map.key :p, -> { NetworkPanel.ping_command }
       end
     end
 

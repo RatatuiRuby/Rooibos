@@ -23,8 +23,8 @@ class TestRouterKeymap < Minitest::Test
 
       action :move_down, -> { handler_called = true; nil }
 
-      keymap do
-        keys :down, :j, action: :move_down
+      keymap do |map|
+        map.keys :down, :j, action: :move_down
       end
     end
 
@@ -52,8 +52,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        key(exit_bindings) # Splat a hash of bindings
+      keymap do |map|
+        map.key(exit_bindings) # Splat a hash of bindings
       end
     end
 
@@ -75,8 +75,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        keys ctrl_c: -> { ctrl_c_called = true }, q: -> { q_called = true }
+      keymap do |map|
+        map.keys ctrl_c: -> { ctrl_c_called = true }, q: -> { q_called = true }
       end
     end
 
@@ -110,8 +110,8 @@ class TestRouterKeymap < Minitest::Test
       route :some_container, to: child_fragment
       action go_back: child_fragment
 
-      keymap do
-        key :backspace, :go_back
+      keymap do |map|
+        map.key :backspace, :go_back
       end
     end
 
@@ -130,8 +130,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        key "q", -> { q_called = true; nil }
+      keymap do |map|
+        map.key "q", -> { q_called = true; nil }
       end
     end
 
@@ -152,8 +152,8 @@ class TestRouterKeymap < Minitest::Test
 
       action :scroll_up, -> { action_called = true; nil }
 
-      keymap do
-        key :up, :scroll_up # Delegate to action
+      keymap do |map|
+        map.key :up, :scroll_up # Delegate to action
       end
     end
 
@@ -172,8 +172,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        key "x", -> { handler_called = true; nil }, when: guard_proc
+      keymap do |map|
+        map.key "x", -> { handler_called = true; nil }, when: guard_proc
       end
     end
 
@@ -195,8 +195,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        key "x", -> { handler_called = true; nil }, when: guard_proc
+      keymap do |map|
+        map.key "x", -> { handler_called = true; nil }, when: guard_proc
       end
     end
 
@@ -218,8 +218,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        key "x", -> { handler_called = true; nil }, if: guard_proc
+      keymap do |map|
+        map.key "x", -> { handler_called = true; nil }, if: guard_proc
       end
     end
 
@@ -241,8 +241,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        key "x", -> { handler_called = true; nil }, unless: guard_proc
+      keymap do |map|
+        map.key "x", -> { handler_called = true; nil }, unless: guard_proc
       end
     end
 
@@ -264,8 +264,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        key "x", -> { handler_called = true; nil }, only: guard_proc
+      keymap do |map|
+        map.key "x", -> { handler_called = true; nil }, only: guard_proc
       end
     end
 
@@ -291,8 +291,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        key "x", -> { handler_called = true; nil }, skip: guard_proc
+      keymap do |map|
+        map.key "x", -> { handler_called = true; nil }, skip: guard_proc
       end
     end
 
@@ -318,8 +318,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        key "x", -> { handler_called = true; nil }, guard: guard_proc
+      keymap do |map|
+        map.key "x", -> { handler_called = true; nil }, guard: guard_proc
       end
     end
 
@@ -345,8 +345,8 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        key "x", -> { handler_called = true; nil }, except: guard_proc
+      keymap do |map|
+        map.key "x", -> { handler_called = true; nil }, except: guard_proc
       end
     end
 
@@ -372,9 +372,9 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        only guard: guard_proc do
-          key "x", -> { handler_called = true; nil }
+      keymap do |map|
+        map.only guard: guard_proc do
+          map.key "x", -> { handler_called = true; nil }
         end
       end
     end
@@ -394,9 +394,9 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        only when: guard_proc do
-          key "x", -> { handler_called = true; nil }
+      keymap do |map|
+        map.only when: guard_proc do
+          map.key "x", -> { handler_called = true; nil }
         end
       end
     end
@@ -422,9 +422,9 @@ class TestRouterKeymap < Minitest::Test
       Class.new do
         include Rooibos::Router
 
-        keymap do
-          only when: guard_proc_one, guard: guard_proc_two do
-            key "x", -> { puts "this will error" }
+        keymap do |map|
+          map.only when: guard_proc_one, guard: guard_proc_two do
+            map.key "x", -> { puts "this will error" }
           end
         end
       end
@@ -438,9 +438,9 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        only if: guard_proc do
-          key "x", -> { handler_called = true; nil }
+      keymap do |map|
+        map.only if: guard_proc do
+          map.key "x", -> { handler_called = true; nil }
         end
       end
     end
@@ -460,9 +460,9 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        only only: guard_proc do
-          key "x", -> { handler_called = true; nil }
+      keymap do |map|
+        map.only only: guard_proc do
+          map.key "x", -> { handler_called = true; nil }
         end
       end
     end
@@ -483,9 +483,9 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        skip when: guard_proc do
-          key "x", -> { handler_called = true; nil }
+      keymap do |map|
+        map.skip when: guard_proc do
+          map.key "x", -> { handler_called = true; nil }
         end
       end
     end
@@ -506,9 +506,9 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        skip if: guard_proc do
-          key "x", -> { handler_called = true; nil }
+      keymap do |map|
+        map.skip if: guard_proc do
+          map.key "x", -> { handler_called = true; nil }
         end
       end
     end
@@ -528,9 +528,9 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        skip skip: guard_proc do
-          key "x", -> { handler_called = true; nil }
+      keymap do |map|
+        map.skip skip: guard_proc do
+          map.key "x", -> { handler_called = true; nil }
         end
       end
     end
@@ -551,9 +551,9 @@ class TestRouterKeymap < Minitest::Test
       Class.new do
         include Rooibos::Router
 
-        keymap do
-          skip when: guard_proc_one, if: guard_proc_two do
-            key "x", -> { nil }
+        keymap do |map|
+          map.skip when: guard_proc_one, if: guard_proc_two do
+            map.key "x", -> { nil }
           end
         end
       end
@@ -567,9 +567,9 @@ class TestRouterKeymap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      keymap do
-        skip guard: guard_proc do
-          key "x", -> { handler_called = true; nil }
+      keymap do |map|
+        map.skip guard: guard_proc do
+          map.key "x", -> { handler_called = true; nil }
         end
       end
     end

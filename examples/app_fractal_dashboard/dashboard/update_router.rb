@@ -27,15 +27,15 @@ module DashboardRouter
   # Guard: only handle keys when modal is not active
   MODAL_INACTIVE = -> (model) { !CustomShellModal.active?(model.shell_modal) }
 
-  keymap do
-    key :ctrl_c, -> { Command.exit }
-    only when: MODAL_INACTIVE do
-      key :q, -> { Command.exit }
-      key :s, -> { SystemInfo.fetch_command }
-      key :d, -> { DiskUsage.fetch_command }
-      key :p, -> { Ping.fetch_command }
-      key :u, -> { Uptime.fetch_command }
-      key :c, -> { CustomShellModal.open }
+  keymap do |map|
+    map.key :ctrl_c, -> { Command.exit }
+    map.only when: MODAL_INACTIVE do
+      map.key :q, -> { Command.exit }
+      map.key :s, -> { SystemInfo.fetch_command }
+      map.key :d, -> { DiskUsage.fetch_command }
+      map.key :p, -> { Ping.fetch_command }
+      map.key :u, -> { Uptime.fetch_command }
+      map.key :c, -> { CustomShellModal.open }
     end
   end
 

@@ -15,9 +15,9 @@ class TestRouterMousemap < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      mousemap do
-        scroll :up, -> { scroll_up_called = true; nil }
-        scroll :down, -> { scroll_down_called = true; nil }
+      mousemap do |map|
+        map.scroll :up, -> { scroll_up_called = true; nil }
+        map.scroll :down, -> { scroll_down_called = true; nil }
       end
     end
 
@@ -43,8 +43,8 @@ class TestRouterMousemap < Minitest::Test
 
       action :scroll_up_action, -> { action_called = true; nil }
 
-      mousemap do
-        scroll :up, :scroll_up_action # Delegate to action
+      mousemap do |map|
+        map.scroll :up, :scroll_up_action # Delegate to action
       end
     end
 

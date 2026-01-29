@@ -93,29 +93,29 @@ action -> { Rooibos::Command.exit }, key: :ctrl_c
 **`keymap`** maps RatatuiRuby::Event::Key messages to commands or actions.
 
 ```ruby
-keymap do
+keymap do |map|
   # Handler or action name
-  key :q, -> { Rooibos::Command.exit }
-  key :up, :scroll_up
+  map.key :q, -> { Rooibos::Command.exit }
+  map.key :up, :scroll_up
 
   # Multiple keys to one action
-  keys :down, :j, action: :move_down
+  map.keys :down, :j, action: :move_down
 
   # Hash syntax for metaprogramming
   exit_bindings = { q: :quit, ctrl_c: :quit }
-  key(exit_bindings)
+  map.key(exit_bindings)
 
   # Guards control when handlers run
-  key "x", -> { ... }, when: -> (model) { model.editable? }
-  key "d", -> { ... }, unless: -> (model) { model.locked? }
+  map.key "x", -> { ... }, when: -> (model) { model.editable? }
+  map.key "d", -> { ... }, unless: -> (model) { model.locked? }
 
   # Scoped guard blocks reduce repetition
-  only when: -> (model) { model.focused? } do
-    key "j", :move_down
-    key "k", :move_up
+  map.only when: -> (model) { model.focused? } do
+    map.key "j", :move_down
+    map.key "k", :move_up
   end
-  skip if: -> (model) { model.modal_open? } do
-    key "q", :quit
+  map.skip if: -> (model) { model.modal_open? } do
+    map.key "q", :quit
   end
 end
 ```
@@ -127,10 +127,10 @@ Choose a guard alias to match your semantics: `when:`, `if:`, `only:`, `guard:` 
 **`mousemap`** maps `RatatuiRuby::Event::Mouse` messages to commands or actions. Like `keymap`, it supports action references, guards, and scoped guard blocks:
 
 ```ruby
-mousemap do
-  scroll :up, :scroll_up_action
-  scroll :down, -> { [:scroll, 1] }
-  click -> (x, y) { [:clicked, x, y] }
+mousemap do |map|
+  map.scroll :up, :scroll_up_action
+  map.scroll :down, -> { [:scroll, 1] }
+  map.click -> (x, y) { [:clicked, x, y] }
 end
 ```
 
@@ -139,18 +139,18 @@ end
 **`forward`** routes incoming messages by type. It complements `keymap` (keyboard events) and `mousemap` (mouse events):
 
 ```ruby
-forward do
+forward do |messages|
   # Broadcast resize events to specific nested fragments
-  with_type :resize, broadcast_to: [:file_list, :sidebar]
+  messages.with_type :resize, broadcast_to: [:file_list, :sidebar]
 
   # Or broadcast to all declared routes
-  with_type :theme_changed, broadcast: true
+  messages.with_type :theme_changed, broadcast: true
 
   # Route by message type to an action
-  with_type :leaf_reset, action: :increment_resets
+  messages.with_type :leaf_reset, action: :increment_resets
 
   # Route by envelope to a specific fragment
-  with_envelope :file_list, route_to: FileList
+  messages.with_envelope :file_list, route_to: FileList
 end
 ```
 
@@ -209,15 +209,15 @@ intercept_all ->(message, model) { [model, nil] }
 This is useful when an outer fragment doesn't need to know everything its nested fragments handle. A tab container, for example, might only care which tab is active — not what each tab does with keyboard events. The active tab handles its own messages; the container just routes them.
 
 ```ruby
-keymap do
-  key :tab, :next_tab
-  only when: -> (model) { model.focused? } do
-    key :k, :move_up
+keymap do |map|
+  map.key :tab, :next_tab
+  map.only when: -> (model) { model.focused? } do
+    map.key :k, :move_up
   end
 end
 
-forward do
-  with_type :resize, broadcast: true
+forward do |messages|
+  messages.with_type :resize, broadcast: true
 end
 
 # Everything not handled above goes to the active tab
@@ -242,32 +242,32 @@ For deeply nested fragments, use `otherwise` at each level. Messages flow inward
 
 ```ruby
 # Root
-keymap do
-  key :tab, :switch_tab
+keymap do |map|
+  map.key :tab, :switch_tab
 end
 otherwise route_to: :active_tab
 ```
 
 ```ruby
 # Tab fragment
-keymap do
-  key :enter, :submit_form  
+keymap do |map|
+  map.key :enter, :submit_form
 end
 otherwise route_to: :active_panel
 ```
 
 ```ruby
 # Panel fragment
-keymap do
-  key :space, :toggle
+keymap do |map|
+  map.key :space, :toggle
 end
 otherwise route_to: :active_field
 ```
 
 ```ruby
 # Field fragment — handles everything that made it this far
-keymap do
-  key :backspace, :delete_char
+keymap do |map|
+  map.key :backspace, :delete_char
 end
 
 # Catch-all for character insertion
@@ -335,8 +335,8 @@ end
 
 ```ruby
 # In an outer fragment's forward block
-forward do
-  with_type :leaf_reset do |model, message|
+forward do |messages|
+  messages.with_type :leaf_reset do |model, message|
     model.with(resets: model.resets + 1)
   end
 end
@@ -481,9 +481,9 @@ module Panel
           ->(_, model) { model.with(nested_resets: model.nested_resets + 1) }
 
   # Route by envelope to the correct leaf
-  forward do
-    with_envelope :top_leaf, route_to: :top_leaf
-    with_envelope :bottom_leaf, route_to: :bottom_leaf
+  forward do |messages|
+    messages.with_envelope :top_leaf, route_to: :top_leaf
+    messages.with_envelope :bottom_leaf, route_to: :bottom_leaf
   end
 
   Update = from_router
@@ -525,14 +525,14 @@ module Root
   route :left_panel, to: Panel
   route :right_panel, to: Panel
 
-  keymap do
-    key :ctrl_c, -> { Rooibos::Command.exit }
-    key "a", :panel, route: :left_panel
-    key "b", :panel, route: :right_panel
-    key "1", :top_leaf, route: :left_panel
-    key "2", :bottom_leaf, route: :left_panel
-    key "3", :top_leaf, route: :right_panel
-    key "4", :bottom_leaf, route: :right_panel
+  keymap do |map|
+    map.key :ctrl_c, -> { Rooibos::Command.exit }
+    map.key "a", :panel, route: :left_panel
+    map.key "b", :panel, route: :right_panel
+    map.key "1", :top_leaf, route: :left_panel
+    map.key "2", :bottom_leaf, route: :left_panel
+    map.key "3", :top_leaf, route: :right_panel
+    map.key "4", :bottom_leaf, route: :right_panel
   end
 
   # Root increments itself

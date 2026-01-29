@@ -19,8 +19,8 @@ class TestRouterIntercept < Minitest::Test
       intercept ->(msg) { msg.q? },
                 ->(msg, model) { intercept_called = true; model }
 
-      keymap do
-        key :q, -> { keymap_called = true; nil }
+      keymap do |map|
+        map.key :q, -> { keymap_called = true; nil }
       end
     end
 
@@ -42,8 +42,8 @@ class TestRouterIntercept < Minitest::Test
       intercept ->(msg) { msg.enter? },
                 ->(msg, model) { model.merge(intercepted: true) }
 
-      keymap do
-        key :enter, -> { keymap_called = true; nil }
+      keymap do |map|
+        map.key :enter, -> { keymap_called = true; nil }
       end
     end
 
@@ -83,8 +83,8 @@ class TestRouterIntercept < Minitest::Test
       intercept ->(msg) { msg.x? },
                 ->(msg, model) { model }
 
-      keymap do
-        key :q, -> { keymap_called = true; nil }
+      keymap do |map|
+        map.key :q, -> { keymap_called = true; nil }
       end
     end
 
@@ -312,8 +312,8 @@ class TestRouterIntercept < Minitest::Test
 
       intercept_all ->(msg, model) { model }
 
-      keymap do
-        key :q, -> { keymap_called = true; nil }
+      keymap do |map|
+        map.key :q, -> { keymap_called = true; nil }
       end
     end
 

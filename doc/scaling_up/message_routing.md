@@ -182,9 +182,9 @@ module TabContainer
 
   delegate_unhandled_to: -> (model) { model.active_tab }
 
-  keymap do
-    key :ctrl_1, action: :switch_tab1
-    key :ctrl_2, action: :switch_tab2
+  keymap do |map|
+    map.key :ctrl_1, action: :switch_tab1
+    map.key :ctrl_2, action: :switch_tab2
   end
 end
 ```

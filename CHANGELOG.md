@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING: Router `keymap`/`mousemap` DSL Syntax**: The Router DSL now uses yield-based blocks instead of `instance_eval`. This enables Ractor shareability for lambdas defined inside the block. Update your code:
+  - Before: `keymap do` / `key :q, -> { Command.exit }`
+  - After: `keymap do |map|` / `map.key :q, -> { Command.exit }`
+  - Same pattern applies to `mousemap do |map|`, `map.only when: ...`, and `map.skip if: ...`
+
 ### Fixed
 
 - **`Command::Cancel` no longer includes `Message::Predicates`**: Commands should only include `Command::Custom`, not message mixins. `Cancel` is a sentinel command intercepted by the runtime before dispatch — it is never sent to Update as a message. Removed the buggy (for non-messages) behavior introduced by `include Message::Predicates`.
