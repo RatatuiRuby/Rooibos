@@ -19,9 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`Command.deliver(message)`**: New built-in command for sending structured messages to Update. Wraps any message and delivers it via the runtime. Works with pattern matching and predicates.
 
+- **`Command.bubble(message)`**: New command for outward message propagation through the fragment hierarchy. Unlike `Command.deliver` (which goes directly to the root), `Command.bubble` flows through each fragment level, giving each outer fragment an opportunity to observe or intercept the message. Use with the Router DSL (`observe`, `intercept`) or handle manually by checking for `Command::Bubble` and extracting the message.
+
 ### Changed
 
 ### Fixed
+
+- **`Command::Cancel` no longer includes `Message::Predicates`**: Commands should only include `Command::Custom`, not message mixins. `Cancel` is a sentinel command intercepted by the runtime before dispatch — it is never sent to Update as a message. Removed the buggy (for non-messages) behavior introduced by `include Message::Predicates`.
 
 - **Message::Predicates `deconstruct_keys`**: Now calls `super` to preserve Data.define fields. Previously, including `Predicates` in a `Data.define` class would shadow all fields, returning only `{ type: ... }`. Now correctly returns `{ type: :my_message, envelope:, ...all_fields }`.
 

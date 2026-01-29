@@ -15,6 +15,7 @@ require_relative "command/all"
 require_relative "command/http"
 require_relative "command/open"
 require_relative "command/deliver"
+require_relative "command/bubble"
 
 module Rooibos
   # Commands represent side effects.
@@ -103,6 +104,52 @@ module Rooibos
       Deliver.new(message:)
     end
 
+    # Bubbles a message outward through the fragment hierarchy.
+    #
+    # Nested fragments produce results. Sometimes those results belong to an outer
+    # fragment. Passing callbacks or references inward couples fragments tightly.
+    # The hierarchy becomes rigid.
+    #
+    # This command wraps a message for outward propagation. Outer fragments
+    # intercept the bubble and decide how to handle it. With the Router DSL,
+    # use <tt>observe</tt> or <tt>intercept</tt>. Without the Router, check
+    # for <tt>Command::Bubble</tt> manually and extract the message.
+    #
+    # Use it for notifications, validation results, or any signal that flows
+    # from nested fragments to outer containers.
+    #
+    # === Example (Router DSL)
+    #
+    #   # Nested fragment signals completion
+    #   class TaskComplete < Data.define(:envelope, :task_id)
+    #     include Rooibos::Message::Predicates
+    #   end
+    #
+    #   # Return from nested Update
+    #   [model, Command.bubble(TaskComplete.new(envelope: :task, task_id: 42))]
+    #
+    #   # Outer Router observes the bubble
+    #   observe TaskComplete do |model, message|
+    #     model.with(completed_tasks: model.completed_tasks + [message.task_id])
+    #   end
+    #
+    # === Example (Manual Bubbling)
+    #
+    #   # Outer Update handles bubbles without Router
+    #   def self.handle_nested_result(cmd, model)
+    #     return [model, nil] unless cmd.is_a?(Command::Bubble)
+    #
+    #     case cmd.message
+    #     when TaskComplete
+    #       [model.with(completed_tasks: model.completed_tasks + [cmd.message.task_id]), nil]
+    #     else
+    #       [model, cmd]  # Re-bubble outward
+    #     end
+    #   end
+    def self.bubble(message)
+      Bubble.new(message:)
+    end
+
     # Creates a fresh cancellation that never fires.
     #
     # Some I/O operations cannot be canceled mid-execution. Ruby's <tt>Net::HTTP</tt>
@@ -143,7 +190,6 @@ module Rooibos
     #   [model, Cancel.new(handle: model.active_fetch)]
     class Cancel < Data.define(:handle)
       include Custom
-      include Message::Predicates
 
       # Stub - Cancel is a sentinel handled by runtime before dispatch.
       def call(_out, _token)
