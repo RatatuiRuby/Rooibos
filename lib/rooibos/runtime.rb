@@ -185,6 +185,9 @@ module Rooibos
             @model, @command = @init_callable.call
             validate_ractor_shareable!(@command, "command")
             validate_ractor_shareable!(@model, "model")
+            validate_ractor_shareable!(@update, "update")
+            validate_ractor_shareable!(@view, "view")
+            validate_ractor_shareable!(@init_callable, "init")
             dispatch_command
 
             loop do
@@ -214,7 +217,6 @@ module Rooibos
           frame.render_widget(widget, frame.area)
         end
       end
-
       # Enforces invariants
       private def fragment_from_kwargs(root_fragment, model: nil, view: nil, update: nil, command: nil)
         if root_fragment
@@ -228,7 +230,13 @@ module Rooibos
           fragment.const_set(:Model, model)
           fragment.const_set(:View, view)
           fragment.const_set(:Update, update)
-          fragment.const_set(:Init, -> { [model, command] })
+          fragment.const_set(:InitCommand, command)
+          # Init uses a module singleton method accessing constants via self.
+          # Module objects are always shareable, so this makes init shareable.
+          fragment.define_singleton_method(:call) do
+            [self::Model, self::InitCommand] # steep:ignore UnknownConstant
+          end
+          fragment.const_set(:Init, fragment)
           fragment
         end
       end
@@ -241,18 +249,20 @@ module Rooibos
       private def init_callable
         if @fragment.const_defined?(:Init)
           if @fragment::Init.respond_to?(:call)
-            if Proc === @fragment::Init or Method === @fragment::Init
-              @fragment::Init
-            else
-              @fragment::Init.method(:call)
-            end
+            @fragment::Init
           else
             raise Rooibos::Error::Invariant, "Fragment::Init must respond to :call"
           end
         else
           if @fragment.const_defined?(:Model)
             if @fragment::Model.respond_to?(:new)
-              -> { @fragment::Model.new }
+              # Synthesize an Init using module singleton method.
+              # Module objects are always shareable, so accessing
+              # constants via self makes this Ractor-shareable.
+              unless @fragment.respond_to?(:call)
+                @fragment.define_singleton_method(:call) { self::Model.new } # steep:ignore UnknownConstant
+              end
+              @fragment
             else
               raise Rooibos::Error::Invariant, "Fragment::Model must respond to :new; or pass Fragment::Init instead"
             end

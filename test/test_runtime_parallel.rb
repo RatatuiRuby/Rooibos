@@ -305,7 +305,7 @@ class TestRuntimeParallel < Minitest::Test
     model = Ractor.make_shareable({})
 
     @@failing_command = Ractor.make_shareable(FailingCommand.new)
-    @@first_wait = Rooibos::Command.wait(0.01, :success)  # One fails, one succeeds
+    @@first_wait = Rooibos::Command.wait(0.01, :success) # One fails, one succeeds
     view = ClearView
     update = FailingUpdate
 

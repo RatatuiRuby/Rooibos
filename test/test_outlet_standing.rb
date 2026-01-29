@@ -362,7 +362,7 @@ class TestOutletStanding < Minitest::Test
       if msg.code == "s"
         cmd = TestOutletStanding.class_variable_get(:@@command)
         transformer = TestOutletStanding.class_variable_get(:@@transformer)
-        [m, Ractor.make_shareable(cmd.new(transformer: transformer))]
+        [m, Ractor.make_shareable(cmd.new(transformer:))]
       elsif msg.q?
         [m, Rooibos::Command.exit]
       else

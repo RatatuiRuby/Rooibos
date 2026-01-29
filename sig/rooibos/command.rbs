@@ -107,6 +107,12 @@ module Rooibos
   def self.custom: (^(Outlet, Concurrent::Cancellation) -> void callable, ?grace_period: Float?) -> _Command
                  | (?grace_period: Float?) { (Outlet, Concurrent::Cancellation) -> void } -> _Command
 
+  # Delivers a message to Update.
+  def self.deliver: (Object message) -> Deliver
+
+  # Bubbles a message outward through the fragment hierarchy.
+  def self.bubble: (Object message) -> Bubble
+
   # Creates a one-shot timer command.
   def self.wait: (Float seconds, Symbol tag) -> Wait
 
@@ -158,6 +164,29 @@ module Rooibos
     # Deconstructs for hash-based pattern matching.
     # Introspects public query methods and returns a hash with :type discriminator.
     def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
+  end
+
+  # Command that delivers a message to Update.
+  class Deliver < Data
+    include Custom
+
+    attr_reader message: Object
+
+    def self.new: (message: Object) -> instance
+
+    def call: (Outlet out, Concurrent::Cancellation token) -> void
+  end
+
+  # Command that bubbles a message outward through the fragment hierarchy.
+  class Bubble < Data
+    include Custom
+
+    attr_reader message: Object
+
+    def self.new: (message: Object) -> instance
+
+    # Raises an error if called — outer fragments should handle bubbles.
+    def call: (Outlet out, Concurrent::Cancellation token) -> void
   end
 
   # Minimal interface for callables accepted by Lifecycle.run_sync.

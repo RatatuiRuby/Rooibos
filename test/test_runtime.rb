@@ -431,9 +431,9 @@ class TestRuntime < Minitest::Test
     # Create an object that CANNOT be made shareable - contains a Proc with captured self
     non_shareable_model = Object.new
     def non_shareable_model.callback
-      @callback ||= -> { self }  # Captures self in a closure
+      @callback ||= -> { self } # Captures self in a closure
     end
-    non_shareable_model.callback  # Ensure it's created
+    non_shareable_model.callback # Ensure it's created
 
     view = ClearView
 
@@ -458,7 +458,7 @@ class TestRuntime < Minitest::Test
 
     error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
-        inject_key("x")  # Returns non-shareable object
+        inject_key("x") # Returns non-shareable object
         Rooibos::Runtime.run(model:, view:, update:)
       end
     end

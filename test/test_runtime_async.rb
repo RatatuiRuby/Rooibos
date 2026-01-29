@@ -81,7 +81,7 @@ class TestRuntimeAsync < Minitest::Test
       mock_status.define_singleton_method(:exitstatus) { 0 }
 
       # Sleep for 0.05s to simulate work (blocking)
-      blocking_simulation = ->(_cmd) { sleep(0.05); ["", "", mock_status] }
+      blocking_simulation = -> (_cmd) { sleep(0.05); ["", "", mock_status] }
 
       Open3.stub(:capture3, blocking_simulation) do
         Rooibos::Runtime.run(model:, view:, update:)

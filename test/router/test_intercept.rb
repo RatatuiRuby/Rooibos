@@ -16,8 +16,8 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept ->(msg) { msg.q? },
-                ->(msg, model) { intercept_called = true; model }
+      intercept lambda(&:q?),
+        -> (msg, model) { intercept_called = true; model }
 
       keymap do |map|
         map.key :q, -> { keymap_called = true; nil }
@@ -39,8 +39,8 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept ->(msg) { msg.enter? },
-                ->(msg, model) { model.merge(intercepted: true) }
+      intercept lambda(&:enter?),
+        -> (msg, model) { model.merge(intercepted: true) }
 
       keymap do |map|
         map.key :enter, -> { keymap_called = true; nil }
@@ -60,8 +60,8 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept ->(msg) { msg.q? },
-                ->(msg, model) { [model.merge(intercepted: true), Rooibos::Command.exit] }
+      intercept lambda(&:q?),
+        -> (msg, model) { [model.merge(intercepted: true), Rooibos::Command.exit] }
     end
 
     update = test_class.from_router
@@ -80,8 +80,8 @@ class TestRouterIntercept < Minitest::Test
       include Rooibos::Router
 
       # Intercept only matches 'x', not 'q'
-      intercept ->(msg) { msg.x? },
-                ->(msg, model) { model }
+      intercept lambda(&:x?),
+        -> (msg, model) { model }
 
       keymap do |map|
         map.key :q, -> { keymap_called = true; nil }
@@ -100,8 +100,8 @@ class TestRouterIntercept < Minitest::Test
   # Callable types
   def test_intercept_accepts_lambda_predicate_and_handler
     handler_called = false
-    predicate = ->(msg) { msg.q? }
-    handler = ->(msg, model) { handler_called = true; model }
+    predicate = lambda(&:q?)
+    handler = -> (msg, model) { handler_called = true; model }
 
     test_class = Class.new do
       include Rooibos::Router
@@ -118,8 +118,8 @@ class TestRouterIntercept < Minitest::Test
 
   def test_intercept_accepts_proc_predicate_and_handler
     handler_called = false
-    predicate = Proc.new { |msg| msg.q? }
-    handler = Proc.new { |msg, model| handler_called = true; model }
+    predicate = proc(&:q?)
+    handler = proc { |msg, model| handler_called = true; model }
 
     test_class = Class.new do
       include Rooibos::Router
@@ -138,8 +138,8 @@ class TestRouterIntercept < Minitest::Test
     handler_called = false
 
     # Define methods in test scope
-    predicate_method = ->(msg) { msg.q? }.method(:call)
-    handler_method = ->(msg, model) { handler_called = true; model }.method(:call)
+    predicate_method = lambda(&:q?).method(:call)
+    handler_method = -> (msg, model) { handler_called = true; model }.method(:call)
 
     test_class = Class.new do
       include Rooibos::Router
@@ -193,8 +193,8 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept if: ->(msg) { msg.q? },
-                then: ->(msg, model) { handler_called = true; model }
+      intercept if: lambda(&:q?),
+        then: -> (msg, model) { handler_called = true; model }
     end
 
     update = test_class.from_router
@@ -211,8 +211,8 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept when: ->(msg) { msg.enter? },
-                then: ->(msg, model) { handler_called = true; model }
+      intercept when: lambda(&:enter?),
+        then: -> (msg, model) { handler_called = true; model }
     end
 
     update = test_class.from_router
@@ -230,8 +230,8 @@ class TestRouterIntercept < Minitest::Test
       include Rooibos::Router
 
       # unless: inverts - should match when predicate is FALSE
-      intercept unless: ->(msg) { msg.q? },
-                then: ->(msg, model) { handler_called = true; model }
+      intercept unless: lambda(&:q?),
+        then: -> (msg, model) { handler_called = true; model }
     end
 
     update = test_class.from_router
@@ -250,8 +250,8 @@ class TestRouterIntercept < Minitest::Test
       include Rooibos::Router
 
       # except: inverts - should match when predicate is FALSE
-      intercept except: ->(msg) { msg.enter? },
-                then: ->(msg, model) { handler_called = true; model }
+      intercept except: lambda(&:enter?),
+        then: -> (msg, model) { handler_called = true; model }
     end
 
     update = test_class.from_router
@@ -271,8 +271,8 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept ->(msg) { msg.q? },
-                then: ->(msg, model) { handler_called = true; model }
+      intercept lambda(&:q?),
+        then: -> (msg, model) { handler_called = true; model }
     end
 
     update = test_class.from_router
@@ -290,7 +290,7 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept_all ->(msg, model) { call_count += 1; model }
+      intercept_all -> (msg, model) { call_count += 1; model }
     end
 
     update = test_class.from_router
@@ -310,7 +310,7 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept_all ->(msg, model) { model }
+      intercept_all -> (msg, model) { model }
 
       keymap do |map|
         map.key :q, -> { keymap_called = true; nil }
@@ -334,11 +334,11 @@ class TestRouterIntercept < Minitest::Test
       include Rooibos::Router
 
       # Both intercepts match 'q'
-      intercept ->(msg) { msg.q? },
-                ->(msg, model) { first_called = true; model }
+      intercept lambda(&:q?),
+        -> (msg, model) { first_called = true; model }
 
-      intercept ->(msg) { msg.q? },
-                ->(msg, model) { second_called = true; model }
+      intercept lambda(&:q?),
+        -> (msg, model) { second_called = true; model }
     end
 
     update = test_class.from_router
@@ -357,11 +357,11 @@ class TestRouterIntercept < Minitest::Test
       include Rooibos::Router
 
       # Both intercepts match 'q', but first should win
-      intercept ->(msg) { msg.key? },
-                ->(msg, model) { order << :first; model }
+      intercept lambda(&:key?),
+        -> (msg, model) { order << :first; model }
 
-      intercept ->(msg) { msg.q? },
-                ->(msg, model) { order << :second; model }
+      intercept lambda(&:q?),
+        -> (msg, model) { order << :second; model }
     end
 
     update = test_class.from_router
@@ -377,8 +377,8 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept ->(msg) { msg.q? },
-                ->(msg, model) { model.merge(handled: true) }  # Returns just model, no tuple
+      intercept lambda(&:q?),
+        -> (msg, model) { model.merge(handled: true) } # Returns just model, no tuple
     end
 
     update = test_class.from_router
@@ -394,8 +394,8 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept ->(msg) { msg.q? },
-                ->(msg, model) { Rooibos::Command.exit }  # Returns just command
+      intercept lambda(&:q?),
+        -> (msg, model) { Rooibos::Command.exit } # Returns just command
     end
 
     update = test_class.from_router
@@ -411,8 +411,8 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept ->(msg) { msg.q? },
-                ->(msg, model) { [model.merge(handled: true), Rooibos::Command.exit] }
+      intercept lambda(&:q?),
+        -> (msg, model) { [model.merge(handled: true), Rooibos::Command.exit] }
     end
 
     update = test_class.from_router
@@ -428,8 +428,8 @@ class TestRouterIntercept < Minitest::Test
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept ->(msg) { msg.q? },
-                ->(msg, model) { nil }  # Returns nil
+      intercept lambda(&:q?),
+        -> (msg, model) { nil } # Returns nil
     end
 
     update = test_class.from_router

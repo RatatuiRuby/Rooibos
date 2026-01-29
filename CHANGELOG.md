@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Before: `keymap do` / `key :q, -> { Command.exit }`
   - After: `keymap do |map|` / `map.key :q, -> { Command.exit }`
   - Same pattern applies to `mousemap do |map|`, `map.only when: ...`, and `map.skip if: ...`
+- **BREAKING: Runtime validates Init, View, and Update for Ractor shareability**: At startup, the runtime now checks that all three fragment callables can be made Ractor-shareable. Fragments using lambdas that capture mutable state or are defined in non-shareable scopes will fail validation. Convert to module-level callables, use classes, or use `Ractor.make_shareable`.
 
 ### Fixed
 

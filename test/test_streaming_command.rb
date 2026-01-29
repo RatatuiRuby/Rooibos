@@ -40,7 +40,7 @@ class TestStreamingCommand < Minitest::Test
         shell_cmd = TestStreamingCommand.class_variable_get(:@@shell_cmd)
         tag = TestStreamingCommand.class_variable_get(:@@tag)
         stream = TestStreamingCommand.class_variable_get(:@@stream)
-        [m, Rooibos::Command.system(shell_cmd, tag, stream: stream)]
+        [m, Rooibos::Command.system(shell_cmd, tag, stream:)]
       when "q"
         [m, Rooibos::Command.exit]
       else

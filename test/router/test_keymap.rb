@@ -89,6 +89,7 @@ class TestRouterKeymap < Minitest::Test
     update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
     assert q_called, "q key from multi-keyword should work"
   end
+
   # keymap dispatching to routed action synthesizes Message::Routed
   def test_keymap_routed_action_dispatches_message_routed
     received_message = nil
@@ -124,6 +125,7 @@ class TestRouterKeymap < Minitest::Test
     assert_equal event, received_message.event
     assert_equal :go_back, received_message.envelope
   end
+
   def test_keymap_registers_key_handlers_that_respond_to_key_events
     q_called = false
 
@@ -165,6 +167,7 @@ class TestRouterKeymap < Minitest::Test
 
     assert action_called, "Action should be called via delegation"
   end
+
   def test_keymap_key_when_guard_prevents_execution
     handler_called = false
     guard_proc = -> (model) { model[:allowed] }
@@ -602,4 +605,3 @@ class TestRouterKeymap < Minitest::Test
     skip "TODO"
   end
 end
-
