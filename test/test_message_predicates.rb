@@ -140,6 +140,22 @@ class TestMessagePredicates < Minitest::Test
     assert_equal 42, keys[:count], "Should preserve Data.define :count field"
   end
 
+  def test_pattern_matching_with_type_and_data_members
+    msg = DataDefineMessage.new(envelope: :profile, count: 42)
+
+    # This pattern match requests [:type, :envelope, :count] from deconstruct_keys.
+    # Without filtering :type before calling super, Data returns {} for unknown
+    # keys, and the pattern match fails with "key not found".
+    matched = case msg
+    in { type: :data_define_message, envelope: :profile, count: }
+      count
+    else
+      nil
+    end
+
+    assert_equal 42, matched, "Pattern matching with :type and Data members should work"
+  end
+
   # Type-based predicates should return true when predicate matches :type
   def test_type_predicate_returns_true_when_matches
     msg = DataDefineMessage.new(envelope: :profile, count: 42)

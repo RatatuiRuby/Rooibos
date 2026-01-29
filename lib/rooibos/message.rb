@@ -103,9 +103,13 @@ module Rooibos
           :custom
         end
 
+        # Filter out :type before calling super — Data returns {} if any
+        # requested key is unknown, which breaks pattern matching
+        filtered_keys = keys&.reject { |k| k == :type }
+
         # Preserve parent's fields (e.g., Data.define members) and add :type
         parent_keys = begin
-          super
+          super(filtered_keys)
         rescue NoMethodError
           {} #: Hash[Symbol, untyped]
         end
