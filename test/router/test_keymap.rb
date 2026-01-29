@@ -7,143 +7,11 @@
 
 require "test_helper"
 
-class TestRouterDsl < Minitest::Test
+class TestRouterKeymap < Minitest::Test
   # Fake child module for testing
   module FakeChild
     INITIAL = :child_initial
     Update = -> (msg, model) { [model, nil] }
-  end
-
-  # route registers a child with a prefix.
-  # The prefix is normalized to a symbol via .to_s.to_sym.
-  def test_route_registers_child_with_prefix
-    test_class = Class.new do
-      include Rooibos::Router
-
-      route :stats, to: TestRouterDsl::FakeChild
-      route "network", to: TestRouterDsl::FakeChild # String works too
-    end
-
-    assert_equal FakeChild, test_class.routes[:stats]
-    assert_equal FakeChild, test_class.routes[:network]
-  end
-
-  # action defines a named action that can be referenced by keymap/mousemap.
-  # Actions are normalized via .to_s.to_sym.
-  def test_action_defines_named_action
-    handler = -> { [:scroll, -1] }
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action :scroll_up, handler
-      action "scroll_down", -> { [:scroll, 1] } # String works too
-    end
-
-    assert_equal handler, test_class.actions[:scroll_up]
-    assert test_class.actions[:scroll_down].is_a?(Proc)
-  end
-
-  def test_action_keyword_syntax_with_handler
-    handler = -> { [:scroll, -1] }
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action scroll_up: handler
-    end
-
-    assert_equal handler, test_class.actions[:scroll_up]
-  end
-
-  # action with Module value registers as routed action
-  def test_action_with_module_registers_routed_action
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action go_back: TestRouterDsl::FakeChild
-    end
-
-    assert_equal FakeChild, test_class.routed_actions[:go_back]
-  end
-
-  # action with keymap: option registers key bindings
-  def test_action_keymap_option_registers_keys
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action scroll_up: -> { handler_called = true; nil }, keymap: %i[up k]
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    # Test 'up' key
-    update.call(RatatuiRuby::Event::Key.new(code: "up"), model)
-    assert handler_called, "'up' key should trigger scroll_up action"
-
-    # Test 'k' key
-    handler_called = false
-    update.call(RatatuiRuby::Event::Key.new(code: "k"), model)
-    assert handler_called, "'k' key should also trigger scroll_up action"
-  end
-
-  # action accepts key: as singular alias for keymap:
-  def test_action_key_alias_for_keymap
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action quit: -> { handler_called = true; nil }, key: :q
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-    assert handler_called, "key: should work as keymap: alias"
-  end
-
-  # action accepts keys: as plural alias for keymap:
-  def test_action_keys_alias_for_keymap
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action move: -> { handler_called = true; nil }, keys: %i[down j]
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    update.call(RatatuiRuby::Event::Key.new(code: "down"), model)
-    assert handler_called, "'down' key via keys: should work"
-
-    handler_called = false
-    update.call(RatatuiRuby::Event::Key.new(code: "j"), model)
-    assert handler_called, "'j' key via keys: should also work"
-  end
-
-  # action with mousemap: option registers scroll handlers
-  def test_action_mousemap_option_registers_scroll
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action scroll_handler: -> { handler_called = true; nil }, mousemap: %i[scroll_up]
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    scroll_event = RatatuiRuby::Event::Mouse.new(kind: "scroll_up", button: "left", x: 0, y: 0)
-    update.call(scroll_event, model)
-    assert handler_called, "scroll_up event should trigger scroll_handler action"
   end
 
   # keys binds multiple keys to one action
@@ -221,7 +89,6 @@ class TestRouterDsl < Minitest::Test
     update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
     assert q_called, "q key from multi-keyword should work"
   end
-
   # keymap dispatching to routed action synthesizes Message::Routed
   def test_keymap_routed_action_dispatches_message_routed
     received_message = nil
@@ -257,7 +124,6 @@ class TestRouterDsl < Minitest::Test
     assert_equal event, received_message.event
     assert_equal :go_back, received_message.envelope
   end
-
   def test_keymap_registers_key_handlers_that_respond_to_key_events
     q_called = false
 
@@ -299,87 +165,6 @@ class TestRouterDsl < Minitest::Test
 
     assert action_called, "Action should be called via delegation"
   end
-
-  def test_mousemap_registers_mouse_handlers_that_respond_to_scroll_events
-    scroll_up_called = false
-    scroll_down_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      mousemap do
-        scroll :up, -> { scroll_up_called = true; nil }
-        scroll :down, -> { scroll_down_called = true; nil }
-      end
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    # Test scroll up
-    scroll_up_event = RatatuiRuby::Event::Mouse.new(kind: "scroll_up", button: "left", x: 0, y: 0)
-    update.call(scroll_up_event, model)
-    assert scroll_up_called, "Scroll up handler should be called"
-
-    # Test scroll down
-    scroll_down_event = RatatuiRuby::Event::Mouse.new(kind: "scroll_down", button: "left", x: 0, y: 0)
-    update.call(scroll_down_event, model)
-    assert scroll_down_called, "Scroll down handler should be called"
-  end
-
-  def test_mousemap_delegates_to_named_action
-    action_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action :scroll_up_action, -> { action_called = true; nil }
-
-      mousemap do
-        scroll :up, :scroll_up_action # Delegate to action
-      end
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-    scroll_up_event = RatatuiRuby::Event::Mouse.new(kind: "scroll_up", button: "left", x: 0, y: 0)
-
-    update.call(scroll_up_event, model)
-
-    assert action_called, "Action should be called via delegation"
-  end
-
-  def test_from_router_returns_callable
-    test_class = Class.new do
-      include Rooibos::Router
-    end
-
-    update = test_class.from_router
-
-    assert update.respond_to?(:call)
-  end
-
-  def test_generated_update_routes_prefixed_messages_to_child_update
-    # FakeChild is defined at class level with proper UPDATE constant
-    test_class = Class.new do
-      include Rooibos::Router
-      route :child, to: TestRouterDsl::FakeChild
-    end
-
-    update = test_class.from_router
-
-    # Create a model with a :child accessor (using Data.define)
-    model_class = Data.define(:child)
-    model = model_class.new(child: { output: "initial" }.freeze)
-
-    message = [:child, :system_info, { stdout: "Darwin" }]
-
-    new_model, _cmd = update.call(message, model)
-
-    # Verify it delegated and returned updated model
-    refute_nil new_model
-  end
-
   def test_keymap_key_when_guard_prevents_execution
     handler_called = false
     guard_proc = -> (model) { model[:allowed] }
@@ -796,4 +581,25 @@ class TestRouterDsl < Minitest::Test
     _new_model, _cmd = update.call(event, model)
     refute handler_called, "Handler should be skipped when skip guard: guard returns true"
   end
+
+  # ============================================================================
+  # [ADD] Key route option tests
+  # ============================================================================
+
+  def test_keymap_key_route_option_wraps_in_message_routed
+    skip "TODO"
+  end
+
+  def test_keymap_key_route_option_routes_to_correct_fragment
+    skip "TODO"
+  end
+
+  def test_keymap_key_route_option_with_action_reference
+    skip "TODO"
+  end
+
+  def test_keymap_key_route_option_with_lambda_handler
+    skip "TODO"
+  end
 end
+
