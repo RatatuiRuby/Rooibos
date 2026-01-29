@@ -44,6 +44,28 @@ module Rooibos
     def initialize: (?handler: (^(Integer, Integer) -> Command::execution?)?, ?action: Symbol?) -> void
   end
 
+  # Configuration for intercept handlers (hash type used inline in Ruby).
+  type intercept_handler_config = {
+    predicate: ^(Object) -> bool,
+    handler: ^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)
+  }
+
+  # Guard wrapper for negated predicates.
+  class NegatedGuard < Data
+    attr_reader guard: ^(_DataModel) -> bool
+
+    def initialize: (guard: ^(_DataModel) -> bool) -> void
+    def call: (_DataModel model) -> bool
+  end
+
+  # Guard wrapper for combined predicates.
+  class CombinedGuard < Data
+    attr_reader guards: Array[^(_DataModel) -> bool | NegatedGuard | CombinedGuard]
+
+    def initialize: (guards: Array[^(_DataModel) -> bool | NegatedGuard | CombinedGuard]) -> void
+    def call: (_DataModel model) -> bool
+  end
+
   # Class methods added when Router is included.
   module ClassMethods : Module
     @routes: Hash[Symbol, Module]
@@ -52,6 +74,7 @@ module Rooibos
     @key_handlers: Hash[Symbol, KeyHandlerConfig]
     @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
     @click_handler: ClickHandlerConfig?
+    @intercept_handlers: Array[intercept_handler_config]
 
     def route: (Symbol | String fragment_model_instance_attr, to: Module) -> void
     def routes: () -> Hash[Symbol, Module]
@@ -78,6 +101,19 @@ module Rooibos
     def scroll_handlers: () -> Hash[Symbol, ScrollHandlerConfig]
     def click_handler: () -> ClickHandlerConfig?
 
+    # Intercept handlers for early message termination
+    def intercept: (
+      ?(^(Object) -> bool) predicate,
+      ?(^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)) handler,
+      ?if: (^(Object) -> bool)?,
+      ?when: (^(Object) -> bool)?,
+      ?unless: (^(Object) -> bool)?,
+      ?except: (^(Object) -> bool)?,
+      ?then: (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil))?
+    ) -> void
+    def intercept_all: (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) handler) -> void
+    def intercept_handlers: () -> Array[intercept_handler_config]
+
     # Returns UPDATE callable that handles routing.
     # Uses is_a? checks for Event::Key and Event::Mouse type narrowing.
     # Model must be Data-like with `with` and field accessors.
@@ -93,6 +129,7 @@ module Rooibos
     @key_handlers: Hash[Symbol, KeyHandlerConfig]
     @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
     @click_handler: ClickHandlerConfig?
+    @intercept_handlers: Array[intercept_handler_config]
 
     def initialize: (
       routes: Hash[Symbol, Module],
@@ -100,13 +137,21 @@ module Rooibos
       routed_actions: Hash[Symbol, Module],
       key_handlers: Hash[Symbol, KeyHandlerConfig],
       scroll_handlers: Hash[Symbol, ScrollHandlerConfig],
-      click_handler: ClickHandlerConfig?
+      click_handler: ClickHandlerConfig?,
+      intercept_handlers: Array[intercept_handler_config]
     ) -> void
 
     # Process message and return [model, command] tuple.
     def call: (
       (RatatuiRuby::Event::Key | RatatuiRuby::Event::Mouse | Array[Object]) message,
       _DataModel model
+    ) -> [_DataModel, Command::execution?]
+
+    private
+
+    def normalize_handler_result: (
+      (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) result,
+      _DataModel previous_model
     ) -> [_DataModel, Command::execution?]
   end
 

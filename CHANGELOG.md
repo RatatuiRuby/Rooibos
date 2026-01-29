@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`Command.bubble(message)`**: New command for outward message propagation through the fragment hierarchy. Unlike `Command.deliver` (which goes directly to the root), `Command.bubble` flows through each fragment level, giving each outer fragment an opportunity to observe or intercept the message. Use with the Router DSL (`observe`, `intercept`) or handle manually by checking for `Command::Bubble` and extracting the message.
 
+- **Router `intercept` DSL**: New handler for early message termination. Use `intercept ->(msg) { ... }` in your Router to stop bubbled messages from propagating further. The handler receives the message and can return a model/command tuple to handle it, or `nil` to let it continue bubbling.
+
 ### Changed
 
 ### Fixed

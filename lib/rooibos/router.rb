@@ -158,6 +158,41 @@ module Rooibos
         @routed_actions ||= {}
       end
 
+      # Declares an intercept handler (stops further processing when predicate matches).
+      #
+      # Supports positional or keyword syntax:
+      #   intercept ->(msg) { msg.q? }, ->(msg, model) { ... }
+      #   intercept if: ->(msg) { msg.q? }, then: ->(msg, model) { ... }
+      #   intercept when: ->(msg) { msg.q? }, then: ->(msg, model) { ... }
+      #   intercept unless: ->(msg) { msg.none? }, then: ->(msg, model) { ... }
+      def intercept(predicate = nil, handler = nil, if: nil, when: nil, unless: nil, except: nil, then: nil)
+        # Extract predicate from keyword args
+        effective_predicate = predicate ||
+          binding.local_variable_get(:if) ||
+          binding.local_variable_get(:when)
+
+        # Handle inverted predicates (unless/except)
+        negative = binding.local_variable_get(:unless) || except
+        if negative
+          effective_predicate = ->(msg) { !negative.call(msg) }
+        end
+
+        # Extract handler from keyword args
+        effective_handler = handler || binding.local_variable_get(:then)
+
+        intercept_handlers << { predicate: effective_predicate, handler: effective_handler }
+      end
+
+      # Returns the registered intercept handlers array.
+      def intercept_handlers
+        @intercept_handlers ||= []
+      end
+
+      # Declares an intercept handler that matches all messages (arity 1 convenience).
+      def intercept_all(handler)
+        intercept(->(_msg) { true }, handler)
+      end
+
       # Declares key handlers in a block.
       #
       # === Example
@@ -216,24 +251,34 @@ module Rooibos
           routed_actions:,
           key_handlers:,
           scroll_handlers:,
-          click_handler:
+          click_handler:,
+          intercept_handlers:
         )
       end
     end
 
     # Internal UPDATE callable with proper typing.
     class RouterUpdate # :nodoc:
-      def initialize(routes:, actions:, routed_actions:, key_handlers:, scroll_handlers:, click_handler:)
+      def initialize(routes:, actions:, routed_actions:, key_handlers:, scroll_handlers:, click_handler:, intercept_handlers:)
         @routes = routes
         @actions = actions
         @routed_actions = routed_actions
         @key_handlers = key_handlers
         @scroll_handlers = scroll_handlers
         @click_handler = click_handler
+        @intercept_handlers = intercept_handlers
       end
 
       # Process message and return [model, command] tuple.
       def call(message, model)
+        # 0. Try intercept handlers - first match stops processing
+        @intercept_handlers.each do |config|
+          if config[:predicate].call(message)
+            result = config[:handler].call(message, model)
+            return normalize_handler_result(result, model)
+          end
+        end
+
         # 1. Try routing prefixed messages to child fragments
         @routes.each do |prefix, fragment|
           fragment_update = fragment.const_get(:Update)
@@ -327,6 +372,30 @@ module Rooibos
 
         # 4. Unhandled - return model unchanged
         [model, nil] #: [_DataModel, Command::execution?]
+      end
+
+      private
+
+      # Normalizes handler return value to [model, command] tuple (DWIM).
+      def normalize_handler_result(result, previous_model)
+        # Nil - preserve model
+        return [previous_model, nil] if result.nil?
+
+        # Already a [model, command] tuple
+        if result.is_a?(Array) && result.size == 2
+          model, command = result
+          if command.nil? || (command.respond_to?(:rooibos_command?) && command.rooibos_command?)
+            return [model, command]
+          end
+        end
+
+        # Just a command - preserve model
+        if result.respond_to?(:rooibos_command?) && result.rooibos_command?
+          return [previous_model, result]
+        end
+
+        # Just a model
+        [result, nil]
       end
     end
     private_constant :RouterUpdate
