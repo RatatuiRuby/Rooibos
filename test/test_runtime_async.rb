@@ -12,47 +12,59 @@ require "rooibos/test_helper"
 class TestRuntimeAsync < Minitest::Test
   include Rooibos::TestHelper
 
+  # Class-scope state for lambda-based updates
+  def setup
+    @@final_model = nil
+    @@long_running_cmd = nil
+  end
+
+  def teardown
+    @@final_model = nil
+    @@long_running_cmd = nil
+  end
+
+  ClearView = -> (_m, t) { t.clear }
+
+  # Specialized update for async test - tracks events and handles command
+  AsyncUpdate = -> (msg, m) do
+    # Map raw key events to symbols for clarity
+    clean_msg = if msg.is_a?(RatatuiRuby::Event::Key)
+      case msg.code
+      when "s" then :start_cmd
+      when "p" then :ping
+      when "q" then :quit
+      else msg
+      end
+    elsif msg.is_a?(Array) && msg[0] == :cmd_complete
+      :cmd_complete
+    else
+      msg
+    end
+
+    new_events = (m[:events] + [clean_msg]).freeze
+
+    case clean_msg
+    when :start_cmd
+      [m.merge(events: new_events).freeze, TestRuntimeAsync.class_variable_get(:@@long_running_cmd)]
+    when :ping, :cmd_complete
+      [m.merge(events: new_events).freeze, nil]
+    when :quit
+      final = m.merge(events: new_events).freeze
+      TestRuntimeAsync.class_variable_set(:@@final_model, final)
+      [final, Rooibos::Command.exit]
+    else
+      [m, nil]
+    end
+  end
+
   def test_runtime_executes_commands_asynchronously
     model = Ractor.make_shareable({ events: [] })
 
     # Command that sleeps for 0.01s.
-    long_running_cmd = Rooibos::Command.system("sleep 0.01", :cmd_complete)
+    @@long_running_cmd = Rooibos::Command.system("sleep 0.01", :cmd_complete)
 
-    view = -> (_m, t) { t.clear }
-
-    final_model = nil
-
-    update = -> (msg, m) do
-      # Map raw key events to symbols for clarity
-      clean_msg = if msg.is_a?(RatatuiRuby::Event::Key)
-        case msg.code
-        when "s" then :start_cmd
-        when "p" then :ping
-        when "q" then :quit
-        else msg
-        end
-      elsif msg.is_a?(Array) && msg[0] == :cmd_complete
-        :cmd_complete
-      else
-        msg
-      end
-
-      new_events = (m[:events] + [clean_msg]).freeze
-
-      case clean_msg
-      when :start_cmd
-        [m.merge(events: new_events).freeze, long_running_cmd]
-      when :ping, :cmd_complete
-        [m.merge(events: new_events).freeze, nil]
-      when :quit
-        final_model = m.merge(events: new_events).freeze
-        [final_model, Rooibos::Command.exit]
-      else
-        [m, nil]
-      end
-    end
-
-    final_model = nil
+    view = ClearView
+    update = AsyncUpdate
 
     with_test_terminal do
       # Inject events:
@@ -69,18 +81,14 @@ class TestRuntimeAsync < Minitest::Test
       mock_status.define_singleton_method(:exitstatus) { 0 }
 
       # Sleep for 0.05s to simulate work (blocking)
-      blocking_simulation = -> (_cmd) { sleep(0.05); ["", "", mock_status] }
+      blocking_simulation = ->(_cmd) { sleep(0.05); ["", "", mock_status] }
 
       Open3.stub(:capture3, blocking_simulation) do
         Rooibos::Runtime.run(model:, view:, update:)
-      rescue => e
-        puts "CAUGHT ERROR: #{e.class}: #{e.message}"
-        puts e.backtrace.join("\n")
-        raise e
       end
     end
 
-    events = final_model[:events]
+    events = @@final_model[:events]
     start_idx = events.index(:start_cmd)
     ping_idx = events.index(:ping)
 

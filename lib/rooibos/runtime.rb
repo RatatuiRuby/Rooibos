@@ -322,12 +322,20 @@ module Rooibos
       #
       # Only enforced in debug mode (and tests). Production skips this check
       # for performance; mutable objects will still cause bugs, but silently.
+      #
+      # This method TRIES to make the object shareable (which auto-freezes).
+      # It only fails if the object captures non-shareable state (e.g., a
+      # lambda defined inside a method that captures self).
       private def validate_ractor_shareable!(object, name)
         return unless RatatuiRuby::Debug.enabled?
         return if Ractor.shareable?(object)
 
+        # Try to make it shareable - this will freeze it and succeed for
+        # most objects. It only fails for objects that truly can't be shared.
+        Ractor.make_shareable(object)
+      rescue Ractor::IsolationError => e
         raise Rooibos::Error::Invariant,
-          "#{name.capitalize} is not Ractor-shareable. Use Ractor.make_shareable or Object#freeze."
+          "#{name} cannot be made Ractor-shareable: #{e.message}"
       end
 
       private def handle_ratatui_event

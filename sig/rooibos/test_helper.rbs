@@ -10,5 +10,11 @@ module Rooibos
     # Fails if any Command::Error is present in the messages array.
     # Relies on Minitest's flunk method being available in the including class.
     def assert_no_errors: (Array[untyped] messages, ?String? msg) -> void
+
+    # Shared fixtures for Ractor-shareable testing patterns
+    ClearView: ^(untyped, untyped) -> void
+    ExitOnQUpdate: ^(untyped, untyped) -> [untyped, Command::Exit?]
+    ExitOnAnyKeyUpdate: ^(untyped, untyped) -> [untyped, Command::Exit]
   end
 end
+

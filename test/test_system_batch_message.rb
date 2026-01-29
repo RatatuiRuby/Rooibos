@@ -11,24 +11,32 @@ require "rooibos/test_helper"
 class TestSystemBatchMessage < Minitest::Test
   include Rooibos::TestHelper
 
-  def test_system_batch_emits_message_not_array
-    messages = []
-    model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
+  # Class-scope callables for Ractor shareability
+  @@messages = []
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s" then [m, Rooibos::Command.system("echo hello", :build)]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
+  def teardown
+    @@messages = []
+  end
+
+  View = -> (_m, t) { t.clear }
+
+  Update = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "s" then [m, Rooibos::Command.system("echo hello", :build)]
+      when "q" then [m, Rooibos::Command.exit]
+      else [m, nil]
       end
+    else
+      @@messages << msg
+      [m, nil]
     end
+  end
+
+  def test_system_batch_emits_message_not_array
+    @@messages = []
+    model = Ractor.make_shareable({})
 
     require "open3"
     mock_status = Object.new
@@ -38,14 +46,14 @@ class TestSystemBatchMessage < Minitest::Test
         inject_key("s")
         inject_sync
         inject_key("q")
-        Rooibos::Runtime.run(model:, view:, update:)
+        Rooibos::Runtime.run(model:, view: View, update: Update)
       end
     end
 
-    assert_no_errors(messages)
+    assert_no_errors(@@messages)
 
     # Should receive Message::System::Batch, not array
-    batch_msg = messages.find { |m| m.is_a?(Rooibos::Message::System::Batch) }
+    batch_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::System::Batch) }
     refute_nil batch_msg, "Should receive System::Batch message"
     assert_equal :build, batch_msg.envelope
     assert_equal "hello\n", batch_msg.stdout

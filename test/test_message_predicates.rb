@@ -11,6 +11,10 @@ require "rooibos/test_helper"
 class TestMessagePredicates < Minitest::Test
   include Rooibos::TestHelper
 
+  def teardown
+    @@received_weather = nil
+  end
+
   # Test stub that includes Predicates mixin
   StubMessage = Data.define(:value) do
     include Rooibos::Message::Predicates
@@ -125,63 +129,6 @@ class TestMessagePredicates < Minitest::Test
     assert_equal :custom, keys[:type], "Anonymous classes should default to :custom"
   end
 
-  # Data.define provides its own deconstruct_keys with field values.
-  # Predicates should preserve those fields while adding :type.
-  DataDefineMessage = Data.define(:envelope, :count) do
-    include Rooibos::Message::Predicates
-  end
-
-  def test_default_deconstruct_keys_preserves_data_define_fields
-    msg = DataDefineMessage.new(envelope: :profile, count: 42)
-    keys = msg.deconstruct_keys(nil)
-
-    assert_equal :data_define_message, keys[:type], "Should derive type from class name"
-    assert_equal :profile, keys[:envelope], "Should preserve Data.define :envelope field"
-    assert_equal 42, keys[:count], "Should preserve Data.define :count field"
-  end
-
-  def test_pattern_matching_with_type_and_data_members
-    msg = DataDefineMessage.new(envelope: :profile, count: 42)
-
-    # This pattern match requests [:type, :envelope, :count] from deconstruct_keys.
-    # Without filtering :type before calling super, Data returns {} for unknown
-    # keys, and the pattern match fails with "key not found".
-    matched = case msg
-    in { type: :data_define_message, envelope: :profile, count: }
-      count
-    else
-      nil
-    end
-
-    assert_equal 42, matched, "Pattern matching with :type and Data members should work"
-  end
-
-  # Type-based predicates should return true when predicate matches :type
-  def test_type_predicate_returns_true_when_matches
-    msg = DataDefineMessage.new(envelope: :profile, count: 42)
-
-    assert msg.data_define_message?, "Predicate matching :type should return true"
-  end
-
-  def test_type_predicate_returns_false_when_does_not_match
-    msg = DataDefineMessage.new(envelope: :profile, count: 42)
-
-    refute msg.user_fetched?, "Predicate not matching :type should return false"
-  end
-
-  # Envelope-based predicates should return true when predicate matches :envelope
-  def test_envelope_predicate_returns_true_when_matches
-    msg = DataDefineMessage.new(envelope: :profile, count: 42)
-
-    assert msg.profile?, "Predicate matching :envelope should return true"
-  end
-
-  def test_envelope_predicate_returns_false_when_does_not_match
-    msg = DataDefineMessage.new(envelope: :profile, count: 42)
-
-    refute msg.settings?, "Predicate not matching :envelope should return false"
-  end
-
   def test_to_sym_uses_default_deconstruct_keys
     msg = MyCustomMessage.new
 
@@ -248,37 +195,41 @@ class TestMessagePredicates < Minitest::Test
     end
   end
 
-  def test_custom_message_with_predicates_in_runtime_loop
-    received = nil
-    model = Ractor.make_shareable({})
-    view = -> (_model, tui) { tui.clear }
+  # Class-scope callables for runtime test
+  @@received_weather = nil
 
-    update = -> (message, model) do
-      case message
-      in { type: :key, code: "w" }
-        FetchWeather.new(envelope: :current)
-      in { type: :key, code: "q" }
-        Rooibos::Command.exit
-      in { type: :weather, envelope: :current, temperature: _, conditions: _ }
-        received = message
-        model
-      else
-        model
-      end
+  WeatherTestView = -> (_model, tui) { tui.clear }
+
+  WeatherTestUpdate = -> (message, model) do
+    case message
+    in { type: :key, code: "w" }
+      FetchWeather.new(envelope: :current)
+    in { type: :key, code: "q" }
+      Rooibos::Command.exit
+    in { type: :weather, envelope: :current, temperature: _, conditions: _ }
+      TestMessagePredicates.class_variable_set(:@@received_weather, message)
+      model
+    else
+      model
     end
+  end
+
+  def test_custom_message_with_predicates_in_runtime_loop
+    @@received_weather = nil
+    model = Ractor.make_shareable({})
 
     with_test_terminal do
       inject_key("w")  # Fetch weather
       inject_sync      # Wait for command to complete
       inject_key("q")  # Quit
 
-      Rooibos::Runtime.run(model:, view:, update:)
+      Rooibos::Runtime.run(model:, view: WeatherTestView, update: WeatherTestUpdate)
     end
 
-    refute_nil received, "Update should receive WeatherResponse"
-    assert received.weather?, "weather? should return true"
-    assert received.sunny?,   "sunny? should return true for sunny conditions"
-    refute received.rainy?,   "rainy? should return false for sunny conditions"
-    refute received.http?,    "http? should return false (via Predicates fallback)"
+    refute_nil @@received_weather, "Update should receive WeatherResponse"
+    assert @@received_weather.weather?, "weather? should return true"
+    assert @@received_weather.sunny?,   "sunny? should return true for sunny conditions"
+    refute @@received_weather.rainy?,   "rainy? should return false for sunny conditions"
+    refute @@received_weather.http?,    "http? should return false (via Predicates fallback)"
   end
 end

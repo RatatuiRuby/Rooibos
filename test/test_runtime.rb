@@ -12,11 +12,177 @@ class TestRuntime < Minitest::Test
   include Rooibos::TestHelper
 
   # Shareable command callable for testing init commands
-  INIT_COMPLETE_COMMAND = Ractor.make_shareable(-> (out, _token) { out.put(:init_complete) })
+  INIT_COMPLETE_COMMAND = -> (out, _token) { out.put(:init_complete) }
+  def INIT_COMPLETE_COMMAND.rooibos_command? = true
+  def INIT_COMPLETE_COMMAND.rooibos_cancellation_grace_period = 0.1
+  Ractor.make_shareable(INIT_COMPLETE_COMMAND)
 
   private def ractor_error_pattern
     /ractor|frozen|shareable/i
   end
+
+  # Class-scope state variables - initialized in setup before each test
+  def setup
+    @@view_args = nil
+    @@received_model = nil
+    @@call_count = 0
+    @@view_called = false
+    @@final_model = nil
+    @@init_ran = false
+    @@received_stdout = nil
+    @@received_stderr = nil
+    @@received_msg = nil
+    @@result_seen_before_quit = nil
+    @@messages = []
+    @@init_called = false
+    @@init_captured_size = nil
+    @@command_class = nil
+  end
+
+  # ===========================================================================
+  # Shared lambdas for common patterns
+  # ===========================================================================
+
+  # Consolidated view that captures all state for verification
+  # Sets: @@view_args, @@received_model, @@final_model, @@view_called
+  RecordingView = -> (m, tui) do
+    TestRuntime.class_variable_set(:@@view_args, [m, tui])
+    TestRuntime.class_variable_set(:@@received_model, m)
+    TestRuntime.class_variable_set(:@@final_model, m)
+    TestRuntime.class_variable_set(:@@view_called, true)
+    tui.clear
+  end
+
+  # View that returns nil (for testing error path)
+  ViewReturnsNil = -> (_m, _t) { nil }
+
+  # View that queries viewport
+  ViewQueriesViewport = -> (m, tui) do
+    width = tui.viewport_area.width
+    tui.paragraph(text: "Width: #{width}")
+  end
+
+  # ===========================================================================
+  # Consolidated RecordingUpdate - handles all cases via message dispatch
+  # ===========================================================================
+
+  RecordingUpdate = -> (msg, m) do
+    # Increment call count on every invocation
+    count = TestRuntime.class_variable_get(:@@call_count) + 1
+    TestRuntime.class_variable_set(:@@call_count, count)
+
+    case msg
+    # Init message from custom command
+    in :init_complete
+      TestRuntime.class_variable_set(:@@init_ran, true)
+      [Ractor.make_shareable({ initialized: true }, copy: true), nil]
+
+    # System command results (successful with :got_output envelope)
+    in { type: :system, envelope: :got_output, status: 0, stdout: }
+      TestRuntime.class_variable_set(:@@received_stdout, stdout.strip)
+      raise "Background message must be Ractor-shareable" unless Ractor.shareable?(msg)
+      [Ractor.make_shareable({ output: stdout }), Rooibos::Command.exit]
+
+    # System command results (failed with non-zero status)
+    in { type: :system, envelope: :ran_cmd, stderr:, status: } if status != 0
+      TestRuntime.class_variable_set(:@@received_stderr, stderr)
+      raise "Background message must be Ractor-shareable" unless Ractor.shareable?(msg)
+      [Ractor.make_shareable({ error: stderr }), Rooibos::Command.exit]
+
+    # System command results (success with stdout+stderr)
+    in { type: :system, envelope: :ran_cmd, status: 0, stdout:, stderr: }
+      TestRuntime.class_variable_set(:@@received_stdout, stdout)
+      TestRuntime.class_variable_set(:@@received_stderr, stderr)
+      [Ractor.make_shareable({ output: stdout, noise: stderr }), Rooibos::Command.exit]
+
+    # System command results with :data envelope (sync test)
+    in { envelope: :data, stdout: }
+      Ractor.make_shareable({ result: stdout.strip })
+
+    # Mapped command results (array wrapper)
+    in [:parent, Rooibos::Message::System::Batch => batch]
+      TestRuntime.class_variable_set(:@@received_msg, msg)
+      [Ractor.make_shareable({ output: batch.stdout }), Rooibos::Command.exit]
+
+    # Other array messages - pass through
+    in Array
+      m
+
+    # Key 'q' - exit
+    in RatatuiRuby::Event::Key if msg.q?
+      TestRuntime.class_variable_set(:@@result_seen_before_quit, m[:result]) if m.is_a?(Hash) && m.key?(:result)
+      new_model = Ractor.make_shareable({ width: 80 }, copy: true) if m.is_a?(Hash) && m.key?(:width)
+      TestRuntime.class_variable_set(:@@final_model, new_model) if new_model
+      [new_model || m, Rooibos::Command.exit]
+
+    # Key 'n' - return nil (for testing nil return handling)
+    in RatatuiRuby::Event::Key if msg.code == "n"
+      nil
+
+    # Key 'x' - return non-shareable object (for testing error path)
+    in RatatuiRuby::Event::Key if msg.code == "x"
+      obj = Object.new
+      def obj.callback
+        @callback ||= -> { self }
+      end
+      obj.callback
+      obj
+
+    # Key 'p' - return plain model, not tuple (for testing plain model return)
+    in RatatuiRuby::Event::Key if msg.code == "p"
+      m
+
+    # Key 'a' - dispatch command based on model context
+    in RatatuiRuby::Event::Key if msg.code == "a"
+      if m.is_a?(Hash) && m.key?(:result)
+        [m, Rooibos::Command.system("echo 'loaded'", :data)]
+      elsif m.is_a?(Hash) && m.key?(:noise)
+        [m, Rooibos::Command.system("compiler --verbose", :ran_cmd)]
+      elsif m.is_a?(Hash) && m.key?(:output)
+        [m, Rooibos::Command.system("echo hello", :got_output)]
+      elsif m.is_a?(Hash) && m.key?(:error)
+        [m, Rooibos::Command.system("false", :ran_cmd)]
+      elsif m.is_a?(Hash) && m.key?(:count)
+        { count: m[:count] + 1 }.freeze
+      else
+        inner_cmd = Rooibos::Command.system("echo hello", :inner_done)
+        mapped_cmd = Rooibos::Command.map(inner_cmd) { |msg| [:parent, msg] }
+        [m, mapped_cmd]
+      end
+
+    # Other key events - pass through
+    in RatatuiRuby::Event::Key
+      m
+
+    # Default - exit
+    else
+      [m, Rooibos::Command.exit]
+    end
+  end
+
+  # DrainUpdate - handles command class instantiation via @@command_class
+  # Used for testing channel draining on quit
+  DrainUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "s"
+        cmd_class = TestRuntime.class_variable_get(:@@command_class)
+        [m, cmd_class.new]
+      when "q" then [m, Rooibos::Command.exit]
+      else [m, nil]
+      end
+    when Array
+      TestRuntime.class_variable_set(:@@messages, TestRuntime.class_variable_get(:@@messages) + [msg])
+      [m, nil]
+    else
+      [m, nil]
+    end
+  end
+
+  # ===========================================================================
+  # Tests
+  # ===========================================================================
 
   def test_runtime_class_exists
     assert_kind_of Class, Rooibos::Runtime
@@ -28,10 +194,11 @@ class TestRuntime < Minitest::Test
 
   def test_run_accepts_fps_parameter
     model = Ractor.make_shareable({ count: 0 }, copy: true)
-    view = -> (_m, tui) { tui.clear }
-    update = -> (_msg, _m) { Rooibos::Command.exit }
 
-    # Verify it runs and returns the model
+    view = ClearView
+
+    update = ExitOnAnyKeyUpdate
+
     result = with_test_terminal do
       inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:, fps: 30)
@@ -41,18 +208,17 @@ class TestRuntime < Minitest::Test
   end
 
   def test_fps_calculates_float_timeout
-    # fps: 60 should result in timeout ~0.0167, not 0 (integer division bug)
-    # When timeout is 0, poll_event never blocks and CPU spins at 100%
     captured_timeout = nil
 
     model = Ractor.make_shareable({ count: 0 }, copy: true)
-    view = -> (_m, tui) { tui.clear }
-    update = -> (_msg, _m) { Rooibos::Command.exit }
+
+    view = ClearView
+
+    update = ExitOnAnyKeyUpdate
 
     with_test_terminal do
       inject_key("q")
 
-      # Spy on poll_event to capture the timeout value
       original_poll = RatatuiRuby.method(:poll_event)
       RatatuiRuby.stub(:poll_event, -> (timeout: nil) {
         captured_timeout = timeout
@@ -62,41 +228,45 @@ class TestRuntime < Minitest::Test
       end
     end
 
-    # The timeout should be a float > 0, not integer 0
     assert_kind_of Float, captured_timeout, "timeout should be a Float, not Integer"
     assert_operator captured_timeout, :>, 0, "timeout should be positive (not 0 from integer division)"
     assert_in_delta 1.0 / 60, captured_timeout, 0.001, "timeout should be ~0.0167 for 60fps"
   end
 
   def test_view_receives_model_and_tui
+    @@view_args = nil
     model = Ractor.make_shareable({ text: "hello" }, copy: true)
-    view_args = nil
 
-    view = -> (m, t) { view_args = [m, t]; t.clear }
-    update = -> (msg, _m) { [model, Rooibos::Command.exit] }
+    view = RecordingView
+
+    update = ExitOnAnyKeyUpdate
 
     with_test_terminal do
       inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_equal model, view_args[0], "view should receive model as first arg"
-    assert_kind_of RatatuiRuby::TUI, view_args[1], "view should receive TUI as second arg"
+    assert_equal model, @@view_args[0], "view should receive model as first arg"
+    assert_kind_of RatatuiRuby::TUI, @@view_args[1], "view should receive TUI as second arg"
   end
 
   def test_init_callable_object
-    # Init is an object responding to call (but not a Proc/Method)
-    callable_init = Object.new
-    def callable_init.call
-      [Ractor.make_shareable({ count: 0 }, copy: true), nil]
-    end
+    # Create a callable object that is Ractor-shareable
+    callable_init = Class.new do
+      def call
+        [Ractor.make_shareable({ count: 0 }, copy: true), nil]
+      end
+    end.new.freeze
 
     fragment = Module.new
     fragment.const_set(:Init, callable_init)
-    fragment.const_set(:Update, -> (_msg, _m) { Rooibos::Command.exit })
-    fragment.const_set(:View, -> (_m, tui) { tui.clear })
 
-    # specific verification that it runs without raising and returns the correct model
+    update = ExitOnAnyKeyUpdate
+    fragment.const_set(:Update, update)
+
+    view = ClearView
+    fragment.const_set(:View, view)
+
     result = with_test_terminal do
       inject_key("q")
       Rooibos::Runtime.run(fragment)
@@ -106,11 +276,14 @@ class TestRuntime < Minitest::Test
   end
 
   def test_init_invalid_callable
-    # Init does not respond to call
     fragment = Module.new
     fragment.const_set(:Init, Object.new)
-    fragment.const_set(:Update, -> (_msg, _m) { Rooibos::Command.exit })
-    fragment.const_set(:View, -> (_m, tui) { tui.clear })
+
+    update = ExitOnAnyKeyUpdate
+    fragment.const_set(:Update, update)
+
+    view = ClearView
+    fragment.const_set(:View, view)
 
     error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
@@ -121,11 +294,14 @@ class TestRuntime < Minitest::Test
   end
 
   def test_model_invalid_new
-    # Model does not respond to new
     fragment = Module.new
-    fragment.const_set(:Model, Object.new) # Object.new returns an instance, which doesn't have .new
-    fragment.const_set(:Update, -> (_msg, _m) { Rooibos::Command.exit })
-    fragment.const_set(:View, -> (_m, tui) { tui.clear })
+    fragment.const_set(:Model, Object.new)
+
+    update = ExitOnAnyKeyUpdate
+    fragment.const_set(:Update, update)
+
+    view = ClearView
+    fragment.const_set(:View, view)
 
     error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
@@ -136,92 +312,79 @@ class TestRuntime < Minitest::Test
   end
 
   def test_update_can_return_plain_model
-    model = Ractor.make_shareable({ count: 0 }, copy: true)
-    call_count = 0
+    @@call_count = 0
+    model = Ractor.make_shareable({})
 
-    view = -> (_m, tui) { tui.clear }
-    update = -> (msg, m) do
-      call_count += 1
-      if call_count >= 2 || msg.q?
-        [m, Rooibos::Command.exit]
-      else
-        m # Return plain model, no tuple
-      end
-    end
+    view = ClearView
+
+    update = RecordingUpdate
 
     with_test_terminal do
-      inject_key("a") # First event: causes plain model return
-      inject_key("q") # Second event: causes quit
+      inject_key("p")  # Returns plain model, not tuple
+      inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_equal 2, call_count, "update should be called twice (once per event)"
+    assert_equal 2, @@call_count, "update should be called twice (once per event)"
   end
 
   def test_update_detects_array_model_vs_tuple
-    # Model is a 2-element array - should not be confused with [model, cmd] tuple
+    @@received_model = nil
     model = [:item1, :item2].freeze
-    received_model = nil
 
-    view = -> (m, tui) { received_model = m; tui.clear }
-    update = -> (msg, m) do
-      if msg.q?
-        [m, Rooibos::Command.exit]
-      else
-        m # Return the array model directly
-      end
-    end
+    view = RecordingView
+
+    update = ExitOnQUpdate
 
     with_test_terminal do
-      inject_key("a") # First event: returns array model
-      inject_key("q") # Second event: quits
+      inject_key("a")
+      inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    # The model should still be the 2-element array, not destructured
-    assert_equal [:item1, :item2], received_model, "array model should not be confused with [model, cmd] tuple"
+    assert_equal [:item1, :item2], @@received_model, "array model should not be confused with [model, cmd] tuple"
   end
 
   def test_update_can_return_command_only
+    @@received_model = nil
     model = Ractor.make_shareable({ count: 0 }, copy: true)
-    received_model = nil
 
-    view = -> (m, tui) { received_model = m; tui.clear }
-    update = -> (_msg, _m) { Rooibos::Command.exit }
+    view = RecordingView
+
+    update = ExitOnAnyKeyUpdate
 
     with_test_terminal do
       inject_key("a")
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_same model, received_model, "model should be preserved when update returns Cmd only"
+    assert_same model, @@received_model, "model should be preserved when update returns Cmd only"
   end
 
   def test_update_can_return_nil
-    model = Ractor.make_shareable({ count: 0 }, copy: true)
-    received_model = nil
-    call_count = 0
+    @@received_model = nil
+    @@call_count = 0
+    model = Ractor.make_shareable({})
 
-    view = -> (m, tui) { received_model = m; tui.clear }
-    update = -> (_msg, _m) do
-      call_count += 1
-      (call_count >= 2) ? Rooibos::Command.exit : nil
-    end
+    view = RecordingView
+
+    update = RecordingUpdate
 
     with_test_terminal do
-      inject_key("a")
-      inject_key("b")
+      inject_key("n")  # Returns nil
+      inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_same model, received_model, "model should be preserved when update returns nil"
+    assert_equal model, @@received_model, "model should be preserved when update returns nil"
   end
 
   def test_view_returning_nil_raises_error
     model = Ractor.make_shareable({ text: "hello" }, copy: true)
 
-    view = -> (_m, _t) { nil }
-    update = -> (_msg, _m) { Rooibos::Command.exit }
+    view = ViewReturnsNil
+
+    update = ExitOnAnyKeyUpdate
 
     error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
@@ -234,62 +397,68 @@ class TestRuntime < Minitest::Test
   end
 
   def test_view_returning_clear_renders_empty_screen
+    @@view_called = false
     model = Ractor.make_shareable({ text: "hello" }, copy: true)
-    view_called = false
 
-    view = -> (_m, tui) { view_called = true; tui.clear }
-    update = -> (_msg, _m) { Rooibos::Command.exit }
+    view = RecordingView
 
-    # tui.clear is the intentional way to render nothing
+    update = ExitOnAnyKeyUpdate
+
     with_test_terminal do
       inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert view_called, "view should have been called"
+    assert @@view_called, "view should have been called"
   end
 
   def test_mutable_model_allowed_in_production_mode
-    mutable_model = { count: 0 } # NOT frozen
+    mutable_model = { count: 0 }
 
-    view = -> (_m, tui) { tui.clear }
-    update = -> (_msg, _m) { Rooibos::Command.exit }
+    view = ClearView
+
+    update = ExitOnAnyKeyUpdate
 
     RatatuiRuby::Debug.suppress_debug_mode do
       with_test_terminal do
         inject_key("q")
-        # Should NOT raise - validation is skipped in production mode
         Rooibos::Runtime.run(model: mutable_model, view:, update:)
       end
     end
   end
 
   def test_mutable_model_raises_error
-    mutable_model = { count: 0 } # NOT frozen
+    # Create an object that CANNOT be made shareable - contains a Proc with captured self
+    non_shareable_model = Object.new
+    def non_shareable_model.callback
+      @callback ||= -> { self }  # Captures self in a closure
+    end
+    non_shareable_model.callback  # Ensure it's created
 
-    view = -> (_m, tui) { tui.clear }
-    update = -> (_msg, _m) { Rooibos::Command.exit }
+    view = ClearView
+
+    update = ExitOnAnyKeyUpdate
 
     error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
         inject_key("q")
-        Rooibos::Runtime.run(model: mutable_model, view:, update:)
+        Rooibos::Runtime.run(model: non_shareable_model, view:, update:)
       end
     end
 
     assert_match ractor_error_pattern, error.message
   end
 
-  def test_update_returning_mutable_model_raises_error
-    model = Ractor.make_shareable({ count: 0 }, copy: true)
+  def test_update_returning_non_shareable_model_raises_error
+    model = Ractor.make_shareable({})
 
-    view = -> (_m, tui) { tui.clear }
-    update = -> (_msg, _m) { { count: 1 } } # Returns mutable hash - NOT frozen
+    view = ClearView
+
+    update = RecordingUpdate
 
     error = assert_raises(Rooibos::Error::Invariant) do
       with_test_terminal do
-        inject_key("a")
-        inject_key("q")
+        inject_key("x")  # Returns non-shareable object
         Rooibos::Runtime.run(model:, view:, update:)
       end
     end
@@ -298,39 +467,30 @@ class TestRuntime < Minitest::Test
   end
 
   def test_update_returning_frozen_model_succeeds
+    @@final_model = nil
     model = Ractor.make_shareable({ count: 0 }, copy: true)
-    final_model = nil
 
-    view = -> (m, tui) { final_model = m; tui.clear }
-    update = -> (msg, m) do
-      msg.q? ? [m, Rooibos::Command.exit] : { count: m[:count] + 1 }.freeze
-    end
+    view = RecordingView
+
+    update = RecordingUpdate
 
     with_test_terminal do
-      inject_key("a") # Triggers update that returns frozen model
+      inject_key("a")
       inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_equal({ count: 1 }, final_model)
+    assert_equal({ count: 1 }, @@final_model)
   end
 
   def test_init_triggers_update_before_first_event
+    @@init_ran = false
     model = Ractor.make_shareable({ initialized: false }, copy: true)
-    init_ran = false
 
-    view = -> (_m, tui) { tui.clear }
-    update = -> (msg, m) do
-      case msg
-      when :init_complete
-        init_ran = true
-        [Ractor.make_shareable({ initialized: true }, copy: true), nil]
-      else
-        [m, Rooibos::Command.exit]
-      end
-    end
+    view = ClearView
 
-    # command: is a Cmd that returns a message
+    update = RecordingUpdate
+
     init_cmd = Rooibos::Command.custom(INIT_COMPLETE_COMMAND)
 
     with_test_terminal do
@@ -338,57 +498,38 @@ class TestRuntime < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:, command: init_cmd)
     end
 
-    assert init_ran, "init command should trigger update with :init_complete message"
+    assert @@init_ran, "init command should trigger update with :init_complete message"
   end
 
   def test_update_receives_message_from_successful_command
+    @@received_stdout = nil
     model = Ractor.make_shareable({ output: nil }, copy: true)
-    received_stdout = nil
 
-    view = -> (_m, tui) { tui.clear }
-    update = -> (msg, m) do
-      case msg
-      in { type: :system, envelope: :got_output, status: 0, stdout: }
-        received_stdout = stdout.strip
-        assert Ractor.shareable?(msg), "Background message must be Ractor-shareable"
-        [Ractor.make_shareable({ output: stdout }), Rooibos::Command.exit]
-      else
-        # First event triggers the exec command
-        [m, Rooibos::Command.system("echo hello", :got_output)]
-      end
-    end
+    view = ClearView
 
-    # Stub Open3.capture3 to avoid actual shell execution
+    update = RecordingUpdate
+
     require "open3"
     mock_status = Object.new
     mock_status.define_singleton_method(:exitstatus) { 0 }
     Open3.stub(:capture3, ["hello\n", "", mock_status]) do
       with_test_terminal do
-        inject_key("a") # triggers exec
+        inject_key("a")
         Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
-    assert_equal "hello", received_stdout
+    assert_equal "hello", @@received_stdout
   end
 
   def test_update_receives_message_from_failed_command
+    @@received_stderr = nil
     model = Ractor.make_shareable({ error: nil }, copy: true)
-    received_stderr = nil
 
-    view = -> (_m, tui) { tui.clear }
-    update = -> (msg, m) do
-      case msg
-      in { type: :system, envelope: :ran_cmd, stderr:, status: } unless status == 0
-        received_stderr = stderr
-        assert Ractor.shareable?(msg), "Background message must be Ractor-shareable"
-        [Ractor.make_shareable({ error: stderr }), Rooibos::Command.exit]
-      else
-        [m, Rooibos::Command.system("false", :ran_cmd)]
-      end
-    end
+    view = ClearView
 
-    # Stub Open3.capture3 for failure
+    update = RecordingUpdate
+
     require "open3"
     mock_status = Object.new
     mock_status.define_singleton_method(:exitstatus) { 1 }
@@ -399,26 +540,17 @@ class TestRuntime < Minitest::Test
       end
     end
 
-    assert_equal "command failed\n", received_stderr
+    assert_equal "command failed\n", @@received_stderr
   end
 
   def test_runtime_executes_command_system_success_with_stderr_noise
-    # Some programs write output to stdout AND noise/warnings to stderr on success
+    @@received_stdout = nil
+    @@received_stderr = nil
     model = Ractor.make_shareable({ output: nil, noise: nil }, copy: true)
-    received_stdout = nil
-    received_stderr = nil
 
-    view = -> (_m, tui) { tui.clear }
-    update = -> (msg, m) do
-      case msg
-      in { type: :system, envelope: :ran_cmd, status: 0, stdout:, stderr: }
-        received_stdout = stdout
-        received_stderr = stderr
-        [Ractor.make_shareable({ output: stdout, noise: stderr }), Rooibos::Command.exit]
-      else
-        [m, Rooibos::Command.system("compiler --verbose", :ran_cmd)]
-      end
-    end
+    view = ClearView
+
+    update = RecordingUpdate
 
     require "open3"
     mock_status = Object.new
@@ -430,100 +562,62 @@ class TestRuntime < Minitest::Test
       end
     end
 
-    assert_equal "compiled.o\n", received_stdout
-    assert_equal "warning: deprecated syntax\n", received_stderr
+    assert_equal "compiled.o\n", @@received_stdout
+    assert_equal "warning: deprecated syntax\n", @@received_stderr
   end
 
   def test_runtime_dispatches_mapped_command
-    model = Ractor.make_shareable({ output: nil }, copy: true)
-    received_msg = nil
+    @@received_msg = nil
+    model = Ractor.make_shareable({})
 
-    view = -> (_m, tui) { tui.clear }
-    update = -> (msg, m) do
-      case msg
-      when Array
-        if msg[0] == :parent && msg[1].is_a?(Rooibos::Message::System::Batch)
-          received_msg = msg
-          batch = msg[1]
-          [Ractor.make_shareable({ output: batch.stdout }), Rooibos::Command.exit]
-        else
-          m
-        end
-      else
-        # First event triggers the mapped command
-        inner_cmd = Rooibos::Command.system("echo hello", :inner_done)
-        mapped_cmd = Rooibos::Command.map(inner_cmd) { |m| [:parent, m] }
-        [m, mapped_cmd]
-      end
-    end
+    view = ClearView
+
+    update = RecordingUpdate
 
     require "open3"
     mock_status = Object.new
     mock_status.define_singleton_method(:exitstatus) { 0 }
     Open3.stub(:capture3, ["hello\n", "", mock_status]) do
       with_test_terminal do
-        inject_key("a") # triggers mapped command
+        inject_key("a")
         Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
-    assert_kind_of Rooibos::Message::System::Batch, received_msg[1], "Should receive System::Batch"
-    assert_equal :inner_done, received_msg[1].envelope, "Inner envelope should be preserved"
+    assert_kind_of Rooibos::Message::System::Batch, @@received_msg[1], "Should receive System::Batch"
+    assert_equal :inner_done, @@received_msg[1].envelope, "Inner envelope should be preserved"
   end
 
   def test_sync_event_waits_for_pending_threads
-    # When the runtime sees a Sync event, it should wait for all pending
-    # threads to complete and process their results before continuing.
+    @@result_seen_before_quit = nil
     model = Ractor.make_shareable({ result: nil }, copy: true)
-    result_seen_before_quit = nil
 
-    view = -> (_m, tui) { tui.clear }
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        if msg.code == "a"
-          cmd = Rooibos::Command.system("echo 'loaded'", :data)
-          [m, cmd]
-        elsif msg.q?
-          result_seen_before_quit = m[:result]
-          [m, Rooibos::Command.exit]
-        else
-          m
-        end
-      when -> (msg) { msg.respond_to?(:envelope) && msg.envelope == :data }
-        Ractor.make_shareable({ result: msg.stdout.strip })
-      else
-        m
-      end
-    end
+    view = ClearView
+
+    update = RecordingUpdate
 
     require "open3"
     mock_status = Object.new
     mock_status.define_singleton_method(:exitstatus) { 0 }
     Open3.stub(:capture3, ["loaded\n", "", mock_status]) do
       with_test_terminal do
-        inject_key("a")       # Triggers async command
-        inject_sync           # Wait for command to complete
-        inject_key(:q)        # Quit - should see result
+        inject_key("a")
+        inject_sync
+        inject_key(:q)
         Rooibos::Runtime.run(model:, view:, update:)
       end
     end
 
-    assert_equal "loaded", result_seen_before_quit,
+    assert_equal "loaded", @@result_seen_before_quit,
       "Sync should ensure async result is processed before next event"
   end
 
   def test_quit_drains_channel_before_exiting
-    # When a command pushes messages and the user quits immediately after,
-    # those messages should still be processed. This tests graceful exit.
-    #
-    # We use a custom command that pushes to the channel synchronously
-    # during dispatch, guaranteeing the message is there when quit runs.
-    messages = []
+    @@messages = []
     model = Ractor.make_shareable({})
-    view = -> (_m, tui) { tui.clear }
 
-    # Command that pushes immediately when called
+    view = ClearView
+
     fast_command = Class.new do
       include Rooibos::Command::Custom
       def call(out, _token)
@@ -531,92 +625,65 @@ class TestRuntime < Minitest::Test
       end
     end
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s" then [m, fast_command.new]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      when Array
-        messages << msg
-        [m, nil]
-      else
-        [m, nil]
-      end
-    end
+    @@command_class = fast_command
+    update = DrainUpdate
 
     with_test_terminal do
-      inject_key("s") # Start command that pushes immediately
-      # NO inject_sync - quit happens before channel is polled
-      inject_key("q") # Quit
+      inject_key("s")
+      inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_errors(messages)
-
-    # Without graceful_exit!, this fails - message is lost
-    # With graceful_exit!, this passes - message is drained before exit
-    assert_includes messages.map(&:first), :fast_message,
+    assert_no_errors(@@messages)
+    assert_includes @@messages.map(&:first), :fast_message,
       "Quit should drain pending messages before exiting"
   end
 
-  # Regression test: View must be able to query terminal dimensions.
-  # BUG: When View.call is inside the draw block, viewport_area is called during
-  #      an active draw context, which raises Error::Invariant in RatatuiRuby.
-  # FIX: Move View.call outside the draw block so queries work.
   def test_view_can_query_viewport_area_without_deadlock
+    @@final_model = nil
     model = Ractor.make_shareable({ width: nil }, copy: true)
-    final_model = nil
 
-    # View that queries terminal dimensions - raises Invariant if View is inside draw
-    view = -> (m, tui) {
-      width = tui.viewport_area.width
-      tui.paragraph(text: "Width: #{width}")
-    }
+    view = ViewQueriesViewport
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        final_model = Ractor.make_shareable({ width: 80 }, copy: true)
-        [final_model, Rooibos::Command.exit]
-      else
-        m
-      end
-    end
+    update = RecordingUpdate
 
-    # This raises Error::Invariant if View.call is inside draw block.
     with_test_terminal(80, 24) do
       inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    # If we get here, no deadlock occurred
-    assert_equal 80, final_model[:width], "View should be able to query viewport_area"
+    assert_equal 80, @@final_model[:width], "View should be able to query viewport_area"
   end
 
-  # Init runs after terminal is ready. It can query terminal dimensions,
-  # compute layout areas, or do other terminal-dependent initialization.
   def test_init_can_query_terminal_size
-    init_called = false
-    captured_size = nil
-
+    @@init_called = false
+    @@init_captured_size = nil
     fragment = Module.new
-    fragment.const_set(:Init, -> {
-      init_called = true
-      captured_size = RatatuiRuby.terminal_size
-      Ractor.make_shareable({ width: captured_size.width })
-    })
-    fragment.const_set(:Update, -> (msg, m) { Rooibos::Command.exit })
-    fragment.const_set(:View, -> (_m, tui) { tui.clear })
+
+    init = Class.new do
+      @called = false
+      @captured_size = nil
+      def self.call
+        TestRuntime.class_variable_set(:@@init_called, true)
+        size = RatatuiRuby.terminal_size
+        TestRuntime.class_variable_set(:@@init_captured_size, size)
+        Ractor.make_shareable({ width: size.width })
+      end
+    end
+    fragment.const_set(:Init, init)
+
+    update = RecordingUpdate
+    fragment.const_set(:Update, update)
+
+    view = ClearView
+    fragment.const_set(:View, view)
 
     with_test_terminal(80, 24) do
       inject_key("q")
       Rooibos::Runtime.run(fragment)
     end
 
-    assert init_called, "Init should have been called"
-    assert_equal 80, captured_size.width, "Init should be able to query terminal_size"
+    assert @@init_called, "Init should have been called"
+    assert_equal 80, @@init_captured_size.width, "Init should be able to query terminal_size"
   end
 end

@@ -11,29 +11,67 @@ require "rooibos/test_helper"
 class TestRuntimeParallel < Minitest::Test
   include Rooibos::TestHelper
 
-  def test_batch_fires_multiple_commands_independently
-    messages = []
-    model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
+  # Class-scope state for lambda-based updates
+  def setup
+    @@messages = []
+    @@command = nil
+    @@batch_cmd = nil
+    @@first_wait = nil
+    @@second_wait = nil
+    @@failing_command = nil
+    @@stubborn_command = nil
+  end
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "b"
-          batch = Rooibos::Command.batch([
-            Rooibos::Command.wait(0.01, :first),
-            Rooibos::Command.wait(0.01, :second),
-          ])
-          [m, batch]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
+  def teardown
+    @@messages = []
+    @@command = nil
+    @@batch_cmd = nil
+    @@first_wait = nil
+    @@second_wait = nil
+    @@failing_command = nil
+    @@stubborn_command = nil
+  end
+
+  ClearView = -> (_m, t) { t.clear }
+
+  # Basic parallel update - handles b for batch command, q for quit
+  ParallelUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "b" then [m, TestRuntimeParallel.class_variable_get(:@@command)]
+      when "q" then [m, Rooibos::Command.exit]
+      else [m, nil]
       end
+    else
+      TestRuntimeParallel.class_variable_get(:@@messages) << msg
+      [m, nil]
     end
+  end
+
+  # Timing update - no message capture needed
+  TimingUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "b" then [m, TestRuntimeParallel.class_variable_get(:@@command)]
+      when "q" then [m, Rooibos::Command.exit]
+      else [m, nil]
+      end
+    else
+      [m, nil]
+    end
+  end
+
+  def test_batch_fires_multiple_commands_independently
+    model = Ractor.make_shareable({})
+
+    @@command = Rooibos::Command.batch([
+      Rooibos::Command.wait(0.01, :first),
+      Rooibos::Command.wait(0.01, :second),
+    ])
+    view = ClearView
+    update = ParallelUpdate
 
     with_test_terminal do
       inject_key("b")
@@ -42,10 +80,10 @@ class TestRuntimeParallel < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_errors(messages)
+    assert_no_errors(@@messages)
 
     # Should receive TimerResponse messages, not bare tags
-    timer_messages = messages.select { |m| m.is_a?(Rooibos::Message::Timer) }
+    timer_messages = @@messages.select { |m| m.is_a?(Rooibos::Message::Timer) }
     envelopes = timer_messages.map(&:envelope)
     assert_includes envelopes, :first
     assert_includes envelopes, :second
@@ -53,26 +91,14 @@ class TestRuntimeParallel < Minitest::Test
 
   def test_batch_runs_commands_in_parallel
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "b"
-          # Two 0.1s waits — sequential = 0.2s, parallel < 0.15s
-          batch = Rooibos::Command.batch([
-            Rooibos::Command.wait(0.1, :first),
-            Rooibos::Command.wait(0.1, :second),
-          ])
-          [m, batch]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        [m, nil]
-      end
-    end
+    # Two 0.1s waits — sequential = 0.2s, parallel < 0.15s
+    @@command = Rooibos::Command.batch([
+      Rooibos::Command.wait(0.1, :first),
+      Rooibos::Command.wait(0.1, :second),
+    ])
+    view = ClearView
+    update = TimingUpdate
 
     start = Time.now
     with_test_terminal do
@@ -88,32 +114,36 @@ class TestRuntimeParallel < Minitest::Test
     assert_operator elapsed, :<, 0.15, "Batch should run commands in parallel, not sequentially"
   end
 
-  def test_batch_cancellation_signals_children_cooperatively
-    messages = []
-    first_wait = nil
-    second_wait = nil
-    model = Ractor.make_shareable({ cmd: nil })
-    view = -> (_m, t) { t.clear }
-
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "b"
-          first_wait = Rooibos::Command.wait(10.0, :should_not_arrive)
-          second_wait = Rooibos::Command.wait(10.0, :also_should_not)
-          cmd = Rooibos::Command.batch([first_wait, second_wait])
-          [Ractor.make_shareable({ cmd: }), cmd]
-        when "c"
-          [m, Rooibos::Command.cancel(m[:cmd])]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
+  # Cancel update - handles b for batch with model tracking, c for cancel, q for quit
+  CancelUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "b"
+        first = TestRuntimeParallel.class_variable_get(:@@first_wait)
+        second = TestRuntimeParallel.class_variable_get(:@@second_wait)
+        cmd = Rooibos::Command.batch([first, second])
+        [Ractor.make_shareable({ cmd: }), cmd]
+      when "c"
+        [m, Rooibos::Command.cancel(m[:cmd])]
+      when "q"
+        [m, Rooibos::Command.exit]
       else
-        messages << msg
         [m, nil]
       end
+    else
+      TestRuntimeParallel.class_variable_get(:@@messages) << msg
+      [m, nil]
     end
+  end
+
+  def test_batch_cancellation_signals_children_cooperatively
+    @@first_wait = Rooibos::Command.wait(10.0, :should_not_arrive)
+    @@second_wait = Rooibos::Command.wait(10.0, :also_should_not)
+    model = Ractor.make_shareable({ cmd: nil })
+
+    view = ClearView
+    update = CancelUpdate
 
     with_test_terminal do
       inject_key("b")
@@ -124,42 +154,51 @@ class TestRuntimeParallel < Minitest::Test
     end
 
     # Cooperative cancellation: children emit Message::Canceled
-    cancel_commands = messages
+    cancel_commands = @@messages
       .select { |m| m.is_a?(Rooibos::Message::Canceled) }
       .map(&:command)
 
-    assert_includes cancel_commands, first_wait, "First child should emit Canceled message"
-    assert_includes cancel_commands, second_wait, "Second child should emit Canceled message"
+    assert_includes cancel_commands, @@first_wait, "First child should emit Canceled message"
+    assert_includes cancel_commands, @@second_wait, "Second child should emit Canceled message"
+  end
+
+  # Failing update - handles b for batch with failing_command, q for quit
+  FailingUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "b"
+        failing = TestRuntimeParallel.class_variable_get(:@@failing_command)
+        wait = TestRuntimeParallel.class_variable_get(:@@first_wait)
+        cmds = wait ? [failing, wait] : [failing]
+        cmd = Rooibos::Command.batch(cmds)
+        [m, cmd]
+      when "q"
+        [m, Rooibos::Command.exit]
+      else
+        [m, nil]
+      end
+    else
+      TestRuntimeParallel.class_variable_get(:@@messages) << msg
+      [m, nil]
+    end
+  end
+
+  # Define failing command class once
+  FailingCommand = Data.define do
+    include Rooibos::Command::Custom
+    def call(_out, _token)
+      raise "intentional failure"
+    end
   end
 
   def test_batch_reports_child_errors
-    messages = []
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    failing_class = Data.define do
-      include Rooibos::Command::Custom
-      def call(_out, _token)
-        raise "intentional failure"
-      end
-    end
-    failing_command = Ractor.make_shareable(failing_class.new)
-
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "b"
-          cmd = Rooibos::Command.batch([failing_command])
-          [m, cmd]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
-      end
-    end
+    @@failing_command = Ractor.make_shareable(FailingCommand.new)
+    @@first_wait = nil
+    view = ClearView
+    update = FailingUpdate
 
     with_test_terminal do
       inject_key("b")
@@ -169,46 +208,51 @@ class TestRuntimeParallel < Minitest::Test
     end
 
     # Child error should surface as Message::Error (aligned with Command.all)
-    error_msg = messages.find { |m| m.is_a?(Rooibos::Message::Error) }
+    error_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::Error) }
     refute_nil error_msg, "Expected Message::Error message from failed child"
     assert_match(/intentional failure/, error_msg.exception.message)
   end
 
-  def test_batch_exits_early_on_cancellation
-    # Stubborn command with long grace — forces the race to be tested
-    # Uses Data.define so it's Ractor-shareable
-    stubborn_class = Data.define do
-      include Rooibos::Command::Custom
-      def rooibos_cancellation_grace_period = 60.0
+  # Stubborn command class definition
+  StubbornCommand = Data.define do
+    include Rooibos::Command::Custom
+    def rooibos_cancellation_grace_period = 60.0
 
-      def call(_out, _token)
-        sleep 100
-      end
+    def call(_out, _token)
+      sleep 100
     end
-    stubborn_command = Ractor.make_shareable(stubborn_class.new)
+  end
 
-    batch_cmd = nil
-    messages = []
-    model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
-
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "b"
-          batch_cmd = Rooibos::Command.batch([stubborn_command])
-          [m, batch_cmd]
-        when "c"
-          [m, Rooibos::Command.cancel(batch_cmd)]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
+  # Stubborn update - handles b for batch with stubborn_command, c for cancel, q for quit
+  StubbornUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "b"
+        stubborn = TestRuntimeParallel.class_variable_get(:@@stubborn_command)
+        batch_cmd = Rooibos::Command.batch([stubborn])
+        TestRuntimeParallel.class_variable_set(:@@batch_cmd, batch_cmd)
+        [m, batch_cmd]
+      when "c"
+        batch_cmd = TestRuntimeParallel.class_variable_get(:@@batch_cmd)
+        [m, Rooibos::Command.cancel(batch_cmd)]
+      when "q"
+        [m, Rooibos::Command.exit]
       else
-        messages << msg
         [m, nil]
       end
+    else
+      TestRuntimeParallel.class_variable_get(:@@messages) << msg
+      [m, nil]
     end
+  end
+
+  def test_batch_exits_early_on_cancellation
+    @@stubborn_command = Ractor.make_shareable(StubbornCommand.new)
+    model = Ractor.make_shareable({})
+
+    view = ClearView
+    update = StubbornUpdate
 
     start = Time.now
     with_test_terminal do
@@ -223,8 +267,8 @@ class TestRuntimeParallel < Minitest::Test
     assert_operator elapsed, :<, 2.0, "Batch should exit early on cancellation"
 
     # Batch emits Canceled message
-    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Message::Canceled) }
-    assert_same batch_cmd, cancel_msg&.command, "Batch should emit Canceled message with self"
+    cancel_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::Canceled) }
+    assert_same @@batch_cmd, cancel_msg&.command, "Batch should emit Canceled message with self"
   end
 
   def test_batch_validates_commands_are_shareable
@@ -258,37 +302,12 @@ class TestRuntimeParallel < Minitest::Test
   end
 
   def test_batch_continues_other_commands_when_one_fails
-    messages = []
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    failing_class = Data.define do
-      include Rooibos::Command::Custom
-      def call(_out, _token)
-        raise "intentional failure"
-      end
-    end
-    failing_command = Ractor.make_shareable(failing_class.new)
-
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "b"
-          # One fails, one succeeds
-          cmd = Rooibos::Command.batch([
-            failing_command,
-            Rooibos::Command.wait(0.01, :success),
-          ])
-          [m, cmd]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
-      end
-    end
+    @@failing_command = Ractor.make_shareable(FailingCommand.new)
+    @@first_wait = Rooibos::Command.wait(0.01, :success)  # One fails, one succeeds
+    view = ClearView
+    update = FailingUpdate
 
     with_test_terminal do
       inject_key("b")
@@ -298,11 +317,11 @@ class TestRuntimeParallel < Minitest::Test
     end
 
     # The successful command should still complete - check for TimerResponse
-    timer_msg = messages.find { |m| m.is_a?(Rooibos::Message::Timer) && m.envelope == :success }
+    timer_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::Timer) && m.envelope == :success }
     refute_nil timer_msg, "Successful command should still run when sibling fails"
 
     # Error should also be reported
-    error_msg = messages.find { |m| m.is_a?(Rooibos::Message::Error) }
+    error_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::Error) }
     refute_nil error_msg, "Expected Message::Error from failed child"
   end
 end

@@ -11,6 +11,92 @@ require "rooibos/test_helper"
 class TestRuntimeCustomCommand < Minitest::Test
   include Rooibos::TestHelper
 
+  # Class-scope state for lambda-based updates
+  def setup
+    @@messages = []
+    @@events = []
+    @@command = nil
+    @@command_class = nil
+    @@received_error = nil
+  end
+
+  def teardown
+    @@messages = []
+    @@events = []
+    @@command = nil
+    @@command_class = nil
+    @@received_error = nil
+  end
+
+  ClearView = -> (_m, t) { t.clear }
+
+  # Basic custom update - handles s for start with @@command, q for quit
+  CustomUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "s" then [m, TestRuntimeCustomCommand.class_variable_get(:@@command)]
+      when "q" then [m, Rooibos::Command.exit]
+      else [m, nil]
+      end
+    else
+      [m, nil]
+    end
+  end
+
+  # Message capture update - uses @@messages
+  MessageUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "s"
+        cmd_class = TestRuntimeCustomCommand.class_variable_get(:@@command_class)
+        [m, cmd_class.new]
+      when "q" then [m, Rooibos::Command.exit]
+      else [m, nil]
+      end
+    else
+      TestRuntimeCustomCommand.class_variable_get(:@@messages) << msg
+      [m, nil]
+    end
+  end
+
+  # Event capture update - uses @@events
+  EventUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "s" then [m, TestRuntimeCustomCommand.class_variable_get(:@@command)]
+      when "q" then [m, Rooibos::Command.exit]
+      else [m, nil]
+      end
+    else
+      TestRuntimeCustomCommand.class_variable_get(:@@events) << msg
+      [m, nil]
+    end
+  end
+
+  # Cancel update - handles s for start with model tracking, c for cancel, q for quit
+  CancelUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "s"
+        cmd = TestRuntimeCustomCommand.class_variable_get(:@@command)
+        [Ractor.make_shareable({ cmd: }), cmd]
+      when "c"
+        [m, Rooibos::Command.cancel(m[:cmd])]
+      when "q"
+        [m, Rooibos::Command.exit]
+      else
+        [m, nil]
+      end
+    else
+      TestRuntimeCustomCommand.class_variable_get(:@@events) << msg
+      [m, nil]
+    end
+  end
+
   def test_normalize_update_return_recognizes_custom_command
     command_class = Class.new do
       include Rooibos::Command::Custom
@@ -27,44 +113,31 @@ class TestRuntimeCustomCommand < Minitest::Test
     assert_equal command, normalized[1], "Custom command should be recognized as command"
   end
 
+  # Command class to capture outlet and token
+  ReceiverCommand = Class.new do
+    include Rooibos::Command::Custom
+    @received_out = nil
+    @received_token = nil
+
+    def self.received_out; @received_out; end
+    def self.received_token; @received_token; end
+    def self.reset!; @received_out = nil; @received_token = nil; end
+
+    def call(out, token)
+      self.class.instance_variable_set(:@received_out, out)
+      self.class.instance_variable_set(:@received_token, token)
+    end
+  end
+
   def test_dispatch_calls_custom_command_with_outlet_and_token
-    received_out = nil
-    received_token = nil
-
-    command_class = Class.new do
-      include Rooibos::Command::Custom
-
-      define_method(:initialize) do |callback|
-        @callback = callback
-      end
-
-      define_method(:call) do |out, token|
-        @callback.call(out, token)
-      end
-    end
-
-    received_out = nil
-    received_token = nil
-    callback = -> (out, token) do
-      received_out = out
-      received_token = token
-    end
-    command = command_class.new(callback)
+    ReceiverCommand.reset!
+    command = ReceiverCommand.new
 
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s" then [m, command]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        [m, nil]
-      end
-    end
+
+    @@command = command
+    view = ClearView
+    update = CustomUpdate
 
     with_test_terminal do
       inject_key("s")
@@ -72,36 +145,26 @@ class TestRuntimeCustomCommand < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    refute_nil received_token, "Command should have received a Cancellation"
-    assert_kind_of Rooibos::Command::Outlet, received_out
-    assert_kind_of Concurrent::Cancellation, received_token
+    refute_nil ReceiverCommand.received_token, "Command should have received a Cancellation"
+    assert_kind_of Rooibos::Command::Outlet, ReceiverCommand.received_out
+    assert_kind_of Concurrent::Cancellation, ReceiverCommand.received_token
+  end
+
+  # Command that emits a message
+  EmitterCommand = Class.new do
+    include Rooibos::Command::Custom
+
+    def call(out, _token)
+      out.put(:test_message, :payload)
+    end
   end
 
   def test_outlet_messages_arrive_in_update
-    messages = []
-    command_class = Class.new do
-      include Rooibos::Command::Custom
-
-      define_method(:call) do |out, _token|
-        out.put(:test_message, :payload)
-      end
-    end
-
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s" then [m, command_class.new]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
-      end
-    end
+
+    @@command_class = EmitterCommand
+    view = ClearView
+    update = MessageUpdate
 
     with_test_terminal do
       inject_key("s")
@@ -109,7 +172,7 @@ class TestRuntimeCustomCommand < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_includes messages, [:test_message, :payload], "Update should receive outlet message"
+    assert_includes @@messages, [:test_message, :payload], "Update should receive outlet message"
   end
 
   # Command that runs briefly then finishes
@@ -123,23 +186,11 @@ class TestRuntimeCustomCommand < Minitest::Test
   end
 
   def test_shutdown_allows_commands_to_finish_within_grace_period
-    events = []
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s" then [m, BriefCommand.new] # 0.05s work, 0.1s grace
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        events << msg
-        [m, nil]
-      end
-    end
+    @@command = BriefCommand.new
+    view = ClearView
+    update = EventUpdate
 
     with_test_terminal do
       inject_key("s")  # Start brief command
@@ -149,7 +200,7 @@ class TestRuntimeCustomCommand < Minitest::Test
     end
 
     # Brief command (0.05s) finishes within its 0.1s grace period
-    assert_includes events, :brief_done, "Commands should finish within grace period"
+    assert_includes @@events, :brief_done, "Commands should finish within grace period"
   end
 
   # Long-running command that waits until canceled
@@ -164,29 +215,11 @@ class TestRuntimeCustomCommand < Minitest::Test
   end
 
   def test_cancel_command_signals_token
-    events = []
     model = Ractor.make_shareable({ cmd: nil })
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s"
-          cmd = WaitForCancel.new
-          [Ractor.make_shareable({ cmd: }), cmd]
-        when "c"
-          [m, Rooibos::Command.cancel(m[:cmd])]
-        when "q"
-          [m, Rooibos::Command.exit]
-        else
-          [m, nil]
-        end
-      else
-        events << msg
-        [m, nil]
-      end
-    end
+    @@command = WaitForCancel.new
+    view = ClearView
+    update = CancelUpdate
 
     with_test_terminal do
       inject_key("s")  # Start command
@@ -196,8 +229,8 @@ class TestRuntimeCustomCommand < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_includes events, :command_started, "Command should have started"
-    assert_includes events, :command_canceled, "Command should have been canceled"
+    assert_includes @@events, :command_started, "Command should have started"
+    assert_includes @@events, :command_canceled, "Command should have been canceled"
   end
 
   # Command with infinite grace that cooperates with cancellation
@@ -214,29 +247,11 @@ class TestRuntimeCustomCommand < Minitest::Test
   end
 
   def test_infinite_grace_waits_for_cooperative_stop
-    events = []
     model = Ractor.make_shareable({ cmd: nil })
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s"
-          cmd = InfiniteGraceCooperative.new
-          [Ractor.make_shareable({ cmd: }), cmd]
-        when "c"
-          [m, Rooibos::Command.cancel(m[:cmd])]
-        when "q"
-          [m, Rooibos::Command.exit]
-        else
-          [m, nil]
-        end
-      else
-        events << msg
-        [m, nil]
-      end
-    end
+    @@command = InfiniteGraceCooperative.new
+    view = ClearView
+    update = CancelUpdate
 
     with_test_terminal do
       inject_key("s")  # Start infinite grace command
@@ -246,12 +261,29 @@ class TestRuntimeCustomCommand < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_includes events, :infinite_started, "Command should have started"
-    assert_includes events, :infinite_stopped, "Command should have stopped cooperatively"
+    assert_includes @@events, :infinite_started, "Command should have started"
+    assert_includes @@events, :infinite_stopped, "Command should have stopped cooperatively"
   end
 
   def test_shutdown_kills_stubborn_commands_quickly
     skip "Timing test - timing doesn't distinguish kill from orphan"
+  end
+
+  # Error update - captures @@received_error for error-handling tests
+  ErrorUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "s" then [m, TestRuntimeCustomCommand.class_variable_get(:@@command)]
+      when "q" then [m, Rooibos::Command.exit]
+      else [m, nil]
+      end
+    when Rooibos::Message::Error
+      TestRuntimeCustomCommand.class_variable_set(:@@received_error, msg)
+      [m, nil]
+    else
+      [m, nil]
+    end
   end
 
   # Command that raises an error
@@ -264,25 +296,11 @@ class TestRuntimeCustomCommand < Minitest::Test
   end
 
   def test_unhandled_command_exception_produces_command_error
-    received_error = nil
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s" then [m, ExplodingCommand.new]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      when Rooibos::Message::Error
-        received_error = msg
-        [m, nil]
-      else
-        [m, nil]
-      end
-    end
+    @@command = ExplodingCommand.new
+    view = ClearView
+    update = ErrorUpdate
 
     with_test_terminal do
       inject_key("s")  # Start exploding command
@@ -292,10 +310,10 @@ class TestRuntimeCustomCommand < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    refute_nil received_error, "Update should receive Message::Error"
-    assert_kind_of Rooibos::Message::Error, received_error
-    assert_equal ExplodingCommand, received_error.command.class
-    assert_equal "Boom!", received_error.exception.message
+    refute_nil @@received_error, "Update should receive Message::Error"
+    assert_kind_of Rooibos::Message::Error, @@received_error
+    assert_equal ExplodingCommand, @@received_error.command.class
+    assert_equal "Boom!", @@received_error.exception.message
   end
 
   def test_command_error_includes_message_predicates

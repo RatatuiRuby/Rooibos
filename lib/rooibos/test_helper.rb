@@ -117,5 +117,27 @@ module Rooibos
         raise failure_msg
       end
     end
+
+    # ===========================================================================
+    # Shared Fixtures
+    #
+    # Ractor-shareable callables for common test patterns
+    # ===========================================================================
+
+    # Simple view that just clears the terminal
+    ClearView = -> (_model, tui) { tui.clear }
+
+    # Update that exits on 'q' key, passes through all other messages
+    ExitOnQUpdate = -> (msg, model) do
+      case msg
+      when RatatuiRuby::Event::Key
+        (msg.code == "q") ? [model, Rooibos::Command.exit] : [model, nil]
+      else
+        [model, nil]
+      end
+    end
+
+    # Update that exits immediately on any key
+    ExitOnAnyKeyUpdate = -> (_msg, model) { [model, Rooibos::Command.exit] }
   end
 end

@@ -59,6 +59,18 @@ module Rooibos
       end
     end
 
+    # Negated guard - inverts the result of another guard.
+    # Use instead of wrapping lambdas to avoid self-capture.
+    NegatedGuard = Data.define(:guard) do
+      def call(model) = !guard.call(model)
+    end
+
+    # Combined guard - returns true only if ALL guards pass.
+    # Use instead of wrapping lambdas to avoid self-capture.
+    CombinedGuard = Data.define(:guards) do
+      def call(model) = guards.all? { |g| g.call(model) }
+    end
+
     def self.included(base) # :nodoc:
       base.extend(ClassMethods)
     end
@@ -174,7 +186,7 @@ module Rooibos
         # Handle inverted predicates (unless/except)
         negative = binding.local_variable_get(:unless) || except
         if negative
-          effective_predicate = ->(msg) { !negative.call(msg) }
+          effective_predicate = -> (msg) { !negative.call(msg) }
         end
 
         # Extract handler from keyword args
@@ -190,7 +202,7 @@ module Rooibos
 
       # Declares an intercept handler that matches all messages (arity 1 convenience).
       def intercept_all(handler)
-        intercept(->(_msg) { true }, handler)
+        intercept(-> (_msg) { true }, handler)
       end
 
       # Declares key handlers in a block.
@@ -374,10 +386,7 @@ module Rooibos
         [model, nil] #: [_DataModel, Command::execution?]
       end
 
-      private
-
-      # Normalizes handler return value to [model, command] tuple (DWIM).
-      def normalize_handler_result(result, previous_model)
+      private def normalize_handler_result(result, previous_model)
         # Nil - preserve model
         return [previous_model, nil] if result.nil?
 
@@ -473,11 +482,11 @@ module Rooibos
         # Negative guards (unless, except, skip) - wrap to invert
         negative = binding.local_variable_get(:unless) || except || skip
         if negative
-          guards << -> (model) { !negative.call(model) }
+          guards << NegatedGuard.new(guard: negative)
         end
 
         combined_guard = if guards.any?
-          -> (model) { guards.all? { |g| g.call(model) } }
+          CombinedGuard.new(guards: guards.freeze)
         end
 
         # Register each key

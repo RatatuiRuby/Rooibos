@@ -11,6 +11,95 @@ require "rooibos/test_helper"
 class TestCommandAll < Minitest::Test
   include Rooibos::TestHelper
 
+  # Class-scope state for lambda-based updates
+  def setup
+    @@messages = []
+    @@command = nil
+    @@all_cmd = nil
+    @@failing_command = nil
+  end
+
+  def teardown
+    @@messages = []
+    @@command = nil
+    @@all_cmd = nil
+    @@failing_command = nil
+  end
+
+  ClearView = -> (_m, t) { t.clear }
+
+  # Basic all update - handles a for all with @@command, q for quit
+  AllUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "a" then [m, TestCommandAll.class_variable_get(:@@command)]
+      when "q" then [m, Rooibos::Command.exit]
+      else [m, nil]
+      end
+    else
+      TestCommandAll.class_variable_get(:@@messages) << msg
+      [m, nil]
+    end
+  end
+
+  # Timing update - no message capture needed
+  TimingUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "a" then [m, TestCommandAll.class_variable_get(:@@command)]
+      when "q" then [m, Rooibos::Command.exit]
+      else [m, nil]
+      end
+    else
+      [m, nil]
+    end
+  end
+
+  # Cancel update - handles a for all with @@all_cmd tracking, c for cancel, q for quit
+  CancelUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "a"
+        all_cmd = TestCommandAll.class_variable_get(:@@command)
+        TestCommandAll.class_variable_set(:@@all_cmd, all_cmd)
+        [m, all_cmd]
+      when "c"
+        all_cmd = TestCommandAll.class_variable_get(:@@all_cmd)
+        [m, Rooibos::Command.cancel(all_cmd)]
+      when "q"
+        [m, Rooibos::Command.exit]
+      else
+        [m, nil]
+      end
+    else
+      TestCommandAll.class_variable_get(:@@messages) << msg
+      [m, nil]
+    end
+  end
+
+  # Failing update - handles a for all with failing_command, q for quit
+  FailingUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "a"
+        failing = TestCommandAll.class_variable_get(:@@failing_command)
+        cmd = Rooibos::Command.all(:dashboard, [failing])
+        [m, cmd]
+      when "q"
+        [m, Rooibos::Command.exit]
+      else
+        [m, nil]
+      end
+    else
+      TestCommandAll.class_variable_get(:@@messages) << msg
+      [m, nil]
+    end
+  end
+
   def test_all_validates_commands_are_shareable
     non_shareable_command = Class.new do
       include Rooibos::Command::Custom
@@ -34,26 +123,12 @@ class TestCommandAll < Minitest::Test
   end
 
   def test_all_with_empty_commands_returns_empty_results_immediately
-    messages = []
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "a"
-          # Dynamic filter that results in empty array - common pattern
-          cmd = Rooibos::Command.all(:empty, [].filter { |c| c })
-          [m, cmd]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
-      end
-    end
+    # Dynamic filter that results in empty array - common pattern
+    @@command = Rooibos::Command.all(:empty, [].filter { |c| c })
+    view = ClearView
+    update = AllUpdate
 
     with_test_terminal do
       inject_key("a")
@@ -62,11 +137,11 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_errors(messages)
+    assert_no_errors(@@messages)
 
     # Should get Message::All with empty results, not hang forever
-    all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
-    refute_nil all_msg, "Expected Message::All from Command.all with empty commands. Got: #{messages.inspect}"
+    all_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::All) }
+    refute_nil all_msg, "Expected Message::All from Command.all with empty commands. Got: #{@@messages.inspect}"
     assert_equal :empty, all_msg.envelope
     assert_equal [], all_msg.results, "Empty commands should return empty results"
     assert all_msg.nested, "Array syntax should produce nested: true"
@@ -85,28 +160,14 @@ class TestCommandAll < Minitest::Test
   end
 
   def test_all_aggregates_child_results_nested
-    messages = []
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "a"
-          cmd = Rooibos::Command.all(:dashboard, [
-            Rooibos::Command.wait(0.01, :first),
-            Rooibos::Command.wait(0.01, :second),
-          ])
-          [m, cmd]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
-      end
-    end
+    @@command = Rooibos::Command.all(:dashboard, [
+      Rooibos::Command.wait(0.01, :first),
+      Rooibos::Command.wait(0.01, :second),
+    ])
+    view = ClearView
+    update = AllUpdate
 
     with_test_terminal do
       inject_key("a")
@@ -115,9 +176,9 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_errors(messages)
+    assert_no_errors(@@messages)
 
-    all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
+    all_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all"
 
     assert_equal :dashboard, all_msg.envelope
@@ -127,29 +188,15 @@ class TestCommandAll < Minitest::Test
   end
 
   def test_all_splats_results_with_variadic_args
-    messages = []
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "a"
-          # Variadic syntax → splatted output
-          cmd = Rooibos::Command.all(:dashboard,
-            Rooibos::Command.wait(0.01, :first),
-            Rooibos::Command.wait(0.01, :second),
-          )
-          [m, cmd]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
-      end
-    end
+    # Variadic syntax → splatted output
+    @@command = Rooibos::Command.all(:dashboard,
+      Rooibos::Command.wait(0.01, :first),
+      Rooibos::Command.wait(0.01, :second),
+    )
+    view = ClearView
+    update = AllUpdate
 
     with_test_terminal do
       inject_key("a")
@@ -158,10 +205,10 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_errors(messages)
+    assert_no_errors(@@messages)
 
     # Variadic produces Message::All with nested: false
-    all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
+    all_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all"
 
     # Variadic: Message::All with nested: false, results contain the child messages
@@ -175,30 +222,13 @@ class TestCommandAll < Minitest::Test
   end
 
   def test_all_emits_cancel_sentinel_on_cancellation
-    messages = []
-    all_cmd = nil
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "a"
-          all_cmd = Rooibos::Command.all(:dashboard, [
-            Rooibos::Command.wait(10.0, :should_not_arrive),
-          ])
-          [m, all_cmd]
-        when "c"
-          [m, Rooibos::Command.cancel(all_cmd)]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
-      end
-    end
+    @@command = Rooibos::Command.all(:dashboard, [
+      Rooibos::Command.wait(10.0, :should_not_arrive),
+    ])
+    view = ClearView
+    update = CancelUpdate
 
     with_test_terminal do
       inject_key("a")
@@ -208,32 +238,20 @@ class TestCommandAll < Minitest::Test
     end
 
     # Note: This test expects Message::Canceled, not Message::Error
-    cancel_msg = messages.find { |m| m.is_a?(Rooibos::Message::Canceled) }
-    assert_same all_cmd, cancel_msg&.command, "Expected Canceled message with self as command"
+    cancel_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::Canceled) }
+    assert_same @@all_cmd, cancel_msg&.command, "Expected Canceled message with self as command"
   end
 
   def test_all_runs_commands_in_parallel
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "a"
-          # Two 0.1s waits — sequential = 0.2s, parallel < 0.15s
-          cmd = Rooibos::Command.all(:dashboard, [
-            Rooibos::Command.wait(0.1, :first),
-            Rooibos::Command.wait(0.1, :second),
-          ])
-          [m, cmd]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        [m, nil]
-      end
-    end
+    # Two 0.1s waits — sequential = 0.2s, parallel < 0.15s
+    @@command = Rooibos::Command.all(:dashboard, [
+      Rooibos::Command.wait(0.1, :first),
+      Rooibos::Command.wait(0.1, :second),
+    ])
+    view = ClearView
+    update = TimingUpdate
 
     start = Time.now
     with_test_terminal do
@@ -250,28 +268,14 @@ class TestCommandAll < Minitest::Test
   end
 
   def test_all_emits_message_all_for_nested_syntax
-    messages = []
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "a"
-          cmd = Rooibos::Command.all(:dashboard, [
-            Rooibos::Command.wait(0.01, :first),
-            Rooibos::Command.wait(0.01, :second),
-          ])
-          [m, cmd]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
-      end
-    end
+    @@command = Rooibos::Command.all(:dashboard, [
+      Rooibos::Command.wait(0.01, :first),
+      Rooibos::Command.wait(0.01, :second),
+    ])
+    view = ClearView
+    update = AllUpdate
 
     with_test_terminal do
       inject_key("a")
@@ -280,11 +284,11 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_errors(messages)
+    assert_no_errors(@@messages)
 
     # Command.all should emit Message::All, not raw arrays
-    all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
-    refute_nil all_msg, "Expected Message::All from Command.all, got: #{messages.inspect}"
+    all_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::All) }
+    refute_nil all_msg, "Expected Message::All from Command.all, got: #{@@messages.inspect}"
 
     # Verify hash-based pattern matching works
     case all_msg
@@ -297,34 +301,20 @@ class TestCommandAll < Minitest::Test
     end
   end
 
+  # Define failing command class once
+  FailingCommand = Data.define do
+    include Rooibos::Command::Custom
+    def call(_out, _token)
+      raise "intentional failure"
+    end
+  end
+
   def test_all_reports_child_errors
-    messages = []
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    failing_class = Data.define do
-      include Rooibos::Command::Custom
-      def call(_out, _token)
-        raise "intentional failure"
-      end
-    end
-    failing_command = Ractor.make_shareable(failing_class.new)
-
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "a"
-          cmd = Rooibos::Command.all(:dashboard, [failing_command])
-          [m, cmd]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
-      end
-    end
+    @@failing_command = Ractor.make_shareable(FailingCommand.new)
+    view = ClearView
+    update = FailingUpdate
 
     with_test_terminal do
       inject_key("a")
@@ -334,7 +324,7 @@ class TestCommandAll < Minitest::Test
     end
 
     # Child error should surface as Message::Error
-    error_msg = messages.find { |m| m.is_a?(Rooibos::Message::Error) }
+    error_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::Error) }
     refute_nil error_msg, "Expected Message::Error message from failed child"
     assert_match(/intentional failure/, error_msg.exception.message)
   end
@@ -343,28 +333,14 @@ class TestCommandAll < Minitest::Test
   # This test verifies parallel execution across different command categories
   # and that each result correctly matches the { type:, envelope: } pattern.
   def test_all_with_mixed_command_types
-    messages = []
     model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "a"
-          cmd = Rooibos::Command.all(:dashboard,
-            Rooibos::Command.wait(0.01, :timer_result),
-            Rooibos::Command.system("echo mixed", :shell_result),
-          )
-          [m, cmd]
-        when "q" then [m, Rooibos::Command.exit]
-        else [m, nil]
-        end
-      else
-        messages << msg
-        [m, nil]
-      end
-    end
+    @@command = Rooibos::Command.all(:dashboard,
+      Rooibos::Command.wait(0.01, :timer_result),
+      Rooibos::Command.system("echo mixed", :shell_result),
+    )
+    view = ClearView
+    update = AllUpdate
 
     with_test_terminal do
       inject_key("a")
@@ -373,9 +349,9 @@ class TestCommandAll < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_no_errors(messages)
+    assert_no_errors(@@messages)
 
-    all_msg = messages.find { |m| m.is_a?(Rooibos::Message::All) }
+    all_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::All) }
     refute_nil all_msg, "Expected Message::All from Command.all with mixed types"
 
     assert_equal :dashboard, all_msg.envelope

@@ -25,9 +25,13 @@ class TestCommandHttp < Minitest::Test
     Ractor.make_shareable(JSON.parse(body))
   })
 
+  # Class-scope state for lambda-based updates
   def setup
     @server = TCPServer.new("127.0.0.1", 0)
     @port = @server.addr[1]
+    @@port = @port
+    @@final_model = nil
+    @@error_raised = nil
   end
 
   def teardown
@@ -54,26 +58,28 @@ class TestCommandHttp < Minitest::Test
     end
   end
 
+  # Update for GET test - sends :fetch request on 'f', captures final model on 'q'
+  UpdateHttpGet = -> (msg, m) do
+    case msg
+    in { type: :key, code: "f" }
+      [m, Rooibos::Command.http(:get, "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze, :fetch)]
+    in { type: :key, code: "q" }
+      TestCommandHttp.class_variable_set(:@@final_model, m)
+      [m, Rooibos::Command.exit]
+    in { type: :http, envelope: :fetch, status:, body: }
+      [m.with(status:, body:), nil]
+    else
+      [m, nil]
+    end
+  end
+
   public def test_http_get_returns_status_body_headers
     echo_server
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "f" }
-        [m, Rooibos::Command.http(:get, "http://127.0.0.1:#{@port}/".freeze, :fetch)]
-      in { type: :key, code: "q" }
-        final_model = m
-        [m, Rooibos::Command.exit]
-      in { type: :http, envelope: :fetch, status:, body: }
-        [m.with(status:, body:), nil]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateHttpGet
 
     with_test_terminal do
       inject_key("f")
@@ -82,30 +88,32 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_equal 200, final_model.status
-    assert_equal "GET", final_model.body
+    assert_equal 200, @@final_model.status
+    assert_equal "GET", @@final_model.body
+  end
+
+  # Update for POST test
+  UpdateHttpPost = -> (msg, m) do
+    case msg
+    in { type: :key, code: "p" }
+      [m, Rooibos::Command.http(:post, "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze, :fetch, body: "data")]
+    in { type: :key, code: "q" }
+      TestCommandHttp.class_variable_set(:@@final_model, m)
+      [m, Rooibos::Command.exit]
+    in { type: :http, envelope: :fetch, body: }
+      [m.with(method_used: body), nil]
+    else
+      [m, nil]
+    end
   end
 
   public def test_http_post_uses_post_method
     echo_server
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "p" }
-        [m, Rooibos::Command.http(:post, "http://127.0.0.1:#{@port}/".freeze, :fetch, body: "data")]
-      in { type: :key, code: "q" }
-        final_model = m
-        [m, Rooibos::Command.exit]
-      in { type: :http, envelope: :fetch, body: }
-        [m.with(method_used: body), nil]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateHttpPost
 
     with_test_terminal do
       inject_key("p")
@@ -114,29 +122,31 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_equal "POST", final_model.method_used
+    assert_equal "POST", @@final_model.method_used
+  end
+
+  # Update for PUT test
+  UpdateHttpPut = -> (msg, m) do
+    case msg
+    in { type: :key, code: "u" }
+      [m, Rooibos::Command.http(:put, "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze, :fetch, body: "data")]
+    in { type: :key, code: "q" }
+      TestCommandHttp.class_variable_set(:@@final_model, m)
+      [m, Rooibos::Command.exit]
+    in { type: :http, envelope: :fetch, body: }
+      [m.with(method_used: body), nil]
+    else
+      [m, nil]
+    end
   end
 
   public def test_http_put_uses_put_method
     echo_server
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "u" }
-        [m, Rooibos::Command.http(:put, "http://127.0.0.1:#{@port}/".freeze, :fetch, body: "data")]
-      in { type: :key, code: "q" }
-        final_model = m
-        [m, Rooibos::Command.exit]
-      in { type: :http, envelope: :fetch, body: }
-        [m.with(method_used: body), nil]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateHttpPut
 
     with_test_terminal do
       inject_key("u")
@@ -145,29 +155,31 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_equal "PUT", final_model.method_used
+    assert_equal "PUT", @@final_model.method_used
+  end
+
+  # Update for PATCH test
+  UpdateHttpPatch = -> (msg, m) do
+    case msg
+    in { type: :key, code: "a" }
+      [m, Rooibos::Command.http(:patch, "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze, :fetch, body: "data")]
+    in { type: :key, code: "q" }
+      TestCommandHttp.class_variable_set(:@@final_model, m)
+      [m, Rooibos::Command.exit]
+    in { type: :http, envelope: :fetch, body: }
+      [m.with(method_used: body), nil]
+    else
+      [m, nil]
+    end
   end
 
   public def test_http_patch_uses_patch_method
     echo_server
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "a" }
-        [m, Rooibos::Command.http(:patch, "http://127.0.0.1:#{@port}/".freeze, :fetch, body: "data")]
-      in { type: :key, code: "q" }
-        final_model = m
-        [m, Rooibos::Command.exit]
-      in { type: :http, envelope: :fetch, body: }
-        [m.with(method_used: body), nil]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateHttpPatch
 
     with_test_terminal do
       inject_key("a")
@@ -176,29 +188,31 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_equal "PATCH", final_model.method_used
+    assert_equal "PATCH", @@final_model.method_used
+  end
+
+  # Update for DELETE test
+  UpdateHttpDelete = -> (msg, m) do
+    case msg
+    in { type: :key, code: "d" }
+      [m, Rooibos::Command.http(:delete, "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze, :fetch)]
+    in { type: :key, code: "q" }
+      TestCommandHttp.class_variable_set(:@@final_model, m)
+      [m, Rooibos::Command.exit]
+    in { type: :http, envelope: :fetch, body: }
+      [m.with(method_used: body), nil]
+    else
+      [m, nil]
+    end
   end
 
   public def test_http_delete_uses_delete_method
     echo_server
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "d" }
-        [m, Rooibos::Command.http(:delete, "http://127.0.0.1:#{@port}/".freeze, :fetch)]
-      in { type: :key, code: "q" }
-        final_model = m
-        [m, Rooibos::Command.exit]
-      in { type: :http, envelope: :fetch, body: }
-        [m.with(method_used: body), nil]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateHttpDelete
 
     with_test_terminal do
       inject_key("d")
@@ -207,31 +221,31 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_equal "DELETE", final_model.method_used
+    assert_equal "DELETE", @@final_model.method_used
+  end
+
+  # Update for connection error test (port 1 will fail)
+  UpdateHttpConnectionError = -> (msg, m) do
+    case msg
+    in { type: :key, code: "e" }
+      [m, Rooibos::Command.http(:get, "http://127.0.0.1:1/", :fetch)]
+    in { type: :key, code: "q" }
+      TestCommandHttp.class_variable_set(:@@final_model, m)
+      [m, Rooibos::Command.exit]
+    in { type: :http, envelope: :fetch, error: }
+      [m.with(error:), nil]
+    else
+      [m, nil]
+    end
   end
 
   public def test_http_connection_error_returns_error_message
     # No server started—connection will fail
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "e" }
-        # Port 1 is privileged and won't have anything listening
-        [m, Rooibos::Command.http(:get, "http://127.0.0.1:1/", :fetch)]
-      in { type: :key, code: "q" }
-        final_model = m
-        [m, Rooibos::Command.exit]
-      in { type: :http, envelope: :fetch, error: }
-        # Pattern-match on error response and store in model
-        [m.with(error:), nil]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateHttpConnectionError
 
     with_test_terminal do
       inject_key("e")
@@ -240,8 +254,29 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    refute_nil final_model.error, "Expected error to be set"
-    assert_kind_of String, final_model.error
+    refute_nil @@final_model.error, "Expected error to be set"
+    assert_kind_of String, @@final_model.error
+  end
+
+  # Update for custom headers test
+  UpdateHttpCustomHeaders = -> (msg, m) do
+    case msg
+    in { type: :key, code: "h" }
+      cmd = Rooibos::Command.http(
+        :get,
+        "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze,
+        :fetch,
+        headers: { "Authorization" => "Bearer secret123" }.freeze
+      )
+      [m, cmd]
+    in { type: :key, code: "q" }
+      TestCommandHttp.class_variable_set(:@@final_model, m)
+      [m, Rooibos::Command.exit]
+    in { type: :http, envelope: :fetch, body: }
+      [m.with(body:), nil]
+    else
+      [m, nil]
+    end
   end
 
   public def test_http_custom_headers_are_sent
@@ -261,28 +296,9 @@ class TestCommandHttp < Minitest::Test
     end
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "h" }
-        cmd = Rooibos::Command.http(
-          :get,
-          "http://127.0.0.1:#{@port}/".freeze,
-          :fetch,
-          headers: { "Authorization" => "Bearer secret123" }.freeze
-        )
-        [m, cmd]
-      in { type: :key, code: "q" }
-        final_model = m
-        [m, Rooibos::Command.exit]
-      in { type: :http, envelope: :fetch, body: }
-        [m.with(body:), nil]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateHttpCustomHeaders
 
     with_test_terminal do
       inject_key("h")
@@ -291,7 +307,7 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_equal "Bearer secret123", final_model.body
+    assert_equal "Bearer secret123", @@final_model.body
   end
 
   public def test_http_command_validates_headers_shareability_in_debug_mode
@@ -353,6 +369,29 @@ class TestCommandHttp < Minitest::Test
     assert_match(/url.*not.*shareable/i, error.message)
   end
 
+  # Update for timeout test
+  UpdateHttpTimeout = -> (msg, m) do
+    case msg
+    in { type: :key, code: "t" }
+      cmd = Rooibos::Command.http(
+        :get,
+        "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze,
+        :fetch,
+        timeout: 0.1
+      )
+      [m, cmd]
+    in { type: :key, code: "q" }
+      TestCommandHttp.class_variable_set(:@@final_model, m)
+      [m, Rooibos::Command.exit]
+    in { type: :http, envelope: :fetch, error: }
+      [m.with(error:), nil]
+    in { type: :http, envelope: :fetch, status: }
+      [m.with(status:), nil]
+    else
+      [m, nil]
+    end
+  end
+
   public def test_http_timeout_returns_error
     # Server that sleeps longer than timeout
     Thread.new do
@@ -363,30 +402,9 @@ class TestCommandHttp < Minitest::Test
     end
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "t" }
-        cmd = Rooibos::Command.http(
-          :get,
-          "http://127.0.0.1:#{@port}/".freeze,
-          :fetch,
-          timeout: 0.1
-        )
-        [m, cmd]
-      in { type: :key, code: "q" }
-        final_model = m
-        [m, Rooibos::Command.exit]
-      in { type: :http, envelope: :fetch, error: }
-        [m.with(error:), nil]
-      in { type: :http, envelope: :fetch, status: }
-        [m.with(status:), nil]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateHttpTimeout
 
     with_test_terminal do
       inject_key("t")
@@ -395,8 +413,8 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    refute_nil final_model.error, "Expected timeout error"
-    assert_match(/timeout|timed out/i, final_model.error)
+    refute_nil @@final_model.error, "Expected timeout error"
+    assert_match(/timeout|timed out/i, @@final_model.error)
   end
 
   public def test_http_raises_on_unknown_method
@@ -715,6 +733,22 @@ class TestCommandHttp < Minitest::Test
     assert_match(/parser.*not.*shareable/i, error.message)
   end
 
+  # Update for parsed body shareability test - uses @@error_raised
+  UpdateParsedBodyValidation = -> (msg, m) do
+    case msg
+    in { type: :key, code: "f" }
+      cmd = Rooibos::Command.http(get: "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze, parser: TestCommandHttp::MutableResultParser)
+      [m, cmd]
+    in { type: :key, code: "q" }
+      [m, Rooibos::Command.exit]
+    in { type: :http, error: }
+      TestCommandHttp.class_variable_set(:@@error_raised, error)
+      [m, Rooibos::Command.exit]
+    else
+      [m, nil]
+    end
+  end
+
   public def test_parsed_body_validates_shareability_in_debug_mode
     # Parser returns mutable data—should raise Invariant in debug mode
     Thread.new do
@@ -725,23 +759,9 @@ class TestCommandHttp < Minitest::Test
     end
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    error_raised = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "f" }
-        cmd = Rooibos::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: MutableResultParser)
-        [m, cmd]
-      in { type: :key, code: "q" }
-        [m, Rooibos::Command.exit]
-      in { type: :http, error: }
-        error_raised = error
-        [m, Rooibos::Command.exit]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateParsedBodyValidation
 
     with_test_terminal do
       inject_key("f")
@@ -750,7 +770,23 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_match(/parsed.*body.*not.*shareable/i, error_raised)
+    assert_match(/parsed.*body.*not.*shareable/i, @@error_raised)
+  end
+
+  # Update for debug-disabled parser test
+  UpdateParsedBodyDebugDisabled = -> (msg, m) do
+    case msg
+    in { type: :key, code: "f" }
+      cmd = Rooibos::Command.http(get: "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze, parser: TestCommandHttp::MutableResultParser)
+      [m, cmd]
+    in { type: :key, code: "q" }
+      TestCommandHttp.class_variable_set(:@@final_model, m)
+      [m, Rooibos::Command.exit]
+    in { type: :http, body: }
+      [m.with(body:), nil]
+    else
+      [m, nil]
+    end
   end
 
   public def test_parsed_body_skips_validation_when_debug_disabled
@@ -764,23 +800,9 @@ class TestCommandHttp < Minitest::Test
 
     RatatuiRuby::Debug.suppress_debug_mode do
       model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-      view = -> (_m, t) { t.clear }
-      final_model = nil
 
-      update = -> (msg, m) do
-        case msg
-        in { type: :key, code: "f" }
-          cmd = Rooibos::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: MutableResultParser)
-          [m, cmd]
-        in { type: :key, code: "q" }
-          final_model = m
-          [m, Rooibos::Command.exit]
-        in { type: :http, body: }
-          [m.with(body:), nil]
-        else
-          [m, nil]
-        end
-      end
+      view = ClearView
+      update = UpdateParsedBodyDebugDisabled
 
       with_test_terminal do
         inject_key("f")
@@ -790,7 +812,26 @@ class TestCommandHttp < Minitest::Test
       end
 
       # Should have received parsed body without error
-      refute_nil final_model.body
+      refute_nil @@final_model.body
+    end
+  end
+
+  # Update for parser invocation test (ShareableJsonParser)
+  UpdateParserInvocation = -> (msg, m) do
+    case msg
+    in { type: :key, code: "f" }
+      cmd = Rooibos::Command.http(
+        get: "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze,
+        parser: TestCommandHttp::ShareableJsonParser
+      )
+      [m, cmd]
+    in { type: :key, code: "q" }
+      TestCommandHttp.class_variable_set(:@@final_model, m)
+      [m, Rooibos::Command.exit]
+    in { type: :http, body: }
+      [m.with(body:), nil]
+    else
+      [m, nil]
     end
   end
 
@@ -805,27 +846,9 @@ class TestCommandHttp < Minitest::Test
     end
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "f" }
-        cmd = Rooibos::Command.http(
-          get: "http://127.0.0.1:#{@port}/".freeze,
-          parser: ShareableJsonParser
-        )
-        [m, cmd]
-      in { type: :key, code: "q" }
-        final_model = m
-        [m, Rooibos::Command.exit]
-      in { type: :http, body: }
-        # Body should be parsed Hash from JSON, not raw string
-        [m.with(body:), nil]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateParserInvocation
 
     with_test_terminal do
       inject_key("f")
@@ -835,8 +858,8 @@ class TestCommandHttp < Minitest::Test
     end
 
     # Parser was invoked: body is a Hash, not a String
-    assert_instance_of Hash, final_model.body
-    assert_equal true, final_model.body["parsed"]
+    assert_instance_of Hash, @@final_model.body
+    assert_equal true, @@final_model.body["parsed"]
   end
 
   # ==========================================================================
@@ -849,25 +872,26 @@ class TestCommandHttp < Minitest::Test
   JsonParser = Ractor.make_shareable(-> (body, _headers = nil, _status = nil) {
     Ractor.make_shareable(JSON.parse(body))
   })
+  # Update for JSON parser example
+  UpdateJsonParserExample = -> (msg, m) do
+    case msg
+    in { type: :key, code: "f" }
+      [m, Rooibos::Command.http(get: "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze, parser: TestCommandHttp::JsonParser)]
+    in { type: :http, body: }
+      TestCommandHttp.class_variable_set(:@@final_model, m.with(body:))
+      [@@final_model, Rooibos::Command.exit]
+    else
+      [m, nil]
+    end
+  end
+
   public def test_parser_json_example
     respond_with('{"name":"Alice","age":30}', content_type: "application/json")
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "f" }
-        # JsonParser parses JSON and makes result shareable
-        [m, Rooibos::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: JsonParser)]
-      in { type: :http, body: }
-        final_model = m.with(body:)
-        [final_model, Rooibos::Command.exit]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateJsonParserExample
 
     with_test_terminal do
       inject_key("f")
@@ -875,33 +899,34 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_instance_of Hash, final_model.body
-    assert_equal "Alice", final_model.body["name"]
-    assert_equal 30, final_model.body["age"]
+    assert_instance_of Hash, @@final_model.body
+    assert_equal "Alice", @@final_model.body["name"]
+    assert_equal 30, @@final_model.body["age"]
   end
 
   YamlParser = Ractor.make_shareable(-> (body, _headers = nil, _status = nil) {
     Ractor.make_shareable(YAML.safe_load(body, permitted_classes: [Symbol]))
   })
+  # Update for YAML parser example
+  UpdateYamlParserExample = -> (msg, m) do
+    case msg
+    in { type: :key, code: "f" }
+      [m, Rooibos::Command.http(get: "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze, parser: TestCommandHttp::YamlParser)]
+    in { type: :http, body: }
+      TestCommandHttp.class_variable_set(:@@final_model, m.with(body:))
+      [@@final_model, Rooibos::Command.exit]
+    else
+      [m, nil]
+    end
+  end
+
   public def test_parser_yaml_example
     respond_with("name: Bob\nage: 25", content_type: "application/x-yaml")
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "f" }
-        # YamlParser uses YAML.safe_load for security
-        [m, Rooibos::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: YamlParser)]
-      in { type: :http, body: }
-        final_model = m.with(body:)
-        [final_model, Rooibos::Command.exit]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateYamlParserExample
 
     with_test_terminal do
       inject_key("f")
@@ -909,33 +934,34 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_instance_of Hash, final_model.body
-    assert_equal "Bob", final_model.body["name"]
-    assert_equal 25, final_model.body["age"]
+    assert_instance_of Hash, @@final_model.body
+    assert_equal "Bob", @@final_model.body["name"]
+    assert_equal 25, @@final_model.body["age"]
   end
 
   CsvParser = Ractor.make_shareable(-> (body, _headers = nil, _status = nil) {
     Ractor.make_shareable(CSV.parse(body))
   })
+  # Update for CSV parser example
+  UpdateCsvParserExample = -> (msg, m) do
+    case msg
+    in { type: :key, code: "f" }
+      [m, Rooibos::Command.http(get: "http://127.0.0.1:#{TestCommandHttp.class_variable_get(:@@port)}/".freeze, parser: TestCommandHttp::CsvParser)]
+    in { type: :http, body: }
+      TestCommandHttp.class_variable_set(:@@final_model, m.with(body:))
+      [@@final_model, Rooibos::Command.exit]
+    else
+      [m, nil]
+    end
+  end
+
   public def test_parser_csv_example
     respond_with("name,age\nAlice,30\nBob,25", content_type: "text/csv")
 
     model = Ractor.make_shareable(HttpModel.new(status: nil, body: nil, method_used: nil, error: nil))
-    view = -> (_m, t) { t.clear }
-    final_model = nil
 
-    update = -> (msg, m) do
-      case msg
-      in { type: :key, code: "f" }
-        # CsvParser returns array of arrays
-        [m, Rooibos::Command.http(get: "http://127.0.0.1:#{@port}/".freeze, parser: CsvParser)]
-      in { type: :http, body: }
-        final_model = m.with(body:)
-        [final_model, Rooibos::Command.exit]
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = UpdateCsvParserExample
 
     with_test_terminal do
       inject_key("f")
@@ -943,9 +969,9 @@ class TestCommandHttp < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    assert_instance_of Array, final_model.body
-    assert_equal ["name", "age"], final_model.body[0]
-    assert_equal ["Alice", "30"], final_model.body[1]
-    assert_equal ["Bob", "25"], final_model.body[2]
+    assert_instance_of Array, @@final_model.body
+    assert_equal ["name", "age"], @@final_model.body[0]
+    assert_equal ["Alice", "30"], @@final_model.body[1]
+    assert_equal ["Bob", "25"], @@final_model.body[2]
   end
 end

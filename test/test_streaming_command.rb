@@ -12,36 +12,104 @@ require "rooibos/test_helper"
 class TestStreamingCommand < Minitest::Test
   include Rooibos::TestHelper
 
-  # Helper to run a command and collect messages
-  private def run_command_and_collect(shell_cmd, tag, stream: false)
-    messages = []
-    model = Ractor.make_shareable({})
-    view = -> (_m, t) { t.clear }
+  # Class-scope state for lambda-based updates
+  def setup
+    @@messages = []
+    @@shell_cmd = nil
+    @@tag = nil
+    @@stream = false
+    @@events = []
+  end
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s"
-          [m, Rooibos::Command.system(shell_cmd, tag, stream:)]
-        when "q"
-          [m, Rooibos::Command.exit]
-        else
-          [m, nil]
-        end
-      when Array
-        messages << msg
-        [m, nil]
-      when Rooibos::Message::System::Batch
-        messages << msg
-        [m, nil]
-      when Rooibos::Message::System::Stream
-        messages << msg
-        [m, nil]
+  def teardown
+    @@messages = []
+    @@shell_cmd = nil
+    @@tag = nil
+    @@stream = false
+    @@events = []
+  end
+
+  ClearView = -> (_m, t) { t.clear }
+
+  # Streaming update for the helper method pattern
+  StreamingUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "s"
+        shell_cmd = TestStreamingCommand.class_variable_get(:@@shell_cmd)
+        tag = TestStreamingCommand.class_variable_get(:@@tag)
+        stream = TestStreamingCommand.class_variable_get(:@@stream)
+        [m, Rooibos::Command.system(shell_cmd, tag, stream: stream)]
+      when "q"
+        [m, Rooibos::Command.exit]
       else
         [m, nil]
       end
+    when Array
+      TestStreamingCommand.class_variable_get(:@@messages) << msg
+      [m, nil]
+    when Rooibos::Message::System::Batch
+      TestStreamingCommand.class_variable_get(:@@messages) << msg
+      [m, nil]
+    when Rooibos::Message::System::Stream
+      TestStreamingCommand.class_variable_get(:@@messages) << msg
+      [m, nil]
+    else
+      [m, nil]
     end
+  end
+
+  # Helper to make a class callable for update that collects messages
+  def self.make_update_collector(received_messages_array, shell_cmd_ref, tag_ref, stream_ref)
+    Class.new do
+      @messages = received_messages_array
+      @shell_cmd = shell_cmd_ref
+      @tag = tag_ref
+      @stream = stream_ref
+
+      class << self
+        attr_accessor :messages, :shell_cmd, :tag, :stream
+      end
+
+      def self.call(msg, m)
+        case msg
+        when RatatuiRuby::Event::Key
+          case msg.code
+          when "s"
+            [m, Rooibos::Command.system(@shell_cmd, @tag, stream: @stream)]
+          when "q"
+            [m, Rooibos::Command.exit]
+          else
+            [m, nil]
+          end
+        when Array
+          @messages << msg
+          [m, nil]
+        when Rooibos::Message::System::Batch
+          @messages << msg
+          [m, nil]
+        when Rooibos::Message::System::Stream
+          @messages << msg
+          [m, nil]
+        else
+          [m, nil]
+        end
+      end
+    end
+  end
+
+  # Helper to run a command and collect messages
+  private def run_command_and_collect(shell_cmd, tag, stream: false)
+    model = Ractor.make_shareable({})
+
+    @@shell_cmd = shell_cmd
+    @@tag = tag
+    @@stream = stream
+    @@messages = []
+
+    view = ClearView
+    update = StreamingUpdate
 
     with_test_terminal do
       inject_key("s")
@@ -50,7 +118,7 @@ class TestStreamingCommand < Minitest::Test
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
-    messages
+    @@messages
   end
 
   # Test that streaming mode produces a stdout message instead of batch hash.
@@ -143,41 +211,43 @@ class TestStreamingCommand < Minitest::Test
     assert error_or_complete, "Should receive error or complete message"
   end
 
-  # Baseline test: streaming command can be force-killed.
-  # This confirms the existing cancellation mechanism works.
-  def test_streaming_command_can_be_force_killed
-    events = []
-    model = Ractor.make_shareable({ cmd: nil, canceled: false })
-    view = -> (_m, t) { t.clear }
-
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s"
-          cmd = Rooibos::Command.system(
-            "echo started && sleep 0.5", # Short sleep so force-kill completes quickly
-            :output,
-            stream: true
-          )
-          [Ractor.make_shareable({ cmd:, canceled: false }), cmd]
-        else
-          [m, nil]
-        end
-      when Rooibos::Message::System::Stream
-        events << msg.stream
-        if msg.envelope == :output && msg.stdout? && !m[:canceled]
-          new_model = Ractor.make_shareable({ cmd: m[:cmd], canceled: true })
-          [new_model, Rooibos::Command.cancel(m[:cmd])]
-        elsif msg.envelope == :output && msg.complete?
-          [m, Rooibos::Command.exit]
-        else
-          [m, nil]
-        end
+  # ForceKill update for cancellation tests - tracks events and handles cancel
+  ForceKillUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "s"
+        cmd = Rooibos::Command.system(
+          "echo started && sleep 0.5", # Short sleep so force-kill completes quickly
+          :output,
+          stream: true
+        )
+        [Ractor.make_shareable({ cmd:, canceled: false }), cmd]
       else
         [m, nil]
       end
+    when Rooibos::Message::System::Stream
+      TestStreamingCommand.class_variable_get(:@@events) << msg.stream
+      if msg.envelope == :output && msg.stdout? && !m[:canceled]
+        new_model = Ractor.make_shareable({ cmd: m[:cmd], canceled: true })
+        [new_model, Rooibos::Command.cancel(m[:cmd])]
+      elsif msg.envelope == :output && msg.complete?
+        [m, Rooibos::Command.exit]
+      else
+        [m, nil]
+      end
+    else
+      [m, nil]
     end
+  end
+
+  # Baseline test: streaming command can be force-killed.
+  # This confirms the existing cancellation mechanism works.
+  def test_streaming_command_can_be_force_killed
+    model = Ractor.make_shareable({ cmd: nil, canceled: false })
+
+    view = ClearView
+    update = ForceKillUpdate
 
     with_test_terminal do
       inject_key("s")
@@ -185,47 +255,49 @@ class TestStreamingCommand < Minitest::Test
     end
 
     # Command should complete (either via cancel or natural completion)
-    assert events.include?(:stdout), "Should receive stdout"
-    assert events.include?(:complete), "Should receive complete"
+    assert @@events.include?(:stdout), "Should receive stdout"
+    assert @@events.include?(:complete), "Should receive complete"
+  end
+
+  # CooperativeUpdate for cooperative cancellation test - uses different shell command
+  CooperativeUpdate = -> (msg, m) do
+    case msg
+    when RatatuiRuby::Event::Key
+      case msg.code
+      when "s"
+        # Shell: output immediately, responds to SIGTERM quickly (1ms loop)
+        cmd = Rooibos::Command.system(
+          "printf 'started\\n' && trap 'exit 0' TERM && while true; do sleep 0.001; done",
+          :output,
+          stream: true
+        )
+        [Ractor.make_shareable({ cmd:, canceled: false }), cmd]
+      else
+        [m, nil]
+      end
+    when Rooibos::Message::System::Stream
+      TestStreamingCommand.class_variable_get(:@@events) << msg.stream
+      if msg.envelope == :output && msg.stdout? && !m[:canceled]
+        new_model = Ractor.make_shareable({ cmd: m[:cmd], canceled: true })
+        [new_model, Rooibos::Command.cancel(m[:cmd])]
+      elsif msg.envelope == :output && msg.complete?
+        [m, Rooibos::Command.exit]
+      else
+        [m, nil]
+      end
+    else
+      [m, nil]
+    end
   end
 
   # TDD: streaming command should use cooperative cancellation (SIGTERM).
   # Cooperative cancellation should be faster than the grace period.
   # This test FAILS until we implement token-based SIGTERM.
   def test_streaming_command_cancels_cooperatively
-    events = []
     model = Ractor.make_shareable({ cmd: nil, canceled: false })
-    view = -> (_m, t) { t.clear }
 
-    update = -> (msg, m) do
-      case msg
-      when RatatuiRuby::Event::Key
-        case msg.code
-        when "s"
-          # Shell: output immediately, responds to SIGTERM quickly (1ms loop)
-          cmd = Rooibos::Command.system(
-            "printf 'started\n' && trap 'exit 0' TERM && while true; do sleep 0.001; done",
-            :output,
-            stream: true
-          )
-          [Ractor.make_shareable({ cmd:, canceled: false }), cmd]
-        else
-          [m, nil]
-        end
-      when Rooibos::Message::System::Stream
-        events << msg.stream
-        if msg.envelope == :output && msg.stdout? && !m[:canceled]
-          new_model = Ractor.make_shareable({ cmd: m[:cmd], canceled: true })
-          [new_model, Rooibos::Command.cancel(m[:cmd])]
-        elsif msg.envelope == :output && msg.complete?
-          [m, Rooibos::Command.exit]
-        else
-          [m, nil]
-        end
-      else
-        [m, nil]
-      end
-    end
+    view = ClearView
+    update = CooperativeUpdate
 
     start_time = Time.now
 
@@ -239,7 +311,7 @@ class TestStreamingCommand < Minitest::Test
     # Cooperative cancellation should complete quickly after receiving output.
     # The threshold accounts for Ruby fork/exec overhead (~0.5s) but ensures
     # we don't wait for the shell's full 1-minute loop if SIGTERM didn't work.
-    assert events.include?(:stdout), "Should receive stdout before cancel"
+    assert @@events.include?(:stdout), "Should receive stdout before cancel"
     assert_operator elapsed, :<, 2, "Should cancel cooperatively (< 2s), not wait indefinitely"
   end
 end
