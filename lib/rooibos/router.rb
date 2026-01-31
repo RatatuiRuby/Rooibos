@@ -77,13 +77,30 @@ module Rooibos
 
     # Class methods added when Router is included.
     module ClassMethods
+      # Configuration for a route.
+      RouteConfig = Data.define(:fragment, :reader, :writer) do
+        def initialize(fragment:, reader: nil, writer: nil)
+          super
+        end
+      end
+
       # Declares a route to a child fragment.
       #
-      # [fragment_model_instance_attr] Symbol naming the attr on the parent's model
+      # [prefix] Optional Symbol naming the attr on the parent's model
       #   that holds this fragment's model instance (normalized via +.to_s.to_sym+).
+      # [read] Optional callable that extracts child model from parent.
+      # [write] Optional callable that updates parent with new child model.
       # [to] The child fragment module (must have Update and Init constants).
-      def route(fragment_model_instance_attr, to:)
-        routes[fragment_model_instance_attr.to_s.to_sym] = to
+      def route(prefix = nil, read: nil, write: nil, to:)
+        # Generate a unique key for callable-only routes
+        key = prefix&.to_s&.to_sym || to.object_id.to_s.to_sym
+
+        # For symbol prefix, generate default reader/writer
+        prefix_sym = prefix&.to_sym
+        reader = read || (prefix_sym && -> (m) { m.public_send(prefix_sym) })
+        writer = write || (prefix_sym && -> (m, v) { m.with(prefix_sym => v) })
+
+        routes[key] = RouteConfig.new(fragment: to, reader:, writer:)
       end
 
       # Returns the registered routes hash.
@@ -406,14 +423,21 @@ module Rooibos
         end
 
         # 1. Try routing prefixed messages to child fragments
-        @routes.each do |prefix, fragment|
-          # Check if message is prefixed for this route
+        @routes.each do |prefix, config|
+          # Check if message is prefixed for this route (only for symbol-based routes)
           next unless message.is_a?(Array) && message.first == prefix
 
           child_message = message[1]
+          fragment = config.fragment
           fragment_update = fragment.const_get(:Update)
-          new_fragment_model, cmd = fragment_update.call(child_message, model.public_send(prefix))
-          model = model.with(prefix => new_fragment_model)
+
+          # Use reader if provided, otherwise default to public_send
+          child_model = config.reader ? config.reader.call(model) : model.public_send(prefix)
+
+          new_fragment_model, cmd = fragment_update.call(child_message, child_model)
+
+          # Use writer if provided, otherwise default to with()
+          model = config.writer ? config.writer.call(model, new_fragment_model) : model.with(prefix => new_fragment_model)
 
           # Extract and process any bubbles from the command (direct, no wrapping)
           model = extract_bubbles_from_command(cmd, model, accumulated_commands)
@@ -442,16 +466,17 @@ module Rooibos
             if handler.nil? && config.action
               routed_fragment = @routed_actions[config.action]
               if routed_fragment
-                # Find the model attr for this fragment
-                fragment_model_instance_attr = @routes.key(routed_fragment)
-                next unless fragment_model_instance_attr
+                # Find the route config for this fragment
+                fragment_model_instance_attr, route_config = find_route_config(routed_fragment)
+                next unless route_config && fragment_model_instance_attr
 
                 # Synthesize Message::Routed and dispatch to child
                 routed_message = Rooibos::Message::Routed.new(envelope: config.action, event: message)
                 child_update = routed_fragment.const_get(:Update)
-                previous_child_fragment_model_instance = model.public_send(fragment_model_instance_attr)
+                previous_child_fragment_model_instance = route_config.reader ? route_config.reader.call(model) : model.public_send(fragment_model_instance_attr)
                 updated_child_fragment_model_instance, command = child_update.call(routed_message, previous_child_fragment_model_instance)
-                return [model.with(fragment_model_instance_attr => updated_child_fragment_model_instance), command]
+                new_model = route_config.writer ? route_config.writer.call(model, updated_child_fragment_model_instance) : model.with(fragment_model_instance_attr => updated_child_fragment_model_instance)
+                return [new_model, command]
               end
             end
 
@@ -520,25 +545,24 @@ module Rooibos
               end
 
               routes_to_broadcast&.each do |route_name|
-                fragment = @routes[route_name]
-                next unless fragment
+                route_key, route_config = find_route_config(route_name)
+                next unless route_config && route_key
 
-                fragment_update = fragment.const_get(:Update)
-                child_model = model.public_send(route_name)
+                fragment_update = route_config.fragment.const_get(:Update)
+                child_model = route_config.reader ? route_config.reader.call(model) : model.public_send(route_key)
                 new_child_model, cmd = fragment_update.call(message, child_model)
-                model = model.with(route_name => new_child_model)
+                model = route_config.writer ? route_config.writer.call(model, new_child_model) : model.with(route_key => new_child_model)
                 model = extract_bubbles_from_command(cmd, model, accumulated_commands)
               end
               return [model, merge_commands(accumulated_commands)]
             elsif config[:route_to]
-              # Route to specific fragment
-              route_name = config[:route_to].to_s.to_sym
-              fragment = @routes[route_name]
-              if fragment
-                fragment_update = fragment.const_get(:Update)
-                child_model = model.public_send(route_name)
+              # Route to specific fragment (can be symbol or module)
+              route_key, route_config = find_route_config(config[:route_to])
+              if route_config && route_key
+                fragment_update = route_config.fragment.const_get(:Update)
+                child_model = route_config.reader ? route_config.reader.call(model) : model.public_send(route_key)
                 new_child_model, cmd = fragment_update.call(message, child_model)
-                model = model.with(route_name => new_child_model)
+                model = route_config.writer ? route_config.writer.call(model, new_child_model) : model.with(route_key => new_child_model)
                 model = extract_bubbles_from_command(cmd, model, accumulated_commands)
               end
               return [model, merge_commands(accumulated_commands)]
@@ -559,12 +583,12 @@ module Rooibos
 
         # 4.5. Otherwise fallback (route unhandled messages to a fragment)
         if (otherwise_route = @otherwise_handler)
-          fragment = @routes[otherwise_route]
-          if fragment
-            fragment_update = fragment.const_get(:Update)
-            child_model = model.public_send(otherwise_route)
+          route_key, route_config = find_route_config(otherwise_route)
+          if route_config && route_key
+            fragment_update = route_config.fragment.const_get(:Update)
+            child_model = route_config.reader ? route_config.reader.call(model) : model.public_send(route_key)
             new_child_model, cmd = fragment_update.call(message, child_model)
-            model = model.with(otherwise_route => new_child_model)
+            model = route_config.writer ? route_config.writer.call(model, new_child_model) : model.with(route_key => new_child_model)
             model = extract_bubbles_from_command(cmd, model, accumulated_commands)
             return [model, merge_commands(accumulated_commands)]
           end
@@ -572,6 +596,22 @@ module Rooibos
 
         # 5. Unhandled - return model with any accumulated observe commands
         [model, merge_commands(accumulated_commands)]
+      end
+
+      # Find a route config by key (symbol) or by fragment module.
+      # Returns [key, config] tuple or [nil, nil] if not found.
+      private def find_route_config(identifier)
+        case identifier
+        when Symbol, String
+          key = identifier.to_s.to_sym
+          config = @routes[key]
+          config ? [key, config] : [nil, nil]
+        when Module
+          # Find by fragment module
+          @routes.find { |_k, c| c.fragment == identifier } || [nil, nil]
+        else
+          [nil, nil]
+        end
       end
 
       # Extract bubbles from command: only direct Bubble or Batch(Bubble, ...)

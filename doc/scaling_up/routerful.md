@@ -50,17 +50,28 @@ The Router DSL coordinates this flow declaratively. Include `Rooibos::Router` in
 
 ### Routes
 
-**`route`** declares nested fragments. The first argument is either a symbol naming the model attribute, or a lambda that extracts the nested model:
+**`route`** declares nested fragments. An optional first argument is a symbol naming the model attribute:
 
 ```ruby
 route :sidebar, to: Sidebar
 route :file_list, to: FileList
-
-# Explicit accessor form (equivalent to above)
-route ->(model) { model.sidebar }, to: Sidebar
 ```
 
-The generated Update routes prefixed messages to nested fragments automatically.
+For custom extraction logic (e.g., deeply nested paths), use `read:` and `write:` keywords:
+
+```ruby
+# Custom accessor for nested path
+route read: ->(model) { model.panels[:sidebar] },
+      write: ->(current_model, value) { current_model.with(panels: current_model.panels.merge(sidebar: value)) },
+      to: Sidebar
+
+# Deeply nested extraction
+route read: ->(model) { model.tabs[model.active_tab] },
+      write: ->(current_model, value) { current_model.with(tabs: current_model.tabs.merge(current_model.active_tab => value)) },
+      to: TabContent
+```
+
+The generated Update routes messages to nested fragments automatically.
 
 ### Actions
 

@@ -89,7 +89,16 @@ module Rooibos
 
   # Class methods added when Router is included.
   module ClassMethods : Module
-    @routes: Hash[Symbol, Module]
+    # Configuration for a route.
+    class RouteConfig < Data
+      attr_reader fragment: Module
+      attr_reader reader: (^(_DataModel) -> Object)?
+      attr_reader writer: (^(_DataModel, Object) -> _DataModel)?
+
+      def initialize: (fragment: Module, ?reader: (^(_DataModel) -> Object)?, ?writer: (^(_DataModel, Object) -> _DataModel)?) -> void
+    end
+
+    @routes: Hash[Symbol, RouteConfig]
     @actions: Hash[Symbol, ^() -> Command::execution?]
     @routed_actions: Hash[Symbol, Module]
     @key_handlers: Hash[Symbol, KeyHandlerConfig]
@@ -100,8 +109,8 @@ module Rooibos
     @forward_handlers: Array[forward_handler_config]
     @otherwise_handler: Symbol?
 
-    def route: (Symbol | String fragment_model_instance_attr, to: Module) -> void
-    def routes: () -> Hash[Symbol, Module]
+    def route: (?Symbol | String prefix, ?read: (^(_DataModel) -> Object)?, ?write: (^(_DataModel, Object) -> _DataModel)?, to: Module) -> void
+    def routes: () -> Hash[Symbol, RouteConfig]
 
     # Action: multiple syntax forms supported
     def action: (
@@ -170,7 +179,7 @@ module Rooibos
   # UPDATE callable returned by from_router with proper typing.
   # Implements #call to satisfy Proc-like interfaces.
   class RouterUpdate
-    @routes: Hash[Symbol, Module]
+    @routes: Hash[Symbol, ClassMethods::RouteConfig]
     @actions: Hash[Symbol, ^() -> Command::execution?]
     @routed_actions: Hash[Symbol, Module]
     @key_handlers: Hash[Symbol, KeyHandlerConfig]
@@ -182,7 +191,7 @@ module Rooibos
     @otherwise_handler: Symbol?
 
     def initialize: (
-      routes: Hash[Symbol, Module],
+      routes: Hash[Symbol, ClassMethods::RouteConfig],
       actions: Hash[Symbol, ^() -> Command::execution?],
       routed_actions: Hash[Symbol, Module],
       key_handlers: Hash[Symbol, KeyHandlerConfig],
@@ -220,6 +229,8 @@ module Rooibos
     ) -> _DataModel
 
     def merge_commands: (Array[Command::execution?] commands) -> Command::execution?
+
+    def find_route_config: (Symbol | String | Module identifier) -> ([Symbol, ClassMethods::RouteConfig] | [nil, nil])
   end
 
   # Builder for keymap DSL.

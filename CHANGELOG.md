@@ -39,6 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Useful for implementing "active panel" patterns where one child receives all input
   - Chains through deep hierarchies when nested fragments also declare `otherwise`
 
+- **Router `route` callable accessors**: New `read:` and `write:` keywords for custom model extraction logic. Enables routing to child fragments when the model structure differs from the route prefix:
+  - `route :sidebar, read: reader, write: writer, to: Child` — uses custom callables for model access
+  - `read:` callable extracts child model from parent: `-> (model) { model[:panels][:sidebar] }`
+  - `write:` callable updates parent with new child model: `-> (model, value) { model.merge(panels: model[:panels].merge(sidebar: value)) }`
+  - Supports lambdas, procs, Method objects, and callable objects
+
 ### Changed
 
 - **BREAKING: Router `keymap`/`mousemap` DSL Syntax**: The Router DSL now uses yield-based blocks instead of `instance_eval`. This enables Ractor shareability for lambdas defined inside the block. Update your code:
