@@ -357,6 +357,33 @@ intercept ->(msg) { msg.leaf_reset? },
 
 This pattern lets intermediate fragments add context or aggregate information while preserving the outward flow.
 
+#### Bubble with Commands
+
+Sometimes a fragment signals outward AND starts async work. Use `Command.batch` to do both:
+
+```ruby
+# User clicks "Download"
+if message.download?
+  [model.with(downloading: true),
+   Rooibos::Command.batch(
+     Rooibos::Command.bubble(DownloadStarted.new(filename: model.selected_file)),
+     Rooibos::Command.http(download_url, :get)
+   )]
+end
+```
+
+Two things happen:
+
+1. **The bubble** propagates outward. Each outer fragment in the hierarchy gets a chance to `observe` or `intercept` it — from the immediate outer fragment all the way to Root.
+2. **The HTTP result** arrives at Root as a message. Use `forward` to route it inward to the fragment that needs it, or handle it directly at Root.
+
+An outer fragment (perhaps several levels up) can observe the bubble:
+
+```ruby
+observe -> (msg) { msg.download_started? },
+        -> (msg, model) { model.with(status: "Downloading #{msg.filename}...") }
+```
+
 ---
 
 ## Complete Example: Seven Counters

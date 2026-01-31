@@ -369,13 +369,18 @@ module Rooibos
 
         # 1. Try routing prefixed messages to child fragments
         @routes.each do |prefix, fragment|
+          # Check if message is prefixed for this route
+          next unless message.is_a?(Array) && message.first == prefix
+
+          child_message = message[1]
           fragment_update = fragment.const_get(:Update)
-          result = Rooibos.delegate(message, prefix, fragment_update, model.public_send(prefix))
-          if result
-            new_fragment_model, cmd = result
-            accumulated_commands << cmd if cmd
-            return [model.with(prefix => new_fragment_model), merge_commands(accumulated_commands)]
-          end
+          new_fragment_model, cmd = fragment_update.call(child_message, model.public_send(prefix))
+          model = model.with(prefix => new_fragment_model)
+
+          # Extract and process any bubbles from the command (direct, no wrapping)
+          model = extract_bubbles_from_command(cmd, model, accumulated_commands)
+
+          return [model, merge_commands(accumulated_commands)]
         end
 
         # 2. Try keymap handlers (message is an Event::Key)
@@ -415,9 +420,6 @@ module Rooibos
             next unless handler
 
             command = handler.call
-            if command && config.route
-              command = Rooibos.route(command, config.route)
-            end
             accumulated_commands << command if command
             return [model, merge_commands(accumulated_commands)] #: [_DataModel, Command::execution?]
           end
@@ -470,6 +472,62 @@ module Rooibos
 
         # 4. Unhandled - return model with any accumulated observe commands
         [model, merge_commands(accumulated_commands)]
+      end
+
+      # Extract bubbles from command: only direct Bubble or Batch(Bubble, ...)
+      # Processes each bubble through observe/intercept handlers
+      # Returns the updated model
+      private def extract_bubbles_from_command(cmd, model, accumulated_commands)
+        return model unless cmd
+
+        case cmd
+        when Rooibos::Command::Bubble
+          # Direct bubble - process it
+          process_bubble(cmd.message, model, accumulated_commands)
+        when Rooibos::Command::Batch
+          # Check direct children only (no recursion)
+          cmd.commands.each do |inner_cmd|
+            if inner_cmd.is_a?(Rooibos::Command::Bubble)
+              model = process_bubble(inner_cmd.message, model, accumulated_commands)
+            else
+              accumulated_commands << inner_cmd
+            end
+          end
+          model
+        else
+          # Not a bubble structure - preserve the command
+          accumulated_commands << cmd
+          model
+        end
+      end
+      # Process a bubbled message through observe and intercept handlers
+      # Returns [model, intercepted?] - if NOT intercepted, bubble continues upward
+      private def process_bubble(bubbled_message, model, accumulated_commands)
+        # Run observe handlers (all matching) - observe NEVER stops propagation
+        @observe_handlers.each do |config|
+          if config[:predicate].call(bubbled_message)
+            handler_result = config[:handler].call(bubbled_message, model)
+            new_model, handler_cmd = normalize_handler_result(handler_result, model)
+            model = new_model
+            accumulated_commands << handler_cmd if handler_cmd
+          end
+        end
+
+        # Run intercept handlers (first match stops and DOES NOT re-bubble)
+        @intercept_handlers.each do |config|
+          if config[:predicate].call(bubbled_message)
+            handler_result = config[:handler].call(bubbled_message, model)
+            new_model, handler_cmd = normalize_handler_result(handler_result, model)
+            model = new_model
+            accumulated_commands << handler_cmd if handler_cmd
+            # Intercept consumed the bubble - do NOT re-bubble
+            return model
+          end
+        end
+
+        # No intercept matched - re-bubble so parent can handle
+        accumulated_commands << Rooibos::Command.bubble(bubbled_message)
+        model
       end
 
       private def normalize_handler_result(result, previous_model)

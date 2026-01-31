@@ -182,6 +182,18 @@ module Rooibos
       _DataModel previous_model
     ) -> [_DataModel, Command::execution?]
 
+    def extract_bubbles_from_command: (
+      Command::execution? cmd,
+      _DataModel model,
+      Array[Command::execution?] accumulated_commands
+    ) -> _DataModel
+
+    def process_bubble: (
+      Object bubbled_message,
+      _DataModel model,
+      Array[Command::execution?] accumulated_commands
+    ) -> _DataModel
+
     def merge_commands: (Array[Command::execution?] commands) -> Command::execution?
   end
 
