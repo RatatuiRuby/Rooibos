@@ -100,6 +100,12 @@ module Rooibos
         reader = read || (prefix_sym && -> (m) { m.public_send(prefix_sym) })
         writer = write || (prefix_sym && -> (m, v) { m.with(prefix_sym => v) })
 
+        # Debug mode: validate Ractor shareability of custom accessors
+        if RatatuiRuby::Debug.enabled?
+          validate_shareable!(read, "route read: accessor") if read
+          validate_shareable!(write, "route write: accessor") if write
+        end
+
         routes[key] = RouteConfig.new(fragment: to, reader:, writer:)
       end
 
@@ -460,6 +466,30 @@ module Rooibos
             handler = config.handler
             if handler.nil? && config.action
               handler = @actions[config.action]
+            end
+
+            # Handle route: option - dispatch to specific fragment with Message::Routed
+            if config.route
+              route_key, route_config = find_route_config(config.route)
+              if route_config && route_key
+                # Determine envelope: use action name if present, otherwise the route key
+                envelope = config.action || route_key
+                routed_message = Rooibos::Message::Routed.new(envelope:, event: message)
+
+                fragment_update = route_config.fragment.const_get(:Update)
+                child_model = route_config.reader ? route_config.reader.call(model) : model.public_send(route_key)
+                new_child_model, cmd = fragment_update.call(routed_message, child_model)
+                model = route_config.writer ? route_config.writer.call(model, new_child_model) : model.with(route_key => new_child_model)
+                model = extract_bubbles_from_command(cmd, model, accumulated_commands)
+
+                # Also call the handler if provided (for side effects like commands)
+                if handler
+                  handler_cmd = handler.call
+                  accumulated_commands << handler_cmd if handler_cmd
+                end
+
+                return [model, merge_commands(accumulated_commands)]
+              end
             end
 
             # Check for routed action if no handler found

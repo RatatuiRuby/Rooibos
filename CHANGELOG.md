@@ -45,6 +45,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `write:` callable updates parent with new child model: `-> (model, value) { model.merge(panels: model[:panels].merge(sidebar: value)) }`
   - Supports lambdas, procs, Method objects, and callable objects
 
+- **Keymap `route:` option**: Key bindings can now dispatch directly to child fragments. The `route:` option synthesizes a `Message::Routed` and calls the child's Update:
+  - `key :j, route: :file_list` — dispatches to `:file_list` fragment with envelope `:file_list`
+  - `key :j, action: :move_down, route: :file_list` — uses `:move_down` as envelope
+  - Combines with guards: `key :j, route: :file_list, when: -> (m) { m.focused? }`
+
 ### Changed
 
 - **BREAKING: Router `keymap`/`mousemap` DSL Syntax**: The Router DSL now uses yield-based blocks instead of `instance_eval`. This enables Ractor shareability for lambdas defined inside the block. Update your code:

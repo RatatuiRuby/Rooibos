@@ -68,8 +68,9 @@ module Rooibos
   }
 
   # Type alias for callable objects that can be validated for Ractor shareability.
-  # Includes predicates (1-arg returning bool) and handlers (2-arg returning update result).
-  type shareable_callable = (^(Object) -> bool) | (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)) | nil
+  # Includes predicates (1-arg returning bool), handlers (2-arg returning update result),
+  # and route accessors (reader: model -> child_model, writer: (model, child) -> model).
+  type shareable_callable = (^(Object) -> bool) | (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)) | (^(_DataModel) -> Object) | (^(_DataModel, Object) -> _DataModel) | nil
 
   # Guard wrapper for negated predicates.
   class NegatedGuard < Data

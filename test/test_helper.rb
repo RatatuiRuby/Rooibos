@@ -8,5 +8,6 @@
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "rooibos"
 require "ratatui_ruby"
+require "rooibos/test_helper"
 require "minitest/autorun"
 require "minitest/mock"

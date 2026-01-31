@@ -589,19 +589,147 @@ class TestRouterKeymap < Minitest::Test
   # [ADD] Key route option tests
   # ============================================================================
 
+  # Child fragment that tracks received messages
+  @@received_messages = []
+
+  def setup
+    @@received_messages = []
+  end
+
+  RouteTestChild = Module.new do
+    const_set :Init, -> { { count: 0 } }
+    const_set :Update, -> (msg, model) {
+      TestRouterKeymap.class_variable_get(:@@received_messages) << msg
+      [model.merge(count: model[:count] + 1), nil]
+    }
+  end
+
   def test_keymap_key_route_option_wraps_in_message_routed
-    skip "TODO"
+    # When route: is specified, the key event should be wrapped in Message::Routed
+    # and dispatched to the specified fragment
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: RouteTestChild
+      action :my_action, -> { nil }
+
+      keymap do |map|
+        map.key :enter, :my_action, route: :child
+      end
+    end
+
+    model_class = Data.define(:child)
+    model = model_class.new(child: RouteTestChild::Init.call)
+    update = test_class.from_router
+    event = RatatuiRuby::Event::Key.new(code: "enter")
+
+    update.call(event, model)
+
+    # Child should have received a Message::Routed
+    assert_equal 1, @@received_messages.size, "child should receive one message"
+    received = @@received_messages.first
+    assert_instance_of Rooibos::Message::Routed, received,
+      "message should be wrapped in Message::Routed"
+    assert_equal event, received.event, "event should be the original key event"
+    assert_equal :my_action, received.envelope, "envelope should be the action name"
   end
 
   def test_keymap_key_route_option_routes_to_correct_fragment
-    skip "TODO"
+    # Multiple keys can use the same action but route to different fragments
+    @@left_received = []
+    @@right_received = []
+
+    left_child = Module.new do
+      const_set :Init, -> { :left }
+      const_set :Update, -> (msg, model) {
+        TestRouterKeymap.class_variable_get(:@@left_received) << msg
+        [model, nil]
+      }
+    end
+
+    right_child = Module.new do
+      const_set :Init, -> { :right }
+      const_set :Update, -> (msg, model) {
+        TestRouterKeymap.class_variable_get(:@@right_received) << msg
+        [model, nil]
+      }
+    end
+
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :left, to: left_child
+      route :right, to: right_child
+      action :focus, -> { nil }
+
+      keymap do |map|
+        map.key :a, :focus, route: :left
+        map.key :b, :focus, route: :right
+      end
+    end
+
+    model_class = Data.define(:left, :right)
+    model = model_class.new(left: left_child::Init.call, right: right_child::Init.call)
+    update = test_class.from_router
+
+    # Press 'a' - should route to left
+    update.call(RatatuiRuby::Event::Key.new(code: "a"), model)
+    assert_equal 1, @@left_received.size, "left should receive message"
+    assert_equal 0, @@right_received.size, "right should NOT receive message"
+
+    # Press 'b' - should route to right
+    update.call(RatatuiRuby::Event::Key.new(code: "b"), model)
+    assert_equal 1, @@left_received.size, "left should still have 1 message"
+    assert_equal 1, @@right_received.size, "right should now have 1 message"
   end
 
   def test_keymap_key_route_option_with_action_reference
-    skip "TODO"
+    # route: works with action name reference
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: RouteTestChild
+      action :do_something, -> { nil }
+
+      keymap do |map|
+        map.key :f, :do_something, route: :child
+      end
+    end
+
+    model_class = Data.define(:child)
+    model = model_class.new(child: RouteTestChild::Init.call)
+    update = test_class.from_router
+
+    update.call(RatatuiRuby::Event::Key.new(code: "f"), model)
+
+    assert_equal 1, @@received_messages.size, "child should receive message"
+    received = @@received_messages.first
+    assert_equal :do_something, received.envelope, "envelope should be the action name"
   end
 
   def test_keymap_key_route_option_with_lambda_handler
-    skip "TODO"
+    # route: can work with a lambda handler that returns a command
+    # The key event is wrapped in Message::Routed and sent to the fragment
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: RouteTestChild
+
+      keymap do |map|
+        map.key :tab, -> { nil }, route: :child
+      end
+    end
+
+    model_class = Data.define(:child)
+    model = model_class.new(child: RouteTestChild::Init.call)
+    update = test_class.from_router
+
+    update.call(RatatuiRuby::Event::Key.new(code: "tab"), model)
+
+    # Child should receive the key event wrapped in Message::Routed
+    assert_equal 1, @@received_messages.size, "child should receive message"
+    received = @@received_messages.first
+    assert_instance_of Rooibos::Message::Routed, received,
+      "message should be wrapped in Message::Routed"
   end
 end
