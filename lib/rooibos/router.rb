@@ -328,6 +328,20 @@ module Rooibos
         @forward_handlers ||= []
       end
 
+      # Declares an otherwise fallback (routes unhandled messages to a fragment).
+      #
+      # === Example
+      #
+      #   otherwise route_to: :active_tab
+      def otherwise(route_to:)
+        @otherwise_handler = route_to.to_s.to_sym
+      end
+
+      # Returns the registered otherwise handler.
+      private def otherwise_handler
+        @otherwise_handler
+      end
+
       # Generates an UPDATE lambda from routes, keymap, and mousemap.
       #
       # The generated UPDATE:
@@ -346,14 +360,15 @@ module Rooibos
           click_handler:,
           observe_handlers:,
           intercept_handlers:,
-          forward_handlers:
+          forward_handlers:,
+          otherwise_handler:
         )
       end
     end
 
     # Internal UPDATE callable with proper typing.
     class RouterUpdate # :nodoc:
-      def initialize(routes:, actions:, routed_actions:, key_handlers:, scroll_handlers:, click_handler:, observe_handlers:, intercept_handlers:, forward_handlers:)
+      def initialize(routes:, actions:, routed_actions:, key_handlers:, scroll_handlers:, click_handler:, observe_handlers:, intercept_handlers:, forward_handlers:, otherwise_handler:)
         @routes = routes
         @actions = actions
         @routed_actions = routed_actions
@@ -363,6 +378,7 @@ module Rooibos
         @observe_handlers = observe_handlers
         @intercept_handlers = intercept_handlers
         @forward_handlers = forward_handlers
+        @otherwise_handler = otherwise_handler
       end
 
       # Process message and return [model, command] tuple.
@@ -538,6 +554,19 @@ module Rooibos
               accumulated_commands << cmd if cmd
               return [model, merge_commands(accumulated_commands)]
             end
+          end
+        end
+
+        # 4.5. Otherwise fallback (route unhandled messages to a fragment)
+        if (otherwise_route = @otherwise_handler)
+          fragment = @routes[otherwise_route]
+          if fragment
+            fragment_update = fragment.const_get(:Update)
+            child_model = model.public_send(otherwise_route)
+            new_child_model, cmd = fragment_update.call(message, child_model)
+            model = model.with(otherwise_route => new_child_model)
+            model = extract_bubbles_from_command(cmd, model, accumulated_commands)
+            return [model, merge_commands(accumulated_commands)]
           end
         end
 

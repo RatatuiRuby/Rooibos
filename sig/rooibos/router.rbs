@@ -98,6 +98,7 @@ module Rooibos
     @intercept_handlers: Array[intercept_handler_config]
     @observe_handlers: Array[observe_handler_config]
     @forward_handlers: Array[forward_handler_config]
+    @otherwise_handler: Symbol?
 
     def route: (Symbol | String fragment_model_instance_attr, to: Module) -> void
     def routes: () -> Hash[Symbol, Module]
@@ -156,6 +157,10 @@ module Rooibos
     def forward: () { (ForwardBuilder) [self: ForwardBuilder] -> void } -> void
     def forward_handlers: () -> Array[forward_handler_config]
 
+    # Otherwise fallback (routes unhandled messages to a fragment).
+    def otherwise: (route_to: Symbol | String) -> void
+    private def otherwise_handler: () -> Symbol?
+
     # Returns UPDATE callable that handles routing.
     # Uses is_a? checks for Event::Key and Event::Mouse type narrowing.
     # Model must be Data-like with `with` and field accessors.
@@ -174,6 +179,7 @@ module Rooibos
     @intercept_handlers: Array[intercept_handler_config]
     @observe_handlers: Array[observe_handler_config]
     @forward_handlers: Array[forward_handler_config]
+    @otherwise_handler: Symbol?
 
     def initialize: (
       routes: Hash[Symbol, Module],
@@ -184,7 +190,8 @@ module Rooibos
       click_handler: ClickHandlerConfig?,
       intercept_handlers: Array[intercept_handler_config],
       observe_handlers: Array[observe_handler_config],
-      forward_handlers: Array[forward_handler_config]
+      forward_handlers: Array[forward_handler_config],
+      otherwise_handler: Symbol?
     ) -> void
 
     # Process message and return [model, command] tuple.

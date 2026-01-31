@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `messages.with_envelope :file_list { |model, msg| ... }` — block handler for envelope-matched messages
   - `messages.with_envelope :file_list, route_to: :file_list` — route to specific child fragment
 
+- **Router `otherwise` DSL**: New fallback routing for unhandled messages. Routes any message not handled by keymap, mousemap, or forward to a designated child fragment:
+  - `otherwise route_to: :active_tab` — routes unhandled messages to the `:active_tab` child fragment
+  - Useful for implementing "active panel" patterns where one child receives all input
+  - Chains through deep hierarchies when nested fragments also declare `otherwise`
+
 ### Changed
 
 - **BREAKING: Router `keymap`/`mousemap` DSL Syntax**: The Router DSL now uses yield-based blocks instead of `instance_eval`. This enables Ractor shareability for lambdas defined inside the block. Update your code:
