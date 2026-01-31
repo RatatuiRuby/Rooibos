@@ -46,15 +46,15 @@ module Rooibos
     end
 
     # Configuration for scroll handlers (no coordinates).
-    ScrollHandlerConfig = Data.define(:handler, :action) do
-      def initialize(handler: nil, action: nil)
+    ScrollHandlerConfig = Data.define(:handler, :action, :guard) do
+      def initialize(handler: nil, action: nil, guard: nil)
         super
       end
     end
 
     # Configuration for click handlers (x, y coordinates).
-    ClickHandlerConfig = Data.define(:handler, :action) do
-      def initialize(handler: nil, action: nil)
+    ClickHandlerConfig = Data.define(:handler, :action, :guard) do
+      def initialize(handler: nil, action: nil, guard: nil)
         super
       end
     end
@@ -524,6 +524,10 @@ module Rooibos
           if message.scroll_up?
             config = @scroll_handlers[:scroll_up]
             if config
+              # Check guard if present
+              if config.guard && !config.guard.call(model)
+                return [model, merge_commands(accumulated_commands)]
+              end
               scroll_handler = config.handler
               if scroll_handler.nil? && config.action
                 scroll_handler = @actions[config.action]
@@ -536,6 +540,10 @@ module Rooibos
           if message.scroll_down?
             config = @scroll_handlers[:scroll_down]
             if config
+              # Check guard if present
+              if config.guard && !config.guard.call(model)
+                return [model, merge_commands(accumulated_commands)]
+              end
               scroll_handler = config.handler
               if scroll_handler.nil? && config.action
                 scroll_handler = @actions[config.action]
@@ -548,6 +556,10 @@ module Rooibos
           # Click events (handler takes x, y coordinates)
           click_config = @click_handler
           if message.down? && click_config
+            # Check guard if present
+            if click_config.guard && !click_config.guard.call(model)
+              return [model, merge_commands(accumulated_commands)]
+            end
             click_handler_proc = click_config.handler
             if click_handler_proc.nil? && click_config.action
               # Actions don't take coordinates, so just call without args
@@ -900,16 +912,29 @@ module Rooibos
       def initialize # :nodoc:
         @scroll_handlers = {}
         @click_handler = nil
+        @guard_stack = []
       end
 
       # Registers a click handler.
       #
       # [handler_or_action] Callable `^(Integer, Integer) -> Command` or Symbol (action name).
-      def click(handler_or_action)
+      def click(handler_or_action, when: nil, if: nil, only: nil, guard: nil, unless: nil, except: nil, skip: nil, **_ignored)
+        guards = @guard_stack.dup
+
+        positive = binding.local_variable_get(:when) || binding.local_variable_get(:if) || only || guard
+        guards << positive if positive
+
+        negative = binding.local_variable_get(:unless) || except || skip
+        guards << NegatedGuard.new(guard: negative) if negative
+
+        combined_guard = if guards.any?
+          CombinedGuard.new(guards: guards.freeze)
+        end
+
         if handler_or_action.is_a?(Symbol)
-          @click_handler = ClickHandlerConfig.new(action: handler_or_action)
+          @click_handler = ClickHandlerConfig.new(action: handler_or_action, guard: combined_guard)
         else
-          @click_handler = ClickHandlerConfig.new(handler: handler_or_action)
+          @click_handler = ClickHandlerConfig.new(handler: handler_or_action, guard: combined_guard)
         end
       end
 
@@ -917,13 +942,56 @@ module Rooibos
       #
       # [direction] <tt>:up</tt> or <tt>:down</tt>.
       # [handler_or_action] Callable `^() -> Command` or Symbol (action name).
-      def scroll(direction, handler_or_action)
+      def scroll(direction, handler_or_action, when: nil, if: nil, only: nil, guard: nil, unless: nil, except: nil, skip: nil, **_ignored)
+        guards = @guard_stack.dup
+
+        positive = binding.local_variable_get(:when) || binding.local_variable_get(:if) || only || guard
+        guards << positive if positive
+
+        negative = binding.local_variable_get(:unless) || except || skip
+        guards << NegatedGuard.new(guard: negative) if negative
+
+        combined_guard = if guards.any?
+          CombinedGuard.new(guards: guards.freeze)
+        end
+
         config = if handler_or_action.is_a?(Symbol)
-          ScrollHandlerConfig.new(action: handler_or_action)
+          ScrollHandlerConfig.new(action: handler_or_action, guard: combined_guard)
         else
-          ScrollHandlerConfig.new(handler: handler_or_action)
+          ScrollHandlerConfig.new(handler: handler_or_action, guard: combined_guard)
         end
         @scroll_handlers[:"scroll_#{direction}"] = config
+      end
+
+      # Applies a guard to all handlers in the block.
+      def only(when: nil, if: nil, only: nil, guard: nil, &)
+        positive = binding.local_variable_get(:when) ||
+          binding.local_variable_get(:if) ||
+          only ||
+          guard
+        with_guard(positive, &)
+      end
+
+      private def with_guard(guard, &block)
+        if guard
+          @guard_stack << guard
+          begin
+            block.call
+          ensure
+            @guard_stack.pop
+          end
+        else
+          block.call
+        end
+      end
+
+      # Skips all handlers in the block when guard returns true.
+      def skip(when: nil, if: nil, skip: nil, guard: nil, &)
+        negative = binding.local_variable_get(:when) ||
+          binding.local_variable_get(:if) ||
+          skip ||
+          guard
+        with_guard(NegatedGuard.new(guard: negative), &)
       end
     end
 

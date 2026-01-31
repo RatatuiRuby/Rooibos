@@ -50,6 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `key :j, action: :move_down, route: :file_list` — uses `:move_down` as envelope
   - Combines with guards: `key :j, route: :file_list, when: -> (m) { m.focused? }`
 
+- **Mousemap guards**: The `mousemap` DSL now supports guards and scoped guard blocks, matching `keymap` parity:
+  - Inline guards: `map.scroll :up, handler, when: -> (m) { m.scrollable? }`
+  - All guard aliases: `when:`, `if:`, `only:`, `guard:`, `unless:`, `except:`, `skip:`
+  - Scoped blocks: `map.only when: guard { map.scroll :up, ... }`
+  - Inversion: `map.skip when: some_condition { ... }`
+  - Nested guards combine (all must pass)
+
 ### Changed
 
 - **BREAKING: Router `keymap`/`mousemap` DSL Syntax**: The Router DSL now uses yield-based blocks instead of `instance_eval`. This enables Ractor shareability for lambdas defined inside the block. Update your code:

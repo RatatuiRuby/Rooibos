@@ -32,16 +32,18 @@ module Rooibos
   class ScrollHandlerConfig < Data
     attr_reader handler: (^() -> Command::execution?)?
     attr_reader action: Symbol?
+    attr_reader guard: (^(_DataModel) -> bool | NegatedGuard | CombinedGuard)?
 
-    def initialize: (?handler: (^() -> Command::execution?)?, ?action: Symbol?) -> void
+    def initialize: (?handler: (^() -> Command::execution?)?, ?action: Symbol?, ?guard: (^(_DataModel) -> bool | NegatedGuard | CombinedGuard)?) -> void
   end
 
   # Configuration for click handlers (x, y coordinates).
   class ClickHandlerConfig < Data
     attr_reader handler: (^(Integer, Integer) -> Command::execution?)?
     attr_reader action: Symbol?
+    attr_reader guard: (^(_DataModel) -> bool | NegatedGuard | CombinedGuard)?
 
-    def initialize: (?handler: (^(Integer, Integer) -> Command::execution?)?, ?action: Symbol?) -> void
+    def initialize: (?handler: (^(Integer, Integer) -> Command::execution?)?, ?action: Symbol?, ?guard: (^(_DataModel) -> bool | NegatedGuard | CombinedGuard)?) -> void
   end
 
   # Configuration for intercept handlers (hash type used inline in Ruby).
@@ -285,14 +287,53 @@ module Rooibos
   class MousemapBuilder
     @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
     @click_handler: ClickHandlerConfig?
+    @guard_stack: Array[^(_DataModel) -> bool | NegatedGuard | CombinedGuard]
 
     attr_reader scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
     attr_reader click_handler: ClickHandlerConfig?
 
     def initialize: () -> void
 
-    def click: ((^(Integer, Integer) -> Command::execution?) | Symbol handler_or_action) -> void
-    def scroll: (:up | :down direction, (^() -> Command::execution?) | Symbol handler_or_action) -> void
+    def click: (
+      (^(Integer, Integer) -> Command::execution?) | Symbol handler_or_action,
+      ?when: (^(_DataModel) -> bool)?,
+      ?if: (^(_DataModel) -> bool)?,
+      ?only: (^(_DataModel) -> bool)?,
+      ?guard: (^(_DataModel) -> bool)?,
+      ?unless: (^(_DataModel) -> bool)?,
+      ?except: (^(_DataModel) -> bool)?,
+      ?skip: (^(_DataModel) -> bool)?
+    ) -> void
+
+    def scroll: (
+      :up | :down direction,
+      (^() -> Command::execution?) | Symbol handler_or_action,
+      ?when: (^(_DataModel) -> bool)?,
+      ?if: (^(_DataModel) -> bool)?,
+      ?only: (^(_DataModel) -> bool)?,
+      ?guard: (^(_DataModel) -> bool)?,
+      ?unless: (^(_DataModel) -> bool)?,
+      ?except: (^(_DataModel) -> bool)?,
+      ?skip: (^(_DataModel) -> bool)?
+    ) -> void
+
+    def only: (
+      ?when: (^(_DataModel) -> bool)?,
+      ?if: (^(_DataModel) -> bool)?,
+      ?only: (^(_DataModel) -> bool)?,
+      ?guard: (^(_DataModel) -> bool)?
+    ) { () -> void } -> void
+
+    def skip: (
+      ?when: (^(_DataModel) -> bool)?,
+      ?if: (^(_DataModel) -> bool)?,
+      ?skip: (^(_DataModel) -> bool)?,
+      ?guard: (^(_DataModel) -> bool)?
+    ) { () -> void } -> void
+
+    private
+
+    def with_guard: ((^(_DataModel) -> bool | NegatedGuard)?) { () -> void } -> void
   end
 
   # Builder for forward DSL.
