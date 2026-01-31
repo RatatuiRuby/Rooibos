@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Router `observe` DSL**: New handler for message observation that continues processing. Use `observe ->(msg) { msg.q? }, ->(msg, model) { ... }` or keyword syntax with `if:`/`when:`/`unless:`/`except:`/`then:`. Observe handlers run before intercept and keymap, allowing model updates and command accumulation while still passing the message through to subsequent handlers. Use `observe_all` for handlers that match every message.
 
+- **Router `forward` DSL**: New handler for message type and envelope routing. Routes messages to handlers, actions, or child fragments based on type predicates or envelope values:
+  - `forward do |messages|` — block-based DSL for declaring forwarding rules
+  - `messages.with_type :resize { |model, msg| ... }` — block handler for type-matched messages
+  - `messages.with_type :resize, action: :handle_resize` — delegate to named action
+  - `messages.with_type :resize, broadcast: true` — broadcast to all child routes
+  - `messages.with_type :resize, broadcast_to: [:sidebar, :main]` — broadcast to specific routes
+  - `messages.with_envelope :file_list { |model, msg| ... }` — block handler for envelope-matched messages
+  - `messages.with_envelope :file_list, route_to: :file_list` — route to specific child fragment
+
 ### Changed
 
 - **BREAKING: Router `keymap`/`mousemap` DSL Syntax**: The Router DSL now uses yield-based blocks instead of `instance_eval`. This enables Ractor shareability for lambdas defined inside the block. Update your code:

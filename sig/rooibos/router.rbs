@@ -56,6 +56,17 @@ module Rooibos
     handler: ^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)
   }
 
+  # Configuration for forward handlers (type/envelope routing).
+  # predicate uses untyped since we duck-type with respond_to?
+  type forward_handler_config = {
+    predicate: ^(untyped) -> bool,
+    handler: (^(_DataModel, Object) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil))?,
+    action: Symbol?,
+    broadcast: bool,
+    broadcast_to: Array[Symbol]?,
+    route_to: Symbol?
+  }
+
   # Type alias for callable objects that can be validated for Ractor shareability.
   # Includes predicates (1-arg returning bool) and handlers (2-arg returning update result).
   type shareable_callable = (^(Object) -> bool) | (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)) | nil
@@ -86,6 +97,7 @@ module Rooibos
     @click_handler: ClickHandlerConfig?
     @intercept_handlers: Array[intercept_handler_config]
     @observe_handlers: Array[observe_handler_config]
+    @forward_handlers: Array[forward_handler_config]
 
     def route: (Symbol | String fragment_model_instance_attr, to: Module) -> void
     def routes: () -> Hash[Symbol, Module]
@@ -140,6 +152,10 @@ module Rooibos
 
     private def validate_shareable!: (shareable_callable callable, String label) -> void
 
+    # Forward handlers for message type/envelope routing.
+    def forward: () { (ForwardBuilder) [self: ForwardBuilder] -> void } -> void
+    def forward_handlers: () -> Array[forward_handler_config]
+
     # Returns UPDATE callable that handles routing.
     # Uses is_a? checks for Event::Key and Event::Mouse type narrowing.
     # Model must be Data-like with `with` and field accessors.
@@ -157,6 +173,7 @@ module Rooibos
     @click_handler: ClickHandlerConfig?
     @intercept_handlers: Array[intercept_handler_config]
     @observe_handlers: Array[observe_handler_config]
+    @forward_handlers: Array[forward_handler_config]
 
     def initialize: (
       routes: Hash[Symbol, Module],
@@ -166,7 +183,8 @@ module Rooibos
       scroll_handlers: Hash[Symbol, ScrollHandlerConfig],
       click_handler: ClickHandlerConfig?,
       intercept_handlers: Array[intercept_handler_config],
-      observe_handlers: Array[observe_handler_config]
+      observe_handlers: Array[observe_handler_config],
+      forward_handlers: Array[forward_handler_config]
     ) -> void
 
     # Process message and return [model, command] tuple.
@@ -256,6 +274,29 @@ module Rooibos
 
     def click: ((^(Integer, Integer) -> Command::execution?) | Symbol handler_or_action) -> void
     def scroll: (:up | :down direction, (^() -> Command::execution?) | Symbol handler_or_action) -> void
+  end
+
+  # Builder for forward DSL.
+  class ForwardBuilder
+    @handlers: Array[forward_handler_config]
+
+    attr_reader handlers: Array[forward_handler_config]
+
+    def initialize: () -> void
+
+    # Routes messages by type predicate.
+    def with_type: (
+      (Symbol | String) type_name,
+      ?action: Symbol?,
+      ?broadcast: bool,
+      ?broadcast_to: Array[Symbol]?
+    ) ?{ (_DataModel, Object) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) } -> void
+
+    # Routes messages by envelope attribute.
+    def with_envelope: (
+      (Symbol | String) envelope_name,
+      ?route_to: Symbol?
+    ) ?{ (_DataModel, Object) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) } -> void
   end
 end
 end

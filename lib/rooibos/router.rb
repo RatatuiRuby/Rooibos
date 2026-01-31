@@ -117,7 +117,7 @@ module Rooibos
           # Keyword: action name: handler
           kwargs.first
         else
-          raise ArgumentError, "action requires (name, value) or (name: value)"
+          raise(ArgumentError, "action requires (name, value) or (name: value)")
         end
 
         # @type var action_name: Symbol?
@@ -165,9 +165,9 @@ module Rooibos
         begin
           Ractor.make_shareable(callable)
         rescue Ractor::IsolationError
-          raise Rooibos::Error::Invariant,
+          raise(Rooibos::Error::Invariant,
             "Router #{label} must be Ractor-shareable. " \
-              "#{callable.class} is not shareable. Use Ractor.make_shareable or define at top-level."
+              "#{callable.class} is not shareable. Use Ractor.make_shareable or define at top-level.")
         end
       end
 
@@ -275,7 +275,7 @@ module Rooibos
       #   end
       def keymap
         builder = KeymapBuilder.new
-        yield builder
+        yield(builder)
         @key_handlers = builder.handlers
       end
 
@@ -289,7 +289,7 @@ module Rooibos
       #   end
       def mousemap
         builder = MousemapBuilder.new
-        yield builder
+        yield(builder)
         @scroll_handlers = builder.scroll_handlers
         @click_handler = builder.click_handler
       end
@@ -309,13 +309,33 @@ module Rooibos
         @click_handler
       end
 
+      # Declares message forwarding rules in a block.
+      #
+      # === Example
+      #
+      #   forward do |messages|
+      #     messages.with_type :resize, broadcast_to: [:sidebar, :main]
+      #     messages.with_envelope :file_list, route_to: FileList
+      #   end
+      def forward
+        builder = ForwardBuilder.new
+        yield(builder)
+        @forward_handlers = builder.handlers
+      end
+
+      # Returns the registered forward handlers array.
+      private def forward_handlers
+        @forward_handlers ||= []
+      end
+
       # Generates an UPDATE lambda from routes, keymap, and mousemap.
       #
       # The generated UPDATE:
       # 1. Routes prefixed messages to child UPDATEs
       # 2. Handles keyboard events via keymap
       # 3. Handles mouse events via mousemap
-      # 4. Returns model unchanged for unhandled messages
+      # 4. Handles message forwarding via forward
+      # 5. Returns model unchanged for unhandled messages
       def from_router
         RouterUpdate.new(
           routes:,
@@ -325,14 +345,15 @@ module Rooibos
           scroll_handlers:,
           click_handler:,
           observe_handlers:,
-          intercept_handlers:
+          intercept_handlers:,
+          forward_handlers:
         )
       end
     end
 
     # Internal UPDATE callable with proper typing.
     class RouterUpdate # :nodoc:
-      def initialize(routes:, actions:, routed_actions:, key_handlers:, scroll_handlers:, click_handler:, observe_handlers:, intercept_handlers:)
+      def initialize(routes:, actions:, routed_actions:, key_handlers:, scroll_handlers:, click_handler:, observe_handlers:, intercept_handlers:, forward_handlers:)
         @routes = routes
         @actions = actions
         @routed_actions = routed_actions
@@ -341,6 +362,7 @@ module Rooibos
         @click_handler = click_handler
         @observe_handlers = observe_handlers
         @intercept_handlers = intercept_handlers
+        @forward_handlers = forward_handlers
       end
 
       # Process message and return [model, command] tuple.
@@ -470,7 +492,56 @@ module Rooibos
           end
         end
 
-        # 4. Unhandled - return model with any accumulated observe commands
+        # 4. Try forward handlers (message type/envelope routing)
+        @forward_handlers.each do |config|
+          if config[:predicate].call(message)
+            if config[:broadcast] || config[:broadcast_to]
+              # Broadcast to routes
+              routes_to_broadcast = if config[:broadcast]
+                @routes.keys
+              else
+                config[:broadcast_to]
+              end
+
+              routes_to_broadcast&.each do |route_name|
+                fragment = @routes[route_name]
+                next unless fragment
+
+                fragment_update = fragment.const_get(:Update)
+                child_model = model.public_send(route_name)
+                new_child_model, cmd = fragment_update.call(message, child_model)
+                model = model.with(route_name => new_child_model)
+                model = extract_bubbles_from_command(cmd, model, accumulated_commands)
+              end
+              return [model, merge_commands(accumulated_commands)]
+            elsif config[:route_to]
+              # Route to specific fragment
+              route_name = config[:route_to].to_s.to_sym
+              fragment = @routes[route_name]
+              if fragment
+                fragment_update = fragment.const_get(:Update)
+                child_model = model.public_send(route_name)
+                new_child_model, cmd = fragment_update.call(message, child_model)
+                model = model.with(route_name => new_child_model)
+                model = extract_bubbles_from_command(cmd, model, accumulated_commands)
+              end
+              return [model, merge_commands(accumulated_commands)]
+            elsif config[:handler]
+              # Block handler takes (model, message)
+              result = config[:handler].call(model, message)
+              new_model, cmd = normalize_handler_result(result, model)
+              accumulated_commands << cmd if cmd
+              return [new_model, merge_commands(accumulated_commands)]
+            elsif config[:action]
+              # Action handler takes no args, just returns command
+              cmd = @actions[config[:action]]&.call
+              accumulated_commands << cmd if cmd
+              return [model, merge_commands(accumulated_commands)]
+            end
+          end
+        end
+
+        # 5. Unhandled - return model with any accumulated observe commands
         [model, merge_commands(accumulated_commands)]
       end
 
@@ -672,7 +743,7 @@ module Rooibos
         arg_count += 1 if guard
 
         if arg_count > 1
-          raise ArgumentError, "only accepts exactly one of: when, if, only, guard"
+          raise(ArgumentError, "only accepts exactly one of: when, if, only, guard")
         end
 
         positive = binding.local_variable_get(:when) ||
@@ -693,7 +764,7 @@ module Rooibos
         arg_count += 1 if guard
 
         if arg_count > 1
-          raise ArgumentError, "skip accepts exactly one of: when, if, skip, guard"
+          raise(ArgumentError, "skip accepts exactly one of: when, if, skip, guard")
         end
 
         skip_guard = binding.local_variable_get(:when) ||
@@ -754,6 +825,64 @@ module Rooibos
           ScrollHandlerConfig.new(handler: handler_or_action)
         end
         @scroll_handlers[:"scroll_#{direction}"] = config
+      end
+    end
+
+    # Builder for forward DSL.
+    class ForwardBuilder
+      # Returns the registered handlers array.
+      attr_reader :handlers
+
+      def initialize # :nodoc:
+        @handlers = []
+      end
+
+      # Routes messages by type predicate.
+      #
+      # The type is converted to a predicate method name (e.g., :resize -> :resize?)
+      # and matched against the message.
+      #
+      # === Example
+      #
+      #   messages.with_type :resize do |model, message|
+      #     model.merge(dimensions: [message.width, message.height])
+      #   end
+      #
+      #   messages.with_type :theme_changed, action: :apply_theme
+      #   messages.with_type :resize, broadcast: true
+      #   messages.with_type :resize, broadcast_to: [:sidebar, :main]
+      def with_type(type_name, action: nil, broadcast: false, broadcast_to: nil, &handler)
+        predicate = :"#{type_name}?"
+        @handlers << {
+          predicate: -> (msg) { msg.respond_to?(predicate) && msg.public_send(predicate) },
+          handler:,
+          action: action&.to_s&.to_sym,
+          broadcast:,
+          broadcast_to: broadcast_to&.map { |r| r.to_s.to_sym },
+        }
+      end
+
+      # Routes messages by envelope attribute.
+      #
+      # Matches messages where message.envelope == envelope_name.
+      #
+      # === Example
+      #
+      #   messages.with_envelope :file_list do |model, message|
+      #     model.merge(handled: true)
+      #   end
+      #
+      #   messages.with_envelope :file_list, route_to: FileList
+      def with_envelope(envelope_name, route_to: nil, &handler)
+        envelope_sym = envelope_name.to_s.to_sym
+        @handlers << {
+          predicate: -> (msg) { msg.respond_to?(:envelope) && msg.envelope == envelope_sym }, # steep:ignore NoMethod
+          handler:,
+          action: nil,
+          broadcast: false,
+          broadcast_to: nil,
+          route_to:,
+        }
       end
     end
   end
