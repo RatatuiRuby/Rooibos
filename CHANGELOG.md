@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Router `intercept` DSL**: New handler for early message termination. Use `intercept ->(msg) { ... }` in your Router to stop bubbled messages from propagating further. The handler receives the message and can return a model/command tuple to handle it, or `nil` to let it continue bubbling.
 
+- **Router `observe` DSL**: New handler for message observation that continues processing. Use `observe ->(msg) { msg.q? }, ->(msg, model) { ... }` or keyword syntax with `if:`/`when:`/`unless:`/`except:`/`then:`. Observe handlers run before intercept and keymap, allowing model updates and command accumulation while still passing the message through to subsequent handlers. Use `observe_all` for handlers that match every message.
+
 ### Changed
 
 - **BREAKING: Router `keymap`/`mousemap` DSL Syntax**: The Router DSL now uses yield-based blocks instead of `instance_eval`. This enables Ractor shareability for lambdas defined inside the block. Update your code:

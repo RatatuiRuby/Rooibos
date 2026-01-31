@@ -62,6 +62,26 @@ module Rooibos
       end
     end
 
+    # Internal wrapper for multiple commands to be dispatched separately. # :nodoc:
+    #
+    # Router DSL uses this to return multiple commands from observe + keymap
+    # without triggering Message::Batch. The runtime unwraps this and dispatches
+    # each command independently.
+    #
+    # Unlike Batch:
+    # - Does NOT send Message::Batch on completion
+    # - Each command runs and sends its own messages
+    # - Invisible to app developers
+    class Separate < Data.define(:commands)
+      include Custom
+
+      # Stub - Separate is a sentinel unwrapped by runtime before dispatch.
+      def call(_out, _token)
+        raise "Separate command should never be dispatched directly"
+      end
+    end
+    private_constant :Separate
+
     # Creates a quit command.
     #
     # Returns a sentinel the runtime detects to terminate the application.

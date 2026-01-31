@@ -397,6 +397,13 @@ module Rooibos
           # Remove cancelled future from pending list so sync doesn't wait for it
           @pending_futures.delete(entry.future) if entry
           nil
+        elsif Command.const_get(:Separate) === @command
+          # Internal: dispatch each command independently (no Message::Batch)
+          @command.commands.each do |cmd|
+            entry = @lifecycle.run_async(cmd, @message_queue)
+            @pending_futures << entry.future if entry.future
+          end
+          nil # No single future to return
         elsif @command.respond_to?(:rooibos_command?) && @command.rooibos_command?
           entry = @lifecycle.run_async(@command, @message_queue)
           entry.future

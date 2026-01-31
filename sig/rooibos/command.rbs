@@ -29,6 +29,21 @@ module Rooibos
     def self.new: () -> instance
   end
 
+  # Internal wrapper for multiple commands to be dispatched separately.
+  # Router DSL uses this to return multiple commands from observe + keymap
+  # without triggering Message::Batch. The runtime unwraps this and dispatches
+  # each command independently.
+  class Separate < Data
+    include Custom
+
+    attr_reader commands: Array[execution?]
+
+    def self.new: (commands: Array[execution?]) -> instance
+
+    # Stub - Separate is a sentinel unwrapped by runtime before dispatch.
+    def call: (Outlet out, Concurrent::Cancellation token) -> void
+  end
+
   # Runs a shell command and routes its output back as messages.
   class System < Data
     attr_reader command: String

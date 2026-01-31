@@ -50,6 +50,16 @@ module Rooibos
     handler: ^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)
   }
 
+  # Configuration for observe handlers (similar to intercept but continues processing).
+  type observe_handler_config = {
+    predicate: ^(Object) -> bool,
+    handler: ^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)
+  }
+
+  # Type alias for callable objects that can be validated for Ractor shareability.
+  # Includes predicates (1-arg returning bool) and handlers (2-arg returning update result).
+  type shareable_callable = (^(Object) -> bool) | (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)) | nil
+
   # Guard wrapper for negated predicates.
   class NegatedGuard < Data
     attr_reader guard: ^(_DataModel) -> bool
@@ -75,6 +85,7 @@ module Rooibos
     @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
     @click_handler: ClickHandlerConfig?
     @intercept_handlers: Array[intercept_handler_config]
+    @observe_handlers: Array[observe_handler_config]
 
     def route: (Symbol | String fragment_model_instance_attr, to: Module) -> void
     def routes: () -> Hash[Symbol, Module]
@@ -114,6 +125,21 @@ module Rooibos
     def intercept_all: (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) handler) -> void
     def intercept_handlers: () -> Array[intercept_handler_config]
 
+    # Observe handlers (continue processing after match).
+    def observe: (
+      ?(^(Object) -> bool) predicate,
+      ?(^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)) handler,
+      ?if: (^(Object) -> bool)?,
+      ?when: (^(Object) -> bool)?,
+      ?unless: (^(Object) -> bool)?,
+      ?except: (^(Object) -> bool)?,
+      ?then: (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil))?
+    ) -> void
+    def observe_all: (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) handler) -> void
+    def observe_handlers: () -> Array[observe_handler_config]
+
+    private def validate_shareable!: (shareable_callable callable, String label) -> void
+
     # Returns UPDATE callable that handles routing.
     # Uses is_a? checks for Event::Key and Event::Mouse type narrowing.
     # Model must be Data-like with `with` and field accessors.
@@ -130,6 +156,7 @@ module Rooibos
     @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
     @click_handler: ClickHandlerConfig?
     @intercept_handlers: Array[intercept_handler_config]
+    @observe_handlers: Array[observe_handler_config]
 
     def initialize: (
       routes: Hash[Symbol, Module],
@@ -138,7 +165,8 @@ module Rooibos
       key_handlers: Hash[Symbol, KeyHandlerConfig],
       scroll_handlers: Hash[Symbol, ScrollHandlerConfig],
       click_handler: ClickHandlerConfig?,
-      intercept_handlers: Array[intercept_handler_config]
+      intercept_handlers: Array[intercept_handler_config],
+      observe_handlers: Array[observe_handler_config]
     ) -> void
 
     # Process message and return [model, command] tuple.
@@ -153,6 +181,8 @@ module Rooibos
       (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) result,
       _DataModel previous_model
     ) -> [_DataModel, Command::execution?]
+
+    def merge_commands: (Array[Command::execution?] commands) -> Command::execution?
   end
 
   # Builder for keymap DSL.

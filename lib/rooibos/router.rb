@@ -160,6 +160,17 @@ module Rooibos
         end
       end
 
+      private def validate_shareable!(callable, label)
+        return if callable.nil?
+        begin
+          Ractor.make_shareable(callable)
+        rescue Ractor::IsolationError
+          raise Rooibos::Error::Invariant,
+            "Router #{label} must be Ractor-shareable. " \
+              "#{callable.class} is not shareable. Use Ractor.make_shareable or define at top-level."
+        end
+      end
+
       # Returns the registered handler actions hash.
       def actions
         @actions ||= {}
@@ -203,6 +214,55 @@ module Rooibos
       # Declares an intercept handler that matches all messages (arity 1 convenience).
       def intercept_all(handler)
         intercept(-> (_msg) { true }, handler)
+      end
+
+      # Declares an observe handler (continues processing after predicate matches).
+      #
+      # Supports positional or keyword syntax:
+      #   observe ->(msg) { msg.q? }, ->(msg, model) { ... }
+      #   observe if: ->(msg) { msg.q? }, then: ->(msg, model) { ... }
+      #   observe when: ->(msg) { msg.q? }, then: ->(msg, model) { ... }
+      #   observe unless: ->(msg) { msg.none? }, then: ->(msg, model) { ... }
+      def observe(predicate = nil, handler = nil, if: nil, when: nil, unless: nil, except: nil, then: nil)
+        # Extract predicate from keyword args
+        effective_predicate = predicate ||
+          binding.local_variable_get(:if) ||
+          binding.local_variable_get(:when)
+
+        # Handle inverted predicates (unless/except)
+        negative = binding.local_variable_get(:unless) || except
+
+        # Debug mode: validate Ractor shareability BEFORE wrapping (fail fast)
+        if RatatuiRuby::Debug.enabled?
+          # Validate the original predicates (not the wrapper we'll create)
+          validate_shareable!(effective_predicate, "observe predicate") if effective_predicate
+          validate_shareable!(negative, "observe predicate") if negative
+        end
+
+        if negative
+          # Create inverted wrapper - skip validation since we validated negative above
+          effective_predicate = -> (msg) { !negative.call(msg) }
+        end
+
+        # Extract handler from keyword args
+        effective_handler = handler || binding.local_variable_get(:then)
+
+        # Debug mode: validate handler
+        if RatatuiRuby::Debug.enabled?
+          validate_shareable!(effective_handler, "observe handler")
+        end
+
+        observe_handlers << { predicate: effective_predicate, handler: effective_handler }
+      end
+
+      # Returns the registered observe handlers array.
+      def observe_handlers
+        @observe_handlers ||= []
+      end
+
+      # Declares an observe handler that matches all messages (arity 1 convenience).
+      def observe_all(handler)
+        observe(-> (_msg) { true }, handler)
       end
 
       # Declares key handlers in a block.
@@ -264,6 +324,7 @@ module Rooibos
           key_handlers:,
           scroll_handlers:,
           click_handler:,
+          observe_handlers:,
           intercept_handlers:
         )
       end
@@ -271,23 +332,38 @@ module Rooibos
 
     # Internal UPDATE callable with proper typing.
     class RouterUpdate # :nodoc:
-      def initialize(routes:, actions:, routed_actions:, key_handlers:, scroll_handlers:, click_handler:, intercept_handlers:)
+      def initialize(routes:, actions:, routed_actions:, key_handlers:, scroll_handlers:, click_handler:, observe_handlers:, intercept_handlers:)
         @routes = routes
         @actions = actions
         @routed_actions = routed_actions
         @key_handlers = key_handlers
         @scroll_handlers = scroll_handlers
         @click_handler = click_handler
+        @observe_handlers = observe_handlers
         @intercept_handlers = intercept_handlers
       end
 
       # Process message and return [model, command] tuple.
       def call(message, model)
-        # 0. Try intercept handlers - first match stops processing
+        accumulated_commands = [] #: Array[Command::execution?]
+
+        # 0a. Try observe handlers - all matches run, processing continues
+        @observe_handlers.each do |config|
+          if config[:predicate].call(message)
+            result = config[:handler].call(message, model)
+            new_model, cmd = normalize_handler_result(result, model)
+            model = new_model
+            accumulated_commands << cmd if cmd
+          end
+        end
+
+        # 0b. Try intercept handlers - first match stops processing
         @intercept_handlers.each do |config|
           if config[:predicate].call(message)
             result = config[:handler].call(message, model)
-            return normalize_handler_result(result, model)
+            new_model, cmd = normalize_handler_result(result, model)
+            accumulated_commands << cmd if cmd
+            return [new_model, merge_commands(accumulated_commands)]
           end
         end
 
@@ -296,8 +372,9 @@ module Rooibos
           fragment_update = fragment.const_get(:Update)
           result = Rooibos.delegate(message, prefix, fragment_update, model.public_send(prefix))
           if result
-            new_fragment_model, command = result
-            return [model.with(prefix => new_fragment_model), command] #: [_DataModel, Command::execution?]
+            new_fragment_model, cmd = result
+            accumulated_commands << cmd if cmd
+            return [model.with(prefix => new_fragment_model), merge_commands(accumulated_commands)]
           end
         end
 
@@ -341,7 +418,8 @@ module Rooibos
             if command && config.route
               command = Rooibos.route(command, config.route)
             end
-            return [model, command] #: [_DataModel, Command::execution?]
+            accumulated_commands << command if command
+            return [model, merge_commands(accumulated_commands)] #: [_DataModel, Command::execution?]
           end
         end
 
@@ -355,7 +433,9 @@ module Rooibos
               if scroll_handler.nil? && config.action
                 scroll_handler = @actions[config.action]
               end
-              return [model, scroll_handler&.call] #: [_DataModel, Command::execution?]
+              cmd = scroll_handler&.call
+              accumulated_commands << cmd if cmd
+              return [model, merge_commands(accumulated_commands)]
             end
           end
           if message.scroll_down?
@@ -365,7 +445,9 @@ module Rooibos
               if scroll_handler.nil? && config.action
                 scroll_handler = @actions[config.action]
               end
-              return [model, scroll_handler&.call] #: [_DataModel, Command::execution?]
+              cmd = scroll_handler&.call
+              accumulated_commands << cmd if cmd
+              return [model, merge_commands(accumulated_commands)]
             end
           end
           # Click events (handler takes x, y coordinates)
@@ -375,15 +457,19 @@ module Rooibos
             if click_handler_proc.nil? && click_config.action
               # Actions don't take coordinates, so just call without args
               action_handler = @actions[click_config.action]
-              return [model, action_handler&.call] #: [_DataModel, Command::execution?]
+              cmd = action_handler&.call
+              accumulated_commands << cmd if cmd
+              return [model, merge_commands(accumulated_commands)]
             elsif click_handler_proc
-              return [model, click_handler_proc.call(message.x, message.y)] #: [_DataModel, Command::execution?]
+              cmd = click_handler_proc.call(message.x, message.y)
+              accumulated_commands << cmd if cmd
+              return [model, merge_commands(accumulated_commands)]
             end
           end
         end
 
-        # 4. Unhandled - return model unchanged
-        [model, nil] #: [_DataModel, Command::execution?]
+        # 4. Unhandled - return model with any accumulated observe commands
+        [model, merge_commands(accumulated_commands)]
       end
 
       private def normalize_handler_result(result, previous_model)
@@ -405,6 +491,16 @@ module Rooibos
 
         # Just a model
         [result, nil]
+      end
+
+      private def merge_commands(commands)
+        commands = commands.compact
+        return nil if commands.empty?
+        return commands.first if commands.size == 1
+        # Use internal Separate wrapper so runtime dispatches each independently
+        # (Batch would cause unexpected Message::Batch to be sent to app developers)
+        # Access via const_get to bypass private_constant (internal use only)
+        Rooibos::Command.const_get(:Separate).new(commands:)
       end
     end
     private_constant :RouterUpdate
