@@ -4,359 +4,226 @@
 #++
 
 module Rooibos
-  # Declarative DSL for Fractal Architecture.
-  module Router
-  def self.included: (Class base) -> void
-
-  # Duck type for Data-like models that support `with`.
+  # Duck type for Data-like models that support `with` and `public_send`.
   interface _DataModel
     def public_send: (Symbol, *Object) -> Object
     def with: (**Object) -> self
   end
 
-  # Interface for fractal child modules (fragments).
-  # Routed modules must have an UPDATE constant that handles child messages.
-  # NOTE: We use Module here because RBS interfaces can't declare class methods.
+  # Fractal routing DSL for composing hierarchical updates.
+  module Router
+    # Sentinel type for broadcasting to all routes.
+    type all_routes_sentinel = Object
 
-  # Configuration for key handlers.
-  class KeyHandlerConfig < Data
-    attr_reader handler: (^() -> Command::execution?)?
-    attr_reader action: Symbol?
-    attr_reader route: Symbol?
-    attr_reader guard: (^(_DataModel) -> bool)?
+    # Handler callable - zero or two argument form.
+    type handler = ^(message, _DataModel) -> Runtime::update_result
+                 | ^() -> Runtime::update_result
 
-    def initialize: (?handler: (^() -> Command::execution?)?, ?action: Symbol?, ?route: Symbol?, ?guard: (^(_DataModel) -> bool)?) -> void
-  end
+    # Handler or action name symbol.
+    type handler_or_action = handler | Symbol
 
-  # Configuration for scroll handlers (no coordinates).
-  class ScrollHandlerConfig < Data
-    attr_reader handler: (^() -> Command::execution?)?
-    attr_reader action: Symbol?
-    attr_reader guard: (^(_DataModel) -> bool | NegatedGuard | CombinedGuard)?
+    # Guard predicate callable.
+    type guard = ^(message, _DataModel) -> boolish
 
-    def initialize: (?handler: (^() -> Command::execution?)?, ?action: Symbol?, ?guard: (^(_DataModel) -> bool | NegatedGuard | CombinedGuard)?) -> void
-  end
+    # Route target: model attribute symbol, fragment module, or Route.
+    type route_target = Symbol | Module | Route
 
-  # Configuration for click handlers (x, y coordinates).
-  class ClickHandlerConfig < Data
-    attr_reader handler: (^(Integer, Integer) -> Command::execution?)?
-    attr_reader action: Symbol?
-    attr_reader guard: (^(_DataModel) -> bool | NegatedGuard | CombinedGuard)?
+    # Sentinel for "all routes" broadcast.
+    ALL_ROUTES: all_routes_sentinel
 
-    def initialize: (?handler: (^(Integer, Integer) -> Command::execution?)?, ?action: Symbol?, ?guard: (^(_DataModel) -> bool | NegatedGuard | CombinedGuard)?) -> void
-  end
+    # Module inclusion hook.
+    def self.included: (Class base) -> void
 
-  # Configuration for intercept handlers (hash type used inline in Ruby).
-  type intercept_handler_config = {
-    predicate: ^(Object) -> bool,
-    handler: ^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)
-  }
+    # Class methods added when Router is included.
+    module ClassMethods : Module
+      @routes: Routes
+      @actions: Actions
+      @forwards: Forwards
+      @receives: Receives
+      @observes: Observes
+      @otherwises: Otherwises
+      @_scoped_target: route_target?
 
-  # Configuration for observe handlers (similar to intercept but continues processing).
-  type observe_handler_config = {
-    predicate: ^(Object) -> bool,
-    handler: ^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)
-  }
+      # Assembles all declarations into a frozen RouterUpdate callable.
+      def from_router: () -> ^(message, _DataModel) -> [_DataModel, Command::execution?]
 
-  # Configuration for forward handlers (type/envelope routing).
-  # predicate uses untyped since we duck-type with respond_to?
-  type forward_handler_config = {
-    predicate: ^(untyped) -> bool,
-    handler: (^(_DataModel, Object) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil))?,
-    action: Symbol?,
-    broadcast: bool,
-    broadcast_to: Array[Symbol]?,
-    route_to: Symbol?
-  }
+      # Declares a child route binding a nested fragment to a model slice.
+      def route: (
+        ?Symbol? prefix,
+        to: Module,
+        ?read: (^(_DataModel) -> _DataModel)?,
+        ?write: (^(_DataModel, _DataModel) -> _DataModel)?
+      ) -> Route
 
-  # Type alias for callable objects that can be validated for Ractor shareability.
-  # Includes predicates (1-arg returning bool), handlers (2-arg returning update result),
-  # and route accessors (reader: model -> child_model, writer: (model, child) -> model).
-  type shareable_callable = (^(Object) -> bool) | (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)) | (^(_DataModel) -> Object) | (^(_DataModel, Object) -> _DataModel) | nil
+      # Forwards all instances of a class to routes.
+      def forward_instances_of: (
+        Class klass,
+        ?to: route_target?,
+        ?as: Symbol?,
+        ?broadcast: bool,
+        ?broadcast_to: Array[route_target]?
+      ) -> void
 
-  # Guard wrapper for negated predicates.
-  class NegatedGuard < Data
-    attr_reader guard: ^(_DataModel) -> bool
+      # Defines a named action referenceable by symbol.
+      def action: (?Symbol? name, ?handler? handler_arg) -> void
 
-    def initialize: (guard: ^(_DataModel) -> bool) -> void
-    def call: (_DataModel model) -> bool
-  end
+      # Handles matching key events. Stops further processing.
+      def receive_events: (
+        Symbol | Array[Symbol] keys,
+        handler_or_action handler,
+        ?guard: guard?,
+        ?when: guard?,
+        ?unless: guard?
+      ) -> void
 
-  # Guard wrapper for combined predicates.
-  class CombinedGuard < Data
-    attr_reader guards: Array[^(_DataModel) -> bool | NegatedGuard | CombinedGuard]
+      # Handles matching routed messages. Stops further processing.
+      def receive_routed: (
+        Symbol envelope,
+        handler_or_action handler,
+        ?guard: guard?
+      ) -> void
 
-    def initialize: (guards: Array[^(_DataModel) -> bool | NegatedGuard | CombinedGuard]) -> void
-    def call: (_DataModel model) -> bool
-  end
+      # Handles matching class instances. Stops further processing.
+      def receive_instances_of: (
+        Class klass,
+        handler_or_action handler,
+        ?guard: guard?
+      ) -> void
 
-  # Class methods added when Router is included.
-  module ClassMethods : Module
-    # Configuration for a route.
-    class RouteConfig < Data
-      attr_reader fragment: Module
-      attr_reader reader: (^(_DataModel) -> Object)?
-      attr_reader writer: (^(_DataModel, Object) -> _DataModel)?
+      # Handles any message. Stops further processing.
+      def receive_all: (
+        handler_or_action handler,
+        ?guard: guard?,
+        ?when: guard?,
+        ?unless: guard?
+      ) -> void
 
-      def initialize: (fragment: Module, ?reader: (^(_DataModel) -> Object)?, ?writer: (^(_DataModel, Object) -> _DataModel)?) -> void
+      # Handles messages matching a custom predicate. Stops further processing.
+      def receive: (
+        guard predicate,
+        handler_or_action handler,
+        ?guard: guard?
+      ) -> void
+
+      # Alias for receive_events.
+      alias intercept_events receive_events
+      # Alias for receive_routed.
+      alias intercept_routed receive_routed
+      # Alias for receive_instances_of.
+      alias intercept_instances_of receive_instances_of
+      # Alias for receive_all.
+      alias intercept_all receive_all
+      # Alias for receive.
+      alias intercept receive
+
+      # Routes matching key events to a declared route.
+      def forward_events: (
+        Symbol | Array[Symbol] keys,
+        ?to: route_target?,
+        ?as: Symbol?,
+        ?guard: guard?,
+        ?when: guard?,
+        ?unless: guard?
+      ) -> void
+
+      # Routes matching routed messages to a declared route.
+      def forward_routed: (
+        Symbol | Array[Symbol] envelopes,
+        ?to: route_target?,
+        ?as: Symbol?
+      ) -> void
+
+      # Routes messages matching a custom predicate.
+      def forward: (
+        guard predicate,
+        ?to: route_target?,
+        ?as: Symbol?
+      ) -> void
+
+      # Observes matching key events. Does not stop further processing.
+      def observe_events: (
+        Symbol | Array[Symbol] keys,
+        handler_or_action handler,
+        ?guard: guard?,
+        ?when: guard?,
+        ?unless: guard?
+      ) -> void
+
+      # Observes matching routed messages. Does not stop further processing.
+      def observe_routed: (
+        Symbol envelope,
+        handler_or_action handler,
+        ?guard: guard?
+      ) -> void
+
+      # Observes matching class instances. Does not stop further processing.
+      def observe_instances_of: (
+        Class klass,
+        handler_or_action handler,
+        ?guard: guard?
+      ) -> void
+
+      # Observes any message. Does not stop further processing.
+      def observe_all: (
+        handler_or_action handler,
+        ?guard: guard?,
+        ?when: guard?,
+        ?unless: guard?
+      ) -> void
+
+      # Observes messages matching a custom predicate. Does not stop further processing.
+      def observe: (
+        guard predicate,
+        handler_or_action handler,
+        ?guard: guard?,
+        ?when: guard?,
+        ?unless: guard?
+      ) -> void
+
+      # Catches unhandled messages as a router-level fallback.
+      def otherwise: (
+        ?route_to: route_target,
+        ?guard: guard?,
+        ?when: guard?,
+        ?unless: guard?
+      ) -> void
+
+      private
+
+      # Route registry for this router.
+      def routes: () -> Routes
+
+      # Action registry for this router.
+      def actions: () -> Actions
+
+      # Forward rule registry for this router.
+      def forwards: () -> Forwards
+
+      # Receive rule registry for this router.
+      def receives: () -> Receives
+
+      # Observe rule registry for this router.
+      def observes: () -> Observes
+
+      # Otherwise rule registry for this router.
+      def otherwises: () -> Otherwises
+
+      # Routes any message to a declared route.
+      def forward_all: (
+        ?to: route_target?,
+        ?guard: guard?,
+        ?when: guard?,
+        ?unless: guard?
+      ) -> void
+
+      # Scopes a positive guard over declarations.
+      def only: (?when: guard?, ?if: guard?) ?{ () -> void } -> void
+
+      # Scopes a negative guard over declarations.
+      def skip: (?when: guard?, ?if: guard?) ?{ () -> void } -> void
+
+      # Scopes forward target for a block.
+      def route_to: (route_target target) ?{ () -> void } -> void
     end
-
-    @routes: Hash[Symbol, RouteConfig]
-    @actions: Hash[Symbol, ^() -> Command::execution?]
-    @routed_actions: Hash[Symbol, Module]
-    @key_handlers: Hash[Symbol, KeyHandlerConfig]
-    @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
-    @click_handler: ClickHandlerConfig?
-    @intercept_handlers: Array[intercept_handler_config]
-    @observe_handlers: Array[observe_handler_config]
-    @forward_handlers: Array[forward_handler_config]
-    @otherwise_handler: Symbol?
-
-    def route: (?Symbol | String prefix, ?read: (^(_DataModel) -> Object)?, ?write: (^(_DataModel, Object) -> _DataModel)?, to: Module) -> void
-    def routes: () -> Hash[Symbol, RouteConfig]
-
-    # Action: multiple syntax forms supported
-    def action: (
-      ?(Symbol | String | ^() -> Command::execution?) name,
-      ?(^() -> Command::execution? | Module) value,
-      ?keymap: (Symbol | Array[Symbol])?,
-      ?key: (Symbol | Array[Symbol])?,
-      ?keys: (Symbol | Array[Symbol])?,
-      ?mousemap: (Symbol | Array[Symbol])?,
-      **(^() -> Command::execution? | Module) kwargs
-    ) -> void
-    def actions: () -> Hash[Symbol, ^() -> Command::execution?]
-    def routed_actions: () -> Hash[Symbol, Module]
-
-    private def register_action: (Symbol name, (^() -> Command::execution? | Module) value) -> void
-
-    def keymap: () { (KeymapBuilder) [self: KeymapBuilder] -> void } -> void
-    def key_handlers: () -> Hash[Symbol, KeyHandlerConfig]
-
-    def mousemap: () { (MousemapBuilder) [self: MousemapBuilder] -> void } -> void
-    def scroll_handlers: () -> Hash[Symbol, ScrollHandlerConfig]
-    def click_handler: () -> ClickHandlerConfig?
-
-    # Intercept handlers for early message termination
-    def intercept: (
-      ?(^(Object) -> bool) predicate,
-      ?(^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)) handler,
-      ?if: (^(Object) -> bool)?,
-      ?when: (^(Object) -> bool)?,
-      ?unless: (^(Object) -> bool)?,
-      ?except: (^(Object) -> bool)?,
-      ?then: (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil))?
-    ) -> void
-    def intercept_all: (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) handler) -> void
-    def intercept_handlers: () -> Array[intercept_handler_config]
-
-    # Observe handlers (continue processing after match).
-    def observe: (
-      ?(^(Object) -> bool) predicate,
-      ?(^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil)) handler,
-      ?if: (^(Object) -> bool)?,
-      ?when: (^(Object) -> bool)?,
-      ?unless: (^(Object) -> bool)?,
-      ?except: (^(Object) -> bool)?,
-      ?then: (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil))?
-    ) -> void
-    def observe_all: (^(Object, _DataModel) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) handler) -> void
-    def observe_handlers: () -> Array[observe_handler_config]
-
-    private def validate_shareable!: (shareable_callable callable, String label) -> void
-
-    # Forward handlers for message type/envelope routing.
-    def forward: () { (ForwardBuilder) [self: ForwardBuilder] -> void } -> void
-    def forward_handlers: () -> Array[forward_handler_config]
-
-    # Otherwise fallback (routes unhandled messages to a fragment).
-    def otherwise: (route_to: Symbol | String) -> void
-    private def otherwise_handler: () -> Symbol?
-
-    # Returns UPDATE callable that handles routing.
-    # Uses is_a? checks for Event::Key and Event::Mouse type narrowing.
-    # Model must be Data-like with `with` and field accessors.
-    def from_router: () -> RouterUpdate
   end
-
-  # UPDATE callable returned by from_router with proper typing.
-  # Implements #call to satisfy Proc-like interfaces.
-  class RouterUpdate
-    @routes: Hash[Symbol, ClassMethods::RouteConfig]
-    @actions: Hash[Symbol, ^() -> Command::execution?]
-    @routed_actions: Hash[Symbol, Module]
-    @key_handlers: Hash[Symbol, KeyHandlerConfig]
-    @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
-    @click_handler: ClickHandlerConfig?
-    @intercept_handlers: Array[intercept_handler_config]
-    @observe_handlers: Array[observe_handler_config]
-    @forward_handlers: Array[forward_handler_config]
-    @otherwise_handler: Symbol?
-
-    def initialize: (
-      routes: Hash[Symbol, ClassMethods::RouteConfig],
-      actions: Hash[Symbol, ^() -> Command::execution?],
-      routed_actions: Hash[Symbol, Module],
-      key_handlers: Hash[Symbol, KeyHandlerConfig],
-      scroll_handlers: Hash[Symbol, ScrollHandlerConfig],
-      click_handler: ClickHandlerConfig?,
-      intercept_handlers: Array[intercept_handler_config],
-      observe_handlers: Array[observe_handler_config],
-      forward_handlers: Array[forward_handler_config],
-      otherwise_handler: Symbol?
-    ) -> void
-
-    # Process message and return [model, command] tuple.
-    def call: (
-      (RatatuiRuby::Event::Key | RatatuiRuby::Event::Mouse | Array[Object]) message,
-      _DataModel model
-    ) -> [_DataModel, Command::execution?]
-
-    private
-
-    def normalize_handler_result: (
-      (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) result,
-      _DataModel previous_model
-    ) -> [_DataModel, Command::execution?]
-
-    def extract_bubbles_from_command: (
-      Command::execution? cmd,
-      _DataModel model,
-      Array[Command::execution?] accumulated_commands
-    ) -> _DataModel
-
-    def process_bubble: (
-      Object bubbled_message,
-      _DataModel model,
-      Array[Command::execution?] accumulated_commands
-    ) -> _DataModel
-
-    def merge_commands: (Array[Command::execution?] commands) -> Command::execution?
-
-    def find_route_config: (Symbol | String | Module identifier) -> ([Symbol, ClassMethods::RouteConfig] | [nil, nil])
-  end
-
-  # Builder for keymap DSL.
-  class KeymapBuilder
-    @handlers: Hash[String, KeyHandlerConfig]
-    @guard_stack: Array[^(_DataModel) -> bool]
-
-    attr_reader handlers: Hash[String, KeyHandlerConfig]
-
-    def initialize: () -> void
-
-    # Variadic key binding: accepts multiple keys, optional action kwarg, hash bindings
-    def key: (
-      *(String | Symbol | ^() -> Command::execution? | Hash[Symbol, (^() -> Command::execution?) | Symbol]) args,
-      ?action: Symbol?,
-      ?route: Symbol?,
-      ?when: (^(_DataModel) -> bool)?,
-      ?if: (^(_DataModel) -> bool)?,
-      ?only: (^(_DataModel) -> bool)?,
-      ?guard: (^(_DataModel) -> bool)?,
-      ?unless: (^(_DataModel) -> bool)?,
-      ?except: (^(_DataModel) -> bool)?,
-      ?skip: (^(_DataModel) -> bool)?,
-      **(^() -> Command::execution? | Symbol) bindings
-    ) -> void
-
-    # Alias for key (reads better with multiple keys)
-    alias keys key
-
-    def only: (
-      ?when: (^(_DataModel) -> bool)?,
-      ?if: (^(_DataModel) -> bool)?,
-      ?only: (^(_DataModel) -> bool)?,
-      ?guard: (^(_DataModel) -> bool)?
-    ) { () -> void } -> void
-
-    def skip: (
-      ?when: (^(_DataModel) -> bool)?,
-      ?if: (^(_DataModel) -> bool)?,
-      ?skip: (^(_DataModel) -> bool)?,
-      ?guard: (^(_DataModel) -> bool)?
-    ) { () -> void } -> void
-
-    private
-
-    def with_guard: ((^(_DataModel) -> bool)?) { () -> void } -> void
-    def register_key_handler: ((Symbol | String) key_name, (^() -> Command::execution? | Symbol)? handler, (Symbol | String | ^() -> Command::execution?)? action_name, Symbol? route, (^(_DataModel) -> bool)? guard) -> void
-  end
-
-  # Builder for mousemap DSL.
-  class MousemapBuilder
-    @scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
-    @click_handler: ClickHandlerConfig?
-    @guard_stack: Array[^(_DataModel) -> bool | NegatedGuard | CombinedGuard]
-
-    attr_reader scroll_handlers: Hash[Symbol, ScrollHandlerConfig]
-    attr_reader click_handler: ClickHandlerConfig?
-
-    def initialize: () -> void
-
-    def click: (
-      (^(Integer, Integer) -> Command::execution?) | Symbol handler_or_action,
-      ?when: (^(_DataModel) -> bool)?,
-      ?if: (^(_DataModel) -> bool)?,
-      ?only: (^(_DataModel) -> bool)?,
-      ?guard: (^(_DataModel) -> bool)?,
-      ?unless: (^(_DataModel) -> bool)?,
-      ?except: (^(_DataModel) -> bool)?,
-      ?skip: (^(_DataModel) -> bool)?
-    ) -> void
-
-    def scroll: (
-      :up | :down direction,
-      (^() -> Command::execution?) | Symbol handler_or_action,
-      ?when: (^(_DataModel) -> bool)?,
-      ?if: (^(_DataModel) -> bool)?,
-      ?only: (^(_DataModel) -> bool)?,
-      ?guard: (^(_DataModel) -> bool)?,
-      ?unless: (^(_DataModel) -> bool)?,
-      ?except: (^(_DataModel) -> bool)?,
-      ?skip: (^(_DataModel) -> bool)?
-    ) -> void
-
-    def only: (
-      ?when: (^(_DataModel) -> bool)?,
-      ?if: (^(_DataModel) -> bool)?,
-      ?only: (^(_DataModel) -> bool)?,
-      ?guard: (^(_DataModel) -> bool)?
-    ) { () -> void } -> void
-
-    def skip: (
-      ?when: (^(_DataModel) -> bool)?,
-      ?if: (^(_DataModel) -> bool)?,
-      ?skip: (^(_DataModel) -> bool)?,
-      ?guard: (^(_DataModel) -> bool)?
-    ) { () -> void } -> void
-
-    private
-
-    def with_guard: ((^(_DataModel) -> bool | NegatedGuard)?) { () -> void } -> void
-  end
-
-  # Builder for forward DSL.
-  class ForwardBuilder
-    @handlers: Array[forward_handler_config]
-
-    attr_reader handlers: Array[forward_handler_config]
-
-    def initialize: () -> void
-
-    # Routes messages by type predicate.
-    def with_type: (
-      (Symbol | String) type_name,
-      ?action: Symbol?,
-      ?broadcast: bool,
-      ?broadcast_to: Array[Symbol]?
-    ) ?{ (_DataModel, Object) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) } -> void
-
-    # Routes messages by envelope attribute.
-    def with_envelope: (
-      (Symbol | String) envelope_name,
-      ?route_to: Symbol?
-    ) ?{ (_DataModel, Object) -> (_DataModel | Command::execution? | [_DataModel, Command::execution?] | nil) } -> void
-  end
-end
 end

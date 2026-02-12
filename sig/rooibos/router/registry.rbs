@@ -1,0 +1,24 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Common behavior for Rule collections.
+    # Including classes must define `rules` as a Data member.
+    module Registry[T]
+      include Enumerable[T]
+
+      # The underlying rules collection (provided by including Data class).
+      def rules: () -> Array[T]
+
+      # Appends a rule to the collection.
+      def add: (T rule) -> Array[T]
+
+      # Iterates over all rules.
+      def each: () { (T) -> void } -> Array[T]
+              | () -> Enumerator[T, Array[T]]
+    end
+  end
+end

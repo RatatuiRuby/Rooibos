@@ -1,0 +1,33 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Action type: either a LambdaAction or RoutedAction.
+    type action = LambdaAction | RoutedAction
+
+    # Lambda action - calls handler directly.
+    class LambdaAction < Data
+      attr_reader name: Symbol?
+      attr_reader handler: handler
+
+      def routed?: () -> false
+
+      # Applies the handler and returns a Transition.
+      def apply: (message, _DataModel, Routes) -> Transition
+    end
+
+    # Routed action - wraps message and delegates through route to fragment.
+    class RoutedAction < Data
+      attr_reader name: Symbol
+      attr_reader fragment: Module
+
+      def routed?: () -> true
+
+      # Applies via route delegation and returns a Transition.
+      def apply: (message, _DataModel, Routes) -> Transition
+    end
+  end
+end

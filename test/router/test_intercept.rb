@@ -8,9 +8,8 @@
 require "test_helper"
 
 class TestRouterIntercept < Minitest::Test
-  # Basic intercept tests
   def test_intercept_stops_further_processing
-    keymap_called = false
+    receive_called = false
     intercept_called = false
 
     test_class = Class.new do
@@ -19,9 +18,7 @@ class TestRouterIntercept < Minitest::Test
       intercept lambda(&:q?),
         -> (msg, model) { intercept_called = true; model }
 
-      keymap do |map|
-        map.key :q, -> { keymap_called = true; nil }
-      end
+      receive_events :q, -> (_msg, model) { receive_called = true; model }
     end
 
     update = test_class.from_router
@@ -30,30 +27,7 @@ class TestRouterIntercept < Minitest::Test
     update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
 
     assert intercept_called, "intercept handler should have been called"
-    refute keymap_called, "keymap should NOT be called when intercept matches"
-  end
-
-  def test_intercept_keymap_never_runs_after_match
-    keymap_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      intercept lambda(&:enter?),
-        -> (msg, model) { model.merge(intercepted: true) }
-
-      keymap do |map|
-        map.key :enter, -> { keymap_called = true; nil }
-      end
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({ intercepted: false }, copy: true)
-
-    new_model, _command = update.call(RatatuiRuby::Event::Key.new(code: "enter"), model)
-
-    assert_equal true, new_model[:intercepted], "intercept should have run"
-    refute keymap_called, "keymap handler should never execute when intercept matches"
+    refute receive_called, "receive should NOT be called when intercept matches"
   end
 
   def test_intercept_returns_handler_result
@@ -73,39 +47,16 @@ class TestRouterIntercept < Minitest::Test
     assert_kind_of Rooibos::Command::Exit, command, "handler's command should be returned"
   end
 
-  def test_intercept_with_no_match_continues_to_keymap
-    keymap_called = false
+  def test_intercept_continues_on_no_match
+    receive_called = false
 
     test_class = Class.new do
       include Rooibos::Router
 
-      # Intercept only matches 'x', not 'q'
       intercept lambda(&:x?),
         -> (msg, model) { model }
 
-      keymap do |map|
-        map.key :q, -> { keymap_called = true; nil }
-      end
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    # Press 'q' - intercept should NOT match, keymap should run
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    assert keymap_called, "keymap should run when intercept predicate doesn't match"
-  end
-
-  # Callable types
-  def test_intercept_accepts_lambda_predicate_and_handler
-    handler_called = false
-    predicate = lambda(&:q?)
-    handler = -> (msg, model) { handler_called = true; model }
-
-    test_class = Class.new do
-      include Rooibos::Router
-      intercept predicate, handler
+      receive_events :q, -> (_msg, model) { receive_called = true; model }
     end
 
     update = test_class.from_router
@@ -113,331 +64,246 @@ class TestRouterIntercept < Minitest::Test
 
     update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
 
-    assert handler_called, "lambda predicate and handler should work"
+    assert receive_called, "receive should run when intercept predicate doesn't match"
   end
 
-  def test_intercept_accepts_proc_predicate_and_handler
-    handler_called = false
-    predicate = proc(&:q?)
-    handler = proc { |msg, model| handler_called = true; model }
+  def test_intercept_events_matches_key
+    intercepted = false
 
     test_class = Class.new do
       include Rooibos::Router
-      intercept predicate, handler
+
+      intercept_events :q, -> (_msg, model) { intercepted = true; model }
     end
 
     update = test_class.from_router
     model = Ractor.make_shareable({}, copy: true)
 
     update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    assert handler_called, "Proc predicate and handler should work"
+    assert intercepted
   end
 
-  def test_intercept_accepts_method_predicate_and_handler
-    handler_called = false
-
-    # Define methods in test scope
-    predicate_method = lambda(&:q?).method(:call)
-    handler_method = -> (msg, model) { handler_called = true; model }.method(:call)
+  def test_intercept_events_does_not_match_other_keys
+    intercepted = false
 
     test_class = Class.new do
       include Rooibos::Router
-      intercept predicate_method, handler_method
+
+      intercept_events :q, -> (_msg, model) { intercepted = true; model }
     end
 
     update = test_class.from_router
     model = Ractor.make_shareable({}, copy: true)
 
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    assert handler_called, "Method objects should work for predicate and handler"
-  end
-
-  def test_intercept_accepts_callable_object_predicate_and_handler
-    # Callable objects with #call method
-    predicate_object = Class.new do
-      def call(msg)
-        msg.q?
-      end
-    end.new
-
-    handler_object = Class.new do
-      def initialize(tracker)
-        @tracker = tracker
-      end
-
-      def call(msg, model)
-        @tracker[:called] = true
-        model
-      end
-    end.new(tracker = { called: false })
-
-    test_class = Class.new do
-      include Rooibos::Router
-      intercept predicate_object, handler_object
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    assert tracker[:called], "Callable objects should work for predicate and handler"
-  end
-
-  # Predicate aliases
-  def test_intercept_if_alias_matches_predicate
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      intercept if: lambda(&:q?),
-        then: -> (msg, model) { handler_called = true; model }
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    assert handler_called, "if: alias should work as predicate"
-  end
-
-  def test_intercept_when_alias_matches_predicate
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      intercept when: lambda(&:enter?),
-        then: -> (msg, model) { handler_called = true; model }
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    update.call(RatatuiRuby::Event::Key.new(code: "enter"), model)
-
-    assert handler_called, "when: alias should work as predicate"
-  end
-
-  def test_intercept_unless_inverts_predicate
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      # unless: inverts - should match when predicate is FALSE
-      intercept unless: lambda(&:q?),
-        then: -> (msg, model) { handler_called = true; model }
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    # Press 'x' - predicate returns false, so inverted = true, handler should run
     update.call(RatatuiRuby::Event::Key.new(code: "x"), model)
-
-    assert handler_called, "unless: should invert predicate (run when predicate is false)"
+    refute intercepted
   end
 
-  def test_intercept_except_inverts_predicate
-    handler_called = false
+  def test_receive_for_inward_messages
+    received = false
 
     test_class = Class.new do
       include Rooibos::Router
 
-      # except: inverts - should match when predicate is FALSE
-      intercept except: lambda(&:enter?),
-        then: -> (msg, model) { handler_called = true; model }
+      receive_events :enter, -> (_msg, model) { received = true; model }
     end
 
     update = test_class.from_router
     model = Ractor.make_shareable({}, copy: true)
 
-    # Press 'q' - predicate returns false (not enter), so inverted = true
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    assert handler_called, "except: should invert predicate"
-  end
-
-  def test_intercept_then_keyword_for_handler
-    # Already covered by if:/when:/unless: tests above
-    # This test verifies then: works with positional predicate
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      intercept lambda(&:q?),
-        then: -> (msg, model) { handler_called = true; model }
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    assert handler_called, "then: should work with positional predicate"
-  end
-
-  # intercept_all
-  def test_intercept_all_matches_every_message
-    call_count = 0
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      intercept_all -> (msg, model) { call_count += 1; model }
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    # Test with different message types
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
     update.call(RatatuiRuby::Event::Key.new(code: "enter"), model)
-    update.call(RatatuiRuby::Event::Mouse.new(kind: "scroll_up", button: "left", x: 0, y: 0), model)
-
-    assert_equal 3, call_count, "intercept_all should match every message"
+    assert received
   end
 
-  def test_intercept_all_stops_all_further_processing
-    keymap_called = false
+  class LeafReset < Data.define(:envelope, :count)
+    include Rooibos::Message::Predicates
+  end
+
+  def test_intercept_instances_of_matches_custom_message
+    intercepted = false
 
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept_all -> (msg, model) { model }
-
-      keymap do |map|
-        map.key :q, -> { keymap_called = true; nil }
-      end
+      intercept_instances_of TestRouterIntercept::LeafReset,
+        -> (msg, model) { intercepted = true; model }
     end
 
     update = test_class.from_router
     model = Ractor.make_shareable({}, copy: true)
 
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    refute keymap_called, "intercept_all should stop all further processing including keymap"
+    update.call(LeafReset.new(envelope: :leaf, count: 10), model)
+    assert intercepted
   end
 
-  # Multiple intercepts
-  def test_first_matching_intercept_stops_later_intercepts
-    first_called = false
-    second_called = false
+  def test_intercept_instances_of_stops_processing
+    next_handler_called = false
 
     test_class = Class.new do
       include Rooibos::Router
 
-      # Both intercepts match 'q'
-      intercept lambda(&:q?),
-        -> (msg, model) { first_called = true; model }
+      intercept_instances_of TestRouterIntercept::LeafReset,
+        -> (msg, model) { model }
 
-      intercept lambda(&:q?),
-        -> (msg, model) { second_called = true; model }
+      receive_all -> (msg, model) { next_handler_called = true; model }
     end
 
     update = test_class.from_router
     model = Ractor.make_shareable({}, copy: true)
 
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    assert first_called, "first intercept should run"
-    refute second_called, "second intercept should NOT run after first matches"
+    update.call(LeafReset.new(envelope: :leaf, count: 10), model)
+    refute next_handler_called, "receive_all should not run after intercept"
   end
 
-  def test_intercept_declaration_order_determines_priority
-    order = []
+  def test_intercept_routed_matches_envelope
+    intercepted = false
 
     test_class = Class.new do
       include Rooibos::Router
 
-      # Both intercepts match 'q', but first should win
-      intercept lambda(&:key?),
-        -> (msg, model) { order << :first; model }
-
-      intercept lambda(&:q?),
-        -> (msg, model) { order << :second; model }
+      intercept_routed :panel_self, -> (_msg, model) { intercepted = true; model }
     end
 
     update = test_class.from_router
     model = Ractor.make_shareable({}, copy: true)
 
+    routed_msg = Rooibos::Message::Routed.new(
+      envelope: :panel_self,
+      event: RatatuiRuby::Event::Key.new(code: "enter")
+    )
+
+    update.call(routed_msg, model)
+    assert intercepted
+  end
+
+  def test_intercept_routed_does_not_match_other_envelopes
+    intercepted = false
+
+    test_class = Class.new do
+      include Rooibos::Router
+
+      intercept_routed :panel_self, -> (_msg, model) { intercepted = true; model }
+    end
+
+    update = test_class.from_router
+    model = Ractor.make_shareable({}, copy: true)
+
+    routed_msg = Rooibos::Message::Routed.new(
+      envelope: :other_route,
+      event: RatatuiRuby::Event::Key.new(code: "enter")
+    )
+
+    update.call(routed_msg, model)
+    refute intercepted
+  end
+
+  def test_intercept_all_matches_any_message
+    intercepted = false
+
+    test_class = Class.new do
+      include Rooibos::Router
+
+      intercept_all -> (_msg, model) { intercepted = true; model }
+    end
+
+    update = test_class.from_router
+    model = Ractor.make_shareable({}, copy: true)
+
+    update.call(RatatuiRuby::Event::Key.new(code: "x"), model)
+    assert intercepted
+  end
+
+  def test_intercept_handler_receives_message_and_model
+    received_message = nil
+    received_model = nil
+
+    test_class = Class.new do
+      include Rooibos::Router
+
+      intercept lambda(&:q?),
+        -> (msg, model) {
+          received_message = msg
+          received_model = model
+          model
+        }
+    end
+
+    update = test_class.from_router
+    model = Ractor.make_shareable({ count: 42 }, copy: true)
+
     update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
 
-    assert_equal [:first], order, "first-declared intercept should run, second should not"
+    assert_kind_of RatatuiRuby::Event::Key, received_message
+    assert_equal 42, received_model[:count]
   end
 
-  # DWIM return handling
-  def test_intercept_handler_can_return_just_model
+  def test_intercept_events_with_guard
+    intercepted = false
+
+    test_class = Class.new do
+      include Rooibos::Router
+
+      intercept_events :q, -> (_msg, model) { intercepted = true; model },
+        when: -> (_msg, model) { model[:can_intercept] }
+    end
+
+    update = test_class.from_router
+
+    update.call(RatatuiRuby::Event::Key.new(code: "q"),
+      Ractor.make_shareable({ can_intercept: false }, copy: true))
+    refute intercepted
+
+    update.call(RatatuiRuby::Event::Key.new(code: "q"),
+      Ractor.make_shareable({ can_intercept: true }, copy: true))
+    assert intercepted
+  end
+
+  def test_intercept_nil_return_preserves_model
+    test_class = Class.new do
+      include Rooibos::Router
+
+      intercept lambda(&:q?), -> (_msg, _model) { nil }
+    end
+
+    update = test_class.from_router
+    model = Ractor.make_shareable({ count: 42 }, copy: true)
+
+    new_model, command = update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
+
+    assert_equal 42, new_model[:count]
+    assert_nil command
+  end
+
+  def test_intercept_returns_model_only
     test_class = Class.new do
       include Rooibos::Router
 
       intercept lambda(&:q?),
-        -> (msg, model) { model.merge(handled: true) } # Returns just model, no tuple
+        -> (_msg, model) { model.merge(intercepted: true) }
     end
 
     update = test_class.from_router
-    model = Ractor.make_shareable({ handled: false }, copy: true)
+    model = Ractor.make_shareable({}, copy: true)
 
     new_model, command = update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
 
-    assert_equal true, new_model[:handled], "model should be updated"
-    assert_nil command, "command should be nil when handler returns just model"
+    assert_equal true, new_model[:intercepted]
+    assert_nil command
   end
 
-  def test_intercept_handler_can_return_just_command
+  def test_intercept_returns_command_only
     test_class = Class.new do
       include Rooibos::Router
 
-      intercept lambda(&:q?),
-        -> (msg, model) { Rooibos::Command.exit } # Returns just command
+      intercept lambda(&:q?), -> (_msg, _model) { Rooibos::Command.exit }
     end
 
     update = test_class.from_router
-    model = Ractor.make_shareable({ original: true }, copy: true)
+    model = Ractor.make_shareable({ value: 42 }, copy: true)
 
     new_model, command = update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
 
-    assert_equal true, new_model[:original], "original model should be preserved"
-    assert_kind_of Rooibos::Command::Exit, command, "command should be returned"
-  end
-
-  def test_intercept_handler_can_return_tuple
-    test_class = Class.new do
-      include Rooibos::Router
-
-      intercept lambda(&:q?),
-        -> (msg, model) { [model.merge(handled: true), Rooibos::Command.exit] }
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({ handled: false }, copy: true)
-
-    new_model, command = update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    assert_equal true, new_model[:handled], "model should be updated"
-    assert_kind_of Rooibos::Command::Exit, command, "command should be returned"
-  end
-
-  def test_intercept_handler_can_return_nil
-    test_class = Class.new do
-      include Rooibos::Router
-
-      intercept lambda(&:q?),
-        -> (msg, model) { nil } # Returns nil
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({ original: true }, copy: true)
-
-    new_model, command = update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-
-    assert_equal true, new_model[:original], "original model should be preserved when handler returns nil"
-    assert_nil command, "command should be nil"
+    assert_equal 42, new_model[:value], "model should be unchanged"
+    assert_kind_of Rooibos::Command::Exit, command
   end
 end

@@ -1,0 +1,34 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Collection of forward rules.
+    class Forwards < Data
+      include Registry[Forward]
+
+      attr_reader rules: Array[Forward]
+
+      def initialize: (?rules: Array[Forward]) -> void
+
+      # Adds a forward rule matching class instances.
+      def add_instances_of: (Class klass, ?to: route_target?, ?as: Symbol?, ?broadcast: bool, ?broadcast_to: Array[route_target]?) -> void
+
+      # Adds a forward rule matching key events.
+      def add_events: (Symbol | Array[Symbol] keys, ?to: route_target?, ?as: Symbol?, ?guard: guard?, ?when: guard?, ?unless: guard?) -> void
+
+      # Adds a forward rule matching routed messages by envelope.
+      def add_routed: (Symbol | Array[Symbol] envelopes, ?to: route_target?, ?as: Symbol?) -> void
+
+      # Adds a forward rule matching a custom predicate.
+      def add_custom: (guard predicate, ?to: route_target?, ?as: Symbol?) -> void
+
+      private
+
+      # Resolves broadcast options into a targets value.
+      def resolve_targets: (to: route_target?, broadcast: bool, broadcast_to: Array[route_target]?) -> Forward::targets
+    end
+  end
+end

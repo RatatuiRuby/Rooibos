@@ -198,5 +198,17 @@ module Rooibos
     def respond_to_missing?: (Symbol name, ?bool include_private) -> bool
     def method_missing: (Symbol name, *untyped args, **untyped kwargs) ?{ () -> untyped } -> bool
   end
+
+  # Message wrapper for bubbled messages from child fragments.
+  class Bubbled < Data
+    include Predicates
+
+    attr_reader message: message
+
+    def self.new: (message: message) -> instance
+
+    def bubbled?: () -> bool
+    def deconstruct_keys: (Array[Symbol]? keys) -> { type: Symbol, message: message }
+  end
 end
 end

@@ -1,0 +1,51 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Predicate classes for message matching.
+    module Predicate
+      # Matches key events by symbol.
+      class Events < Data
+        attr_reader keys: Array[Symbol]
+
+        def initialize: (keys: Symbol | Array[Symbol]) -> void
+        def arity: () -> Integer
+        def call: (message, _DataModel) -> boolish
+      end
+
+      # Matches routed messages by single envelope.
+      class Routed < Data
+        attr_reader envelope: Symbol
+
+        def arity: () -> Integer
+        def call: (message, _DataModel) -> boolish
+      end
+
+      # Matches routed messages by any of the given envelopes.
+      class RoutedEnvelopes < Data
+        attr_reader envelopes: Array[Symbol]
+
+        def initialize: (envelopes: Symbol | Array[Symbol]) -> void
+        def arity: () -> Integer
+        def call: (message, _DataModel) -> boolish
+      end
+
+      # Matches messages by class.
+      class InstancesOf < Data
+        attr_reader klass: Class
+
+        def arity: () -> Integer
+        def call: (message, _DataModel) -> boolish
+      end
+
+      # Matches all messages.
+      class Always < Data
+        def arity: () -> Integer
+        def call: (message, _DataModel) -> boolish
+      end
+    end
+  end
+end

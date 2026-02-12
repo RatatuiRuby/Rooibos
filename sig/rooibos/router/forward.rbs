@@ -1,0 +1,35 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Forward rule - matches messages and delegates to route(s).
+    class Forward < Data
+      include Rule
+
+      # Targets: a single target, array of targets, or ALL_ROUTES sentinel.
+      type targets = route_target | Array[route_target] | all_routes_sentinel
+
+      attr_reader predicate: predicate
+      attr_reader targets: targets
+      attr_reader envelope: Symbol?
+      attr_reader guard: Guard
+
+      def initialize: (
+        predicate: predicate,
+        ?targets: targets,
+        ?envelope: Symbol?,
+        ?guard: Guard?
+      ) -> void
+
+      # Routes the message to target route(s) and returns a Transition.
+      def apply: (message, _DataModel, Routes) -> Transition
+
+      private
+
+      def envelop: (message msg) -> (message | Message::Routed)
+    end
+  end
+end

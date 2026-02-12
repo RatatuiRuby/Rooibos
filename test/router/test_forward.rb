@@ -8,83 +8,244 @@
 require "test_helper"
 
 class TestRouterForward < Minitest::Test
-  # Custom message type for testing
   class ResizeMessage < Data.define(:width, :height)
     include Rooibos::Message::Predicates
   end
 
-  # Different message type for no-match tests
   class ThemeMessage < Data.define(:theme)
     include Rooibos::Message::Predicates
   end
 
-  # Message with envelope for with_envelope tests
   class EnvelopedMessage < Data.define(:envelope, :data)
     include Rooibos::Message::Predicates
   end
 
-  # with_type tests
-  def test_forward_with_type_matches_message_type_predicate
-    handler_called = false
+  module TrackingChild
+    Model = Data.define(:received_messages, :last_envelope)
+    Init = -> { Model.new(received_messages: [], last_envelope: nil) }
+    Update = -> (msg, model) {
+      envelope = msg.routed? ? msg.envelope : nil
+      [
+        model.with(
+          received_messages: model.received_messages + [msg],
+          last_envelope: envelope || model.last_envelope
+        ),
+        nil,
+]
+    }
+  end
 
+  def test_forward_instances_of_matches_message_class
     test_class = Class.new do
       include Rooibos::Router
 
-      forward do |messages|
-        messages.with_type :resize_message do |model, message|
-          handler_called = true
-          model.merge(resized: true)
-        end
-      end
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_instances_of TestRouterForward::ResizeMessage, to: :child
     end
 
     update = test_class.from_router
-    model = Ractor.make_shareable({ resized: false }, copy: true)
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
 
     new_model, _cmd = update.call(ResizeMessage.new(width: 800, height: 600), model)
 
-    assert handler_called, "forward with_type should call handler when type matches"
-    assert_equal true, new_model[:resized], "model should be updated by handler"
+    assert_equal 1, new_model.child.received_messages.size
   end
 
-  def test_forward_with_type_dispatches_to_action
-    @@action_called = false
-
+  def test_forward_instances_of_does_not_match_other_types
     test_class = Class.new do
       include Rooibos::Router
 
-      action :handle_resize, -> { @@action_called = true; nil }
+      route :child, to: TestRouterForward::TrackingChild
 
-      forward do |messages|
-        messages.with_type :resize_message, action: :handle_resize
-      end
+      forward_instances_of TestRouterForward::ResizeMessage, to: :child
     end
 
     update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
 
-    update.call(ResizeMessage.new(width: 800, height: 600), model)
+    new_model, _cmd = update.call(ThemeMessage.new(theme: :dark), model)
 
-    assert @@action_called, "forward with_type action: should call the named action"
+    assert_equal 0, new_model.child.received_messages.size
   end
 
-  def test_forward_with_type_broadcast_sends_to_all_routes
-    @@sidebar_called = false
-    @@main_called = false
+  def test_forward_instances_of_with_as_transforms_envelope
+    test_class = Class.new do
+      include Rooibos::Router
 
-    # Child fragments
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_instances_of TestRouterForward::ResizeMessage, to: :child, as: :layout_resize
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(ResizeMessage.new(width: 800, height: 600), model)
+
+    assert_equal :layout_resize, new_model.child.last_envelope
+  end
+
+  def test_forward_instances_of_to_captured_route
+    captured_route = nil
+    test_class = Class.new do
+      include Rooibos::Router
+
+      captured_route = route :child, to: TestRouterForward::TrackingChild
+
+      forward_instances_of TestRouterForward::ResizeMessage, to: captured_route
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(ResizeMessage.new(width: 800, height: 600), model)
+
+    assert_equal 1, new_model.child.received_messages.size,
+      "forward_instances_of to: Route should resolve the captured route"
+  end
+
+  def test_forward_events_matches_key_event
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_events :enter, to: :child
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(RatatuiRuby::Event::Key.new(code: "enter"), model)
+
+    assert_equal 1, new_model.child.received_messages.size
+  end
+
+  def test_forward_events_with_as_sets_envelope
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_events :enter, to: :child, as: :submit
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(RatatuiRuby::Event::Key.new(code: "enter"), model)
+
+    assert_equal :submit, new_model.child.last_envelope
+  end
+
+  def test_forward_events_does_not_match_other_keys
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_events :enter, to: :child
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
+
+    assert_equal 0, new_model.child.received_messages.size
+  end
+
+  def test_forward_events_to_fragment_module
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_events :enter, to: TestRouterForward::TrackingChild
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(RatatuiRuby::Event::Key.new(code: "enter"), model)
+
+    assert_equal 1, new_model.child.received_messages.size,
+      "forward_events to: Module should resolve the route by fragment"
+  end
+
+  def test_forward_routed_matches_envelope
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_routed :submit, to: :child
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    routed_msg = Rooibos::Message::Routed.new(
+      envelope: :submit,
+      event: RatatuiRuby::Event::Key.new(code: "enter")
+    )
+
+    new_model, _cmd = update.call(routed_msg, model)
+
+    assert_equal 1, new_model.child.received_messages.size
+  end
+
+  def test_forward_routed_with_as_transforms_envelope
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_routed :outer_submit, to: :child, as: :inner_submit
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    routed_msg = Rooibos::Message::Routed.new(
+      envelope: :outer_submit,
+      event: RatatuiRuby::Event::Key.new(code: "enter")
+    )
+
+    new_model, _cmd = update.call(routed_msg, model)
+
+    assert_equal :inner_submit, new_model.child.last_envelope
+  end
+
+  def test_forward_instances_of_broadcast_sends_to_all_routes
+    sidebar_count = 0
+    main_count = 0
+
     sidebar = Module.new do
-      const_set :Init, -> { { name: :sidebar } }
+      const_set :Model, Data.define(:x)
+      const_set :Init, -> { self::Model.new(x: 0) }
       const_set :Update, -> (msg, model) {
-        @@sidebar_called = true if msg.resize_message?
+        sidebar_count += 1 if msg.is_a?(TestRouterForward::ResizeMessage) || msg.routed?
         [model, nil]
       }
     end
 
     main = Module.new do
-      const_set :Init, -> { { name: :main } }
+      const_set :Model, Data.define(:x)
+      const_set :Init, -> { self::Model.new(x: 0) }
       const_set :Update, -> (msg, model) {
-        @@main_called = true if msg.resize_message?
+        main_count += 1 if msg.is_a?(TestRouterForward::ResizeMessage) || msg.routed?
         [model, nil]
       }
     end
@@ -95,9 +256,7 @@ class TestRouterForward < Minitest::Test
       route :sidebar, to: sidebar
       route :main, to: main
 
-      forward do |messages|
-        messages.with_type :resize_message, broadcast: true
-      end
+      forward_instances_of TestRouterForward::ResizeMessage, broadcast: true
     end
 
     update = test_class.from_router
@@ -106,36 +265,38 @@ class TestRouterForward < Minitest::Test
 
     update.call(ResizeMessage.new(width: 800, height: 600), model)
 
-    assert @@sidebar_called, "broadcast: true should send to sidebar route"
-    assert @@main_called, "broadcast: true should send to main route"
+    assert_equal 1, sidebar_count, "broadcast should send to sidebar"
+    assert_equal 1, main_count, "broadcast should send to main"
   end
 
-  def test_forward_with_type_broadcast_to_sends_to_named_routes
-    @@sidebar_called = false
-    @@main_called = false
-    @@footer_called = false
+  def test_forward_instances_of_broadcast_to_sends_to_named_routes
+    sidebar_count = 0
+    main_count = 0
+    footer_count = 0
 
-    # Child fragments
     sidebar = Module.new do
-      const_set :Init, -> { { name: :sidebar } }
+      const_set :Model, Data.define(:x)
+      const_set :Init, -> { self::Model.new(x: 0) }
       const_set :Update, -> (msg, model) {
-        @@sidebar_called = true if msg.resize_message?
+        sidebar_count += 1
         [model, nil]
       }
     end
 
     main = Module.new do
-      const_set :Init, -> { { name: :main } }
+      const_set :Model, Data.define(:x)
+      const_set :Init, -> { self::Model.new(x: 0) }
       const_set :Update, -> (msg, model) {
-        @@main_called = true if msg.resize_message?
+        main_count += 1
         [model, nil]
       }
     end
 
     footer = Module.new do
-      const_set :Init, -> { { name: :footer } }
+      const_set :Model, Data.define(:x)
+      const_set :Init, -> { self::Model.new(x: 0) }
       const_set :Update, -> (msg, model) {
-        @@footer_called = true if msg.resize_message?
+        footer_count += 1
         [model, nil]
       }
     end
@@ -147,9 +308,8 @@ class TestRouterForward < Minitest::Test
       route :main, to: main
       route :footer, to: footer
 
-      forward do |messages|
-        messages.with_type :resize_message, broadcast_to: [:sidebar, :main]
-      end
+      forward_instances_of TestRouterForward::ResizeMessage,
+        broadcast_to: [:sidebar, :main] # Not footer
     end
 
     update = test_class.from_router
@@ -162,111 +322,214 @@ class TestRouterForward < Minitest::Test
 
     update.call(ResizeMessage.new(width: 800, height: 600), model)
 
-    assert @@sidebar_called, "broadcast_to: [:sidebar, :main] should send to sidebar"
-    assert @@main_called, "broadcast_to: [:sidebar, :main] should send to main"
-    refute @@footer_called, "broadcast_to: [:sidebar, :main] should NOT send to footer"
+    assert_equal 1, sidebar_count
+    assert_equal 1, main_count
+    assert_equal 0, footer_count, "footer should NOT receive (not in broadcast_to)"
   end
 
-  def test_forward_with_type_no_match_falls_through
-    handler_called = false
-
+  def test_forward_with_predicate_matches_on_true
     test_class = Class.new do
       include Rooibos::Router
 
-      forward do |messages|
-        messages.with_type :resize_message do |model, message|
-          handler_called = true
-          model.merge(resized: true)
-        end
-      end
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward -> (msg, _model) { msg.key? && msg.ctrl? }, to: :child
     end
 
     update = test_class.from_router
-    model = Ractor.make_shareable({ original: true }, copy: true)
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
 
-    # Send a ThemeMessage, which should NOT match :resize_message
-    new_model, _cmd = update.call(ThemeMessage.new(theme: :dark), model)
+    new_model, _cmd = update.call(
+      RatatuiRuby::Event::Key.new(code: "c", modifiers: ["ctrl"]),
+      model
+    )
 
-    refute handler_called, "handler should NOT be called for non-matching type"
-    assert_equal true, new_model[:original], "model should be unchanged"
+    assert_equal 1, new_model.child.received_messages.size
   end
 
-  # with_envelope tests
-  def test_forward_with_envelope_matches_message_envelope
-    @@handler_called = false
-
+  def test_forward_with_predicate_skips_on_false
     test_class = Class.new do
       include Rooibos::Router
 
-      forward do |messages|
-        messages.with_envelope :file_list do |model, message|
-          @@handler_called = true
-          model.merge(handled: true)
-        end
-      end
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward -> (msg, _model) { msg.key? && msg.ctrl? }, to: :child
     end
 
     update = test_class.from_router
-    model = Ractor.make_shareable({ handled: false }, copy: true)
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
 
-    new_model, _cmd = update.call(EnvelopedMessage.new(envelope: :file_list, data: "test"), model)
+    new_model, _cmd = update.call(RatatuiRuby::Event::Key.new(code: "c"), model)
 
-    assert @@handler_called, "with_envelope should call handler when envelope matches"
-    assert_equal true, new_model[:handled], "model should be updated by handler"
+    assert_equal 0, new_model.child.received_messages.size
   end
 
-  def test_forward_with_envelope_routes_to_fragment
-    @@fragment_called = false
-
-    file_list = Module.new do
-      const_set :Init, -> { { name: :file_list } }
-      const_set :Update, -> (msg, model) {
-        @@fragment_called = true if msg.enveloped_message?
-        [model.merge(received: true), nil]
-      }
-    end
-
+  def test_forward_events_with_guard
     test_class = Class.new do
       include Rooibos::Router
 
-      route :file_list, to: file_list
+      route :child, to: TestRouterForward::TrackingChild
 
-      forward do |messages|
-        messages.with_envelope :file_list, route_to: :file_list
-      end
+      forward_events :enter, to: :child,
+        when: -> (_msg, model) { model.active }
     end
 
     update = test_class.from_router
-    model_class = Data.define(:file_list)
-    model = model_class.new(file_list: file_list::Init.call)
+    model_class = Data.define(:child, :active)
 
-    new_model, _cmd = update.call(EnvelopedMessage.new(envelope: :file_list, data: "test"), model)
+    inactive = model_class.new(child: TrackingChild::Init.call, active: false)
+    new_model, _cmd = update.call(RatatuiRuby::Event::Key.new(code: "enter"), inactive)
+    assert_equal 0, new_model.child.received_messages.size
 
-    assert @@fragment_called, "route_to: should forward message to fragment"
-    assert_equal true, new_model.file_list[:received], "fragment model should be updated"
+    active = model_class.new(child: TrackingChild::Init.call, active: true)
+    new_model2, _cmd = update.call(RatatuiRuby::Event::Key.new(code: "enter"), active)
+    assert_equal 1, new_model2.child.received_messages.size
   end
 
-  def test_forward_with_envelope_no_match_falls_through
-    handler_called = false
-
+  def test_forward_instances_of_preserves_message_attribute_values
     test_class = Class.new do
       include Rooibos::Router
 
-      forward do |messages|
-        messages.with_envelope :sidebar do |model, message|
-          handler_called = true
-          model
-        end
-      end
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_instances_of TestRouterForward::ResizeMessage, to: :child
     end
 
     update = test_class.from_router
-    model = Ractor.make_shareable({ original: true }, copy: true)
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
 
-    # Send message with different envelope
-    new_model, _cmd = update.call(EnvelopedMessage.new(envelope: :file_list, data: "test"), model)
+    new_model, _cmd = update.call(ResizeMessage.new(width: 1920, height: 1080), model)
 
-    refute handler_called, "handler should NOT be called for non-matching envelope"
-    assert_equal true, new_model[:original], "model should be unchanged"
+    received = new_model.child.received_messages.first
+    assert_equal 1920, received.width, "message width must be preserved"
+    assert_equal 1080, received.height, "message height must be preserved"
+  end
+
+  def test_forward_instances_of_forwards_exact_message_instance
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_instances_of TestRouterForward::ResizeMessage, to: :child
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    original_message = ResizeMessage.new(width: 800, height: 600)
+    new_model, _cmd = update.call(original_message, model)
+
+    received = new_model.child.received_messages.first
+    assert_same original_message, received, "exact message instance must be forwarded"
+  end
+
+  def test_forward_events_array_preserves_each_events_content
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_events [:left, :right], to: :child
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    left_event = RatatuiRuby::Event::Key.new(code: "left")
+    right_event = RatatuiRuby::Event::Key.new(code: "right")
+
+    new_model, _cmd = update.call(left_event, model)
+    new_model, _cmd = update.call(right_event, new_model)
+
+    received = new_model.child.received_messages
+    assert_equal "left", received[0].code, "first event code must be preserved"
+    assert_equal "right", received[1].code, "second event code must be preserved"
+  end
+
+  def test_forward_events_with_as_preserves_original_event_inside_routed
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_events :enter, to: :child, as: :submit
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    enter_event = RatatuiRuby::Event::Key.new(code: "enter")
+    new_model, _cmd = update.call(enter_event, model)
+
+    received = new_model.child.received_messages.first
+    assert received.routed?, "message must be routed"
+    assert_equal :submit, received.envelope
+    assert_same enter_event, received.event, "original event must be preserved inside Routed"
+  end
+
+  def test_forward_routed_with_as_preserves_nested_event_chain
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_routed :inner, to: :child, as: :outer
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    original_event = RatatuiRuby::Event::Key.new(code: "tab")
+    inner_routed = Rooibos::Message::Routed.new(envelope: :inner, event: original_event)
+    new_model, _cmd = update.call(inner_routed, model)
+
+    received = new_model.child.received_messages.first
+    assert received.routed?, "message must be routed"
+    assert_equal :outer, received.envelope
+    assert_same inner_routed, received.event, "nested event chain must be preserved"
+  end
+
+  def test_forward_events_with_empty_array_matches_nothing
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_events [], to: :child
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(RatatuiRuby::Event::Key.new(code: "enter"), model)
+
+    assert_equal 0, new_model.child.received_messages.size, "empty array should match nothing"
+  end
+
+  def test_forward_events_with_duplicate_keys_in_array_forwards_once
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterForward::TrackingChild
+
+      forward_events [:enter, :enter, :enter], to: :child
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(RatatuiRuby::Event::Key.new(code: "enter"), model)
+
+    assert_equal 1, new_model.child.received_messages.size, "duplicates should forward once"
   end
 end

@@ -26,10 +26,9 @@ module Rooibos
     class Bubble < Data.define(:message)
       include Custom
 
-      # Raises — outer fragments handle Bubble commands before execution.
-      def call(_out, _token)
-        raise "Bubble command should never be executed"
-      end
+      # No-op: unhandled bubbles that escape the Router hierarchy( when no
+      # fragment intercepts the message) are silently dropped.
+      def call(_out, _token) = nil
     end
   end
 end

@@ -98,6 +98,16 @@ module Rooibos
           out.put(Message::Batch.new(command: self))
         end
       end
+
+      def extract_bubbles # :nodoc:
+        bubbles, rest = commands.partition { |c| c.is_a?(Bubble) }
+        remaining = case rest.size
+          when 0 then nil
+          when 1 then rest.first
+          else Batch.new(*rest)
+        end
+        [bubbles, remaining]
+      end
     end
     end
   end

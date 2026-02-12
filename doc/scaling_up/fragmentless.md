@@ -29,7 +29,7 @@ Composition patterns exist for apps that need composition. Most apps don't.
 
 Write simple apps simply. One module. One model. One update. One view.
 
-This guide shows the same 7-counter example used in [Router-Based Composition](routerful.md) and [Routerless Composition](routerless.md). Those guides decompose it into fragments to demonstrate patterns. This guide shows how you'd actually write it.
+This guide shows the same 7-counter example used in [Router-Based Composition](message_routing.md) and [Routerless Composition](routerless.md). Those guides decompose it into fragments to demonstrate patterns. This guide shows how you'd actually write it.
 
 ---
 
@@ -201,7 +201,7 @@ Consider fragments when you have:
 
 ## About the Other Guides
 
-[Router-Based Composition](routerful.md) and [Routerless Composition](routerless.md) use this same 7-counter example. They decompose it into fragments to demonstrate architectural patterns.
+[Router-Based Composition](message_routing.md) and [Routerless Composition](routerless.md) use this same 7-counter example. They decompose it into fragments to demonstrate architectural patterns.
 
 Those guides are **constrained examples**. They show how to compose, not whether you should. The patterns exist for apps that need them.
 
@@ -211,6 +211,6 @@ If your app is simple, stay here. Write it like this. Read the composition guide
 
 ## See Also
 
-- [Router-Based Composition](routerful.md) — Declarative patterns with the Router DSL
+- [Router-Based Composition](message_routing.md) — Declarative patterns with the Router DSL
 - [Routerless Composition](routerless.md) — Explicit patterns without the Router
 - [Fractal Architecture](fractal_architecture.md) — When and why to decompose

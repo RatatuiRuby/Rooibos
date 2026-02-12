@@ -1,0 +1,21 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Normalizes guard options into a callable.
+    class Guard < Data
+      attr_reader callable: guard?
+
+      def self.from: (?guard: guard?, ?when: guard?, ?unless: guard?) -> Guard
+
+      # Effective arity of the guard (2 if no callable).
+      def arity: () -> Integer
+
+      # Evaluates the guard. Returns true if no callable.
+      def call: (message, _DataModel) -> boolish
+    end
+  end
+end

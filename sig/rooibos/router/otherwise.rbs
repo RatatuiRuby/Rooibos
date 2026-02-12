@@ -1,0 +1,22 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Otherwise rule - routes unhandled messages to a fragment.
+    class Otherwise < Data
+      include Rule
+
+      attr_reader target: route_target
+      attr_reader guard: Guard
+      attr_reader predicate: Predicate::Always
+
+      def initialize: (target: route_target, ?guard: Guard?) -> void
+
+      # Routes the message through the target route.
+      def apply: (message, _DataModel, Routes) -> Transition
+    end
+  end
+end

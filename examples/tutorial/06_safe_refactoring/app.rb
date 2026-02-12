@@ -95,16 +95,19 @@ module Tutorial06
 
     route :file_list, to: FileList
 
-    action go_back: FileList, keys: %i[backspace left h]
-    action go_home: FileList, key: :~
-    action go_root: FileList, key: :/
-    action refresh: FileList, key: :R
-    action enter: FileList, keys: %i[enter right l]
-    action move_down: FileList, keys: %i[down j]
-    action move_up: FileList, keys: %i[up k]
-    action jump_to_first: FileList, keys: %i[home g]
-    action jump_to_last: FileList, keys: %i[end G]
-    action -> { Command.exit }, keys: %i[ctrl_c q]
+    # Map keys to the file list fragment with semantic envelopes
+    forward_events %i[backspace left h], to: :file_list, as: :go_back
+    forward_events :~, to: :file_list, as: :go_home
+    forward_events :/, to: :file_list, as: :go_root
+    forward_events :R, to: :file_list, as: :refresh
+    forward_events %i[enter right l], to: :file_list, as: :enter
+    forward_events %i[down j], to: :file_list, as: :move_down
+    forward_events %i[up k], to: :file_list, as: :move_up
+    forward_events %i[home g], to: :file_list, as: :jump_to_first
+    forward_events %i[end G], to: :file_list, as: :jump_to_last
+
+    action :quit, -> { Command.exit }
+    receive_events %i[ctrl_c q], :quit
 
     View = -> (model, tui) {
       FileList::View.call(model.file_list, tui)

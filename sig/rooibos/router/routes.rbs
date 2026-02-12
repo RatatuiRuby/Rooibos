@@ -1,0 +1,41 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Collection of routes - offers add/fetch/broadcast interface.
+    class Routes
+      include Enumerable[Route]
+
+      @routes: Set[Route]
+
+      def initialize: (?Set[Route] routes) -> void
+
+      # Adds a route to the collection. Returns the route for capture.
+      def add: (Route route) -> Route
+
+      # Resolves a target (Module, Symbol, or Route) to a Route.
+      def for: (route_target identifier) -> Route?
+
+      # Iterates over all routes.
+      def each: () { (Route) -> void } -> Set[Route]
+              | () -> Enumerator[Route, Set[Route]]
+
+      # Returns a subset of routes for the given targets.
+      def subset: (Array[route_target] targets) -> Routes
+
+      # Broadcasts a message to all routes, accumulating transitions.
+      def broadcast: (message msg, _DataModel model) -> Transition
+
+      # Broadcasts to a specific subset of routes.
+      def broadcast_to: (Array[route_target] targets, message msg, _DataModel model) -> Transition
+
+      private
+
+      # Finds the unique route matching the block, raises on ambiguity.
+      def unique: (route_target identifier) { (Route) -> boolish } -> Route?
+    end
+  end
+end

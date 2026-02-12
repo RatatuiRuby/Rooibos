@@ -59,7 +59,6 @@ module Rooibos
   private
 
   def self.validate_view_return!: (renderable? widget) -> void
-  def self.normalize_update_return: [Model] (update_result? result, Model? previous_model) -> [Model?, Command::execution?]
   def self.validate_ractor_shareable!: [T] (T object, String name) -> void
   def self.fragment_from_kwargs: (Module? root_fragment, ?model: untyped, ?view: untyped, ?update: untyped, ?command: untyped) -> Module
   def self.fragment_invariant!: (String param) -> void

@@ -1,0 +1,33 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Encapsulates dispatch logic - given frozen flow objects, processes messages.
+    class RouterUpdate < Data
+      attr_reader inward: Flow::Inward
+      attr_reader outward: Flow::Outward
+
+      def initialize: (
+        inward: Flow::Inward,
+        outward: Flow::Outward
+      ) -> void
+
+      # Dispatches a message through the router pipeline.
+      def call: (message, _DataModel) -> [_DataModel, Command::execution?]
+
+      private
+
+      # Handles inward dispatch (non-bubbled messages).
+      def dispatch_inward: (message, _DataModel) -> [_DataModel, Command::execution?]
+
+      # Extracts bubbles from a Command::Batch and processes them.
+      def extract_bubbles_from_batch: (Transition transition) -> Transition
+
+      # Handles outward dispatch (bubbled messages).
+      def dispatch_outward: (message, _DataModel) -> [_DataModel, Command::execution?]
+    end
+  end
+end

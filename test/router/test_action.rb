@@ -8,127 +8,81 @@
 require "test_helper"
 
 class TestRouterAction < Minitest::Test
-  # Fake child module for testing
-  module FakeChild
-    INITIAL = :child_initial
-    Update = -> (msg, model) { [model, nil] }
+  module Counter
+    Model = Data.define(:count)
+    Init = -> { Model.new(count: 0) }
+    Update = -> (msg, model) {
+      return model unless msg.routed? && msg.envelope == :increment
+      model.with(count: model.count + 1)
+    }
   end
 
-  # action defines a named action that can be referenced by keymap/mousemap.
-  # Actions are normalized via .to_s.to_sym.
-  def test_action_defines_named_action
-    handler = -> { [:scroll, -1] }
-
-    test_class = Class.new do
+  def test_action_referenced_by_receive_events_handles_message
+    router_class = Class.new do
       include Rooibos::Router
 
-      action :scroll_up, handler
-      action "scroll_down", -> { [:scroll, 1] } # String works too
+      action :quit, -> { Rooibos::Command.exit }
+      receive_events :q, :quit
     end
 
-    assert_equal handler, test_class.actions[:scroll_up]
-    assert test_class.actions[:scroll_down].is_a?(Proc)
+    update = router_class.from_router
+    model = Ractor.make_shareable({})
+    key_message = RatatuiRuby::Event::Key.new(code: "q")
+
+    _model, cmd = update.call(key_message, model)
+
+    assert_kind_of Rooibos::Command::Exit, cmd,
+      "action handler should produce exit command when triggered by receive_events"
   end
 
-  def test_action_keyword_syntax_with_handler
-    handler = -> { [:scroll, -1] }
-
-    test_class = Class.new do
+  def test_action_keyword_syntax_works
+    router_class = Class.new do
       include Rooibos::Router
 
-      action scroll_up: handler
+      action close: -> { Rooibos::Command.exit }
+      receive_events :c, :close
     end
 
-    assert_equal handler, test_class.actions[:scroll_up]
+    update = router_class.from_router
+    model = Ractor.make_shareable({})
+    key_message = RatatuiRuby::Event::Key.new(code: "c")
+
+    _model, cmd = update.call(key_message, model)
+
+    assert_kind_of Rooibos::Command::Exit, cmd,
+      "keyword syntax action should work identically to positional syntax"
   end
 
-  # action with Module value registers as routed action
-  def test_action_with_module_registers_routed_action
-    test_class = Class.new do
+  def test_routed_action_dispatches_to_fragment
+    counter_module = Counter
+
+    router_class = Class.new do
       include Rooibos::Router
 
-      action go_back: TestRouterAction::FakeChild
+      route :counter, to: counter_module
+      action increment: counter_module
+      receive_events :i, :increment
     end
 
-    assert_equal FakeChild, test_class.routed_actions[:go_back]
+    model = Data.define(:counter).new(counter: Counter::Init.call)
+    update = router_class.from_router
+    key_message = RatatuiRuby::Event::Key.new(code: "i")
+
+    new_model, _cmd = update.call(key_message, model)
+
+    assert_equal 1, new_model.counter.count,
+      "routed action should dispatch to fragment and increment count"
   end
 
-  # action with keymap: option registers key bindings
-  def test_action_keymap_option_registers_keys
-    handler_called = false
+  def test_undefined_action_raises_at_definition_time
+    error = assert_raises(ArgumentError) do
+      Class.new do
+        include Rooibos::Router
 
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action scroll_up: -> { handler_called = true; nil }, keymap: %i[up k]
+        receive_events :q, :nonexistent
+      end
     end
 
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    # Test 'up' key
-    update.call(RatatuiRuby::Event::Key.new(code: "up"), model)
-    assert handler_called, "'up' key should trigger scroll_up action"
-
-    # Test 'k' key
-    handler_called = false
-    update.call(RatatuiRuby::Event::Key.new(code: "k"), model)
-    assert handler_called, "'k' key should also trigger scroll_up action"
-  end
-
-  # action accepts key: as singular alias for keymap:
-  def test_action_key_alias_for_keymap
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action quit: -> { handler_called = true; nil }, key: :q
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    update.call(RatatuiRuby::Event::Key.new(code: "q"), model)
-    assert handler_called, "key: should work as keymap: alias"
-  end
-
-  # action accepts keys: as plural alias for keymap:
-  def test_action_keys_alias_for_keymap
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action move: -> { handler_called = true; nil }, keys: %i[down j]
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    update.call(RatatuiRuby::Event::Key.new(code: "down"), model)
-    assert handler_called, "'down' key via keys: should work"
-
-    handler_called = false
-    update.call(RatatuiRuby::Event::Key.new(code: "j"), model)
-    assert handler_called, "'j' key via keys: should also work"
-  end
-
-  # action with mousemap: option registers scroll handlers
-  def test_action_mousemap_option_registers_scroll
-    handler_called = false
-
-    test_class = Class.new do
-      include Rooibos::Router
-
-      action scroll_handler: -> { handler_called = true; nil }, mousemap: %i[scroll_up]
-    end
-
-    update = test_class.from_router
-    model = Ractor.make_shareable({}, copy: true)
-
-    scroll_event = RatatuiRuby::Event::Mouse.new(kind: "scroll_up", button: "left", x: 0, y: 0)
-    update.call(scroll_event, model)
-    assert handler_called, "scroll_up event should trigger scroll_handler action"
+    assert_match(/Unknown action/, error.message)
   end
 end

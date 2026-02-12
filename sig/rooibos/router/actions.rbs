@@ -1,0 +1,27 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Collection of named actions.
+    class Actions < Data
+      include Enumerable[action]
+
+      attr_reader rules: Array[action]
+
+      def initialize: (?rules: Array[action]) -> void
+
+      # Registers an action by name.
+      def add: (Symbol name, handler | Module handler_arg) -> void
+
+      # Looks up an action by name.
+      def []: (Symbol name) -> action
+
+      # Iterates over all actions.
+      def each: () { (action) -> void } -> Array[action]
+              | () -> Enumerator[action, Array[action]]
+    end
+  end
+end

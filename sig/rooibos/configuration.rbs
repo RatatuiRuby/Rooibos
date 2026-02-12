@@ -1,0 +1,20 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  # Immutable Mealy machine (state, input) pair.
+  class Configuration < Data
+    attr_reader message: message
+    attr_reader model: _DataModel
+
+    # Derives a new Configuration with an updated model.
+    def with_model: (_DataModel? new_model) -> Configuration
+
+    # Destructures into [message, model] array.
+    def to_a: () -> [message, _DataModel]
+    alias to_ary to_a
+    alias deconstruct to_a
+  end
+end

@@ -1,0 +1,37 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    module Flow
+      # Inward flow: messages traveling toward the leaves.
+      class Inward < Data
+        include Dispatch
+
+        attr_reader observes: Observes
+        attr_reader receives: Receives
+        attr_reader forwards: Forwards
+        attr_reader otherwises: Otherwises
+        attr_reader routes: Routes
+
+        def initialize: (
+          observes: Observes,
+          receives: Receives,
+          forwards: Forwards,
+          otherwises: Otherwises,
+          routes: Routes
+        ) -> void
+
+        # Dispatches a message through observe -> receive -> forward -> otherwise.
+        def call: (message, _DataModel) -> Transition
+
+        private
+
+        # Validates all forward and otherwise targets resolve.
+        def validate_routes!: () -> void
+      end
+    end
+  end
+end

@@ -19,50 +19,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`Command.deliver(message)`**: New built-in command for sending structured messages to Update. Wraps any message and delivers it via the runtime. Works with pattern matching and predicates.
 
-- **`Command.bubble(message)`**: New command for outward message propagation through the fragment hierarchy. Unlike `Command.deliver` (which goes directly to the root), `Command.bubble` flows through each fragment level, giving each outer fragment an opportunity to observe or intercept the message. Use with the Router DSL (`observe`, `intercept`) or handle manually by checking for `Command::Bubble` and extracting the message.
+- **`Command.bubble(message)`**: New command for outward message propagation through the fragment hierarchy. Unlike `Command.deliver` (which goes directly to the root), `Command.bubble` flows through each fragment level, giving each outer fragment an opportunity to observe or intercept the message before it reaches the next level. Use with the Router DSL (`observe`, `intercept`) or handle manually by checking for `Command::Bubble` and extracting the message.
 
-- **Router `intercept` DSL**: New handler for early message termination. Use `intercept ->(msg) { ... }` in your Router to stop bubbled messages from propagating further. The handler receives the message and can return a model/command tuple to handle it, or `nil` to let it continue bubbling.
+- **`Message::Bubbled`**: New message type wrapping bubbled messages in the fragment hierarchy. Provides `bubbled?` predicate for identification.
 
-- **Router `observe` DSL**: New handler for message observation that continues processing. Use `observe ->(msg) { msg.q? }, ->(msg, model) { ... }` or keyword syntax with `if:`/`when:`/`unless:`/`except:`/`then:`. Observe handlers run before intercept and keymap, allowing model updates and command accumulation while still passing the message through to subsequent handlers. Use `observe_all` for handlers that match every message.
+- **Router `receive` DSL**: New handlers for accepting and processing messages, replacing the `keymap` and `mousemap` DSLs. Five forms available, each stops further receive/forward/otherwise processing on match:
+    - `receive_events :q, handler` — match by key/event symbol (also accepts arrays: `receive_events [:q, :ctrl_c], handler`)
+    - `receive_routed :envelope, handler` — match by `Message::Routed` envelope
+    - `receive_instances_of SomeClass, handler` — match by message class
+    - `receive_all handler` — match any message
+    - `receive predicate, handler` — match by custom predicate lambda: `receive -> (msg, model) { msg.key? && model[:mode] == :insert }, handler`
+    - All forms accept `when:` and `unless:` guard keywords
+    - ALL forms aliased as `intercept`
 
-- **Router `forward` DSL**: New handler for message type and envelope routing. Routes messages to handlers, actions, or child fragments based on type predicates or envelope values:
-  - `forward do |messages|` — block-based DSL for declaring forwarding rules
-  - `messages.with_type :resize { |model, msg| ... }` — block handler for type-matched messages
-  - `messages.with_type :resize, action: :handle_resize` — delegate to named action
-  - `messages.with_type :resize, broadcast: true` — broadcast to all child routes
-  - `messages.with_type :resize, broadcast_to: [:sidebar, :main]` — broadcast to specific routes
-  - `messages.with_envelope :file_list { |model, msg| ... }` — block handler for envelope-matched messages
-  - `messages.with_envelope :file_list, route_to: :file_list` — route to specific child fragment
+- **Router `observe` DSL**: Non-stopping message observation. Same five forms as `receive`: `observe`, `observe_events`, `observe_instances_of`, `observe_routed`, `observe_all`. Observers run before receive/intercept/forward, allow model updates and command accumulation, and pass the message through to subsequent handlers. Multiple observers run in declaration order and accumulate model and command changes.
 
-- **Router `otherwise` DSL**: New fallback routing for unhandled messages. Routes any message not handled by keymap, mousemap, or forward to a designated child fragment:
-  - `otherwise route_to: :active_tab` — routes unhandled messages to the `:active_tab` child fragment
-  - Useful for implementing "active panel" patterns where one child receives all input
-  - Chains through deep hierarchies when nested fragments also declare `otherwise`
+- **Router `forward` DSL**: Forward messages to nested fragments. Five forms:
+    - `forward_events :enter, to: :panel, as: :action_name` — forward key events with envelope renaming
+    - `forward_instances_of SomeClass, to: :panel` — forward by message class
+    - `forward_routed :envelope, to: :panel, as: :new_envelope` — forward by routed envelope
+    - `forward_all to: :panel` — forward all messages
+    - `forward predicate, to: :panel` — forward by custom predicate lambda
+    - Supports `broadcast: true` to send to all routes, and `when:`/`unless:` guards
+    - Destination can be a symbol (`:panel`), a Fragment (`PanelFragment`), or a captured Route object
 
-- **Router `route` callable accessors**: New `read:` and `write:` keywords for custom model extraction logic. Enables routing to child fragments when the model structure differs from the route prefix:
-  - `route :sidebar, read: reader, write: writer, to: Child` — uses custom callables for model access
-  - `read:` callable extracts child model from parent: `-> (model) { model[:panels][:sidebar] }`
-  - `write:` callable updates parent with new child model: `-> (model, value) { model.merge(panels: model[:panels].merge(sidebar: value)) }`
-  - Supports lambdas, procs, Method objects, and callable objects
+- **Router `route_to` blocks**: Scoped forwarding that infers the destination for all `forward` declarations within the block, reducing repetition. Accepts a route name, Fragment, or captured Route.
 
-- **Keymap `route:` option**: Key bindings can now dispatch directly to child fragments. The `route:` option synthesizes a `Message::Routed` and calls the child's Update:
-  - `key :j, route: :file_list` — dispatches to `:file_list` fragment with envelope `:file_list`
-  - `key :j, action: :move_down, route: :file_list` — uses `:move_down` as envelope
-  - Combines with guards: `key :j, route: :file_list, when: -> (m) { m.focused? }`
+- **Router `otherwise` guards**: `otherwise` now supports `when:` and `unless:` guard keywords and multiple clauses with first-match semantics. Also resolves destinations by Fragment or captured Route.
 
-- **Mousemap guards**: The `mousemap` DSL now supports guards and scoped guard blocks, matching `keymap` parity:
-  - Inline guards: `map.scroll :up, handler, when: -> (m) { m.scrollable? }`
-  - All guard aliases: `when:`, `if:`, `only:`, `guard:`, `unless:`, `except:`, `skip:`
-  - Scoped blocks: `map.only when: guard { map.scroll :up, ... }`
-  - Inversion: `map.skip when: some_condition { ... }`
-  - Nested guards combine (all must pass)
+- **Router `only`/`skip` guard blocks**: Scoped guard blocks apply a shared condition to all handlers declared within. `only` passes when the guard is true; `skip` passes when it is false. Blocks nest and combine (all guards must pass).
 
+- **Router `route` returns Route objects**: `route` now returns a `Route` data object. Capture it to disambiguate when multiple routes target the same fragment Module.
+
+- **Router unnamed routes**: Routes can omit the symbol prefix when using `read:`/`write:` callable accessors for custom model extraction. Combine with a captured Route object for forwarding.
 ### Changed
 
-- **BREAKING: Router `keymap`/`mousemap` DSL Syntax**: The Router DSL now uses yield-based blocks instead of `instance_eval`. This enables Ractor shareability for lambdas defined inside the block. Update your code:
-  - Before: `keymap do` / `key :q, -> { Command.exit }`
-  - After: `keymap do |map|` / `map.key :q, -> { Command.exit }`
-  - Same pattern applies to `mousemap do |map|`, `map.only when: ...`, and `map.skip if: ...`
+- **BREAKING: `keymap` DSL removed**: The `keymap do |map|` / `map.key` DSL is removed. Use `receive_events` for handling events and `forward_events` for routing to nested fragments. Migrate:
+  - `keymap { |map| map.key :q, -> { Command.exit } }` becomes `receive_events :q, -> (_msg, _model) { Command.exit }`
+  - `keymap { |map| map.key :j, :move_down }` becomes `receive_events :j, :move_down`
+  - Guards move to keyword args: `receive_events :q, handler, when: -> (_msg, model) { model[:active] }`
+
+- **BREAKING: `mousemap` DSL removed**: The `mousemap do |map|` / `map.scroll` / `map.click` DSL is removed. Use `receive_events` with event symbols. Migrate:
+  - `mousemap { |map| map.scroll :up, handler }` becomes `receive_events :scroll_up, handler`
+
+- **BREAKING: `action` inline keybinding options removed**: The `keymap:`, `keys:`, `key:`, and `mousemap:` keyword arguments on `action` declarations are removed. Bind keys separately with `receive_events`:
+  - Before: `action quit: -> { Command.exit }, keymap: %i[ctrl_c q]`
+  - After: `action :quit, -> { Command.exit }` + `receive_events [:q, :ctrl_c], :quit`
+
 - **BREAKING: Runtime validates Init, View, and Update for Ractor shareability**: At startup, the runtime now checks that all three fragment callables can be made Ractor-shareable. Fragments using lambdas that capture mutable state or are defined in non-shareable scopes will fail validation. Convert to module-level callables, use classes, or use `Ractor.make_shareable`.
 
 ### Fixed

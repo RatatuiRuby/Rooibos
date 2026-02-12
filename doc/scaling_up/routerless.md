@@ -16,7 +16,7 @@ After reading this guide, you will know:
 
 ## Context
 
-You've been using the [Router DSL](routerful.md). It handles keyboard dispatch, routes messages to nested fragments, and coordinates outward communication with `forward` blocks. For most apps, that's exactly right.
+You've been using the [Router DSL](message_routing.md). It handles keyboard dispatch, routes messages to nested fragments, and coordinates outward communication with `forward` blocks. For most apps, that's exactly right.
 
 But the Router is optional. Rooibos's core is just `(message, model) -> [model, command]`. Everything else is layered on top.
 
@@ -1128,7 +1128,6 @@ end
 ## See Also
 
 - [Simple Apps Don't Need Fragments](fragmentless.md) — Start here for simple apps
-- [Router-Based Composition](routerful.md) — Declarative patterns with Router DSL
+- [Message Routing](message_routing.md) — Declarative patterns with Router DSL
 - [Fractal Architecture](fractal_architecture.md) — When and why to decompose
-- [Message Routing](message_routing.md) — How messages flow through fragments
 - [Reusable Fragments](reusable_fragments.md) — Building library-quality components

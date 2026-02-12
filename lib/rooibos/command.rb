@@ -62,7 +62,7 @@ module Rooibos
       end
     end
 
-    # Internal wrapper for multiple commands to be dispatched separately. # :nodoc:
+    # Internal wrapper for multiple commands to be dispatched separately.
     #
     # Router DSL uses this to return multiple commands from observe + keymap
     # without triggering Message::Batch. The runtime unwraps this and dispatches
@@ -72,7 +72,7 @@ module Rooibos
     # - Does NOT send Message::Batch on completion
     # - Each command runs and sends its own messages
     # - Invisible to app developers
-    class Separate < Data.define(:commands)
+    class Separate < Data.define(:commands) # :nodoc:
       include Custom
 
       # Stub - Separate is a sentinel unwrapped by runtime before dispatch.

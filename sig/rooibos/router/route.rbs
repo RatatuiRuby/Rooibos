@@ -1,0 +1,46 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # A configured route to a child fragment.
+    class Route < Data
+      # Route prefix symbol (model accessor name).
+      attr_reader prefix: Symbol
+
+      # Fragment module with Update callable.
+      attr_reader fragment: Module
+
+      # Optional custom model reader.
+      attr_reader read: (^(_DataModel) -> _DataModel)?
+
+      # Optional custom model writer.
+      attr_reader write: (^(_DataModel, _DataModel) -> _DataModel)?
+
+      def self.new: (
+        prefix: Symbol,
+        fragment: Module,
+        ?read: (^(_DataModel) -> _DataModel)?,
+        ?write: (^(_DataModel, _DataModel) -> _DataModel)?
+      ) -> instance
+
+      def initialize: (
+        prefix: Symbol,
+        fragment: Module,
+        ?read: (^(_DataModel) -> _DataModel)?,
+        ?write: (^(_DataModel, _DataModel) -> _DataModel)?
+      ) -> void
+
+      # Delegates message to child fragment and merges result.
+      def delegate: (message msg, _DataModel model) -> [_DataModel, Command::execution?]
+
+      private
+
+      def extract: (_DataModel model) -> _DataModel
+
+      def merge: (_DataModel model, _DataModel new_child) -> _DataModel
+    end
+  end
+end

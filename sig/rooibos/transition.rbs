@@ -1,0 +1,33 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  # Transition represents a normalized [model, command] tuple from Update.
+  class Transition < Data
+    attr_reader model: _DataModel
+    attr_reader command: Command::execution?
+
+    # Normalizes a DWIM return value into a Transition.
+    def self.from: (update_result result, _DataModel previous_model) -> Transition
+
+    # Creates an initial Transition with no command.
+    def self.initial: (_DataModel model) -> Transition
+
+    # Returns new Transition with updated model, or self if nil.
+    def with_model: (_DataModel? new_model) -> Transition
+
+    # Returns new Transition with updated command, or self if nil.
+    def with_command: (Command::execution? new_command) -> Transition
+
+    # Returns new Transition with command added (batched if existing).
+    def with_added_command: (Command::execution? new_command) -> Transition
+
+    # Returns new Transition with command added via Separate (for observe).
+    def with_separate_command: (Command::execution? new_command) -> Transition
+
+    # Converts to [model, command] tuple.
+    def to_a: () -> [_DataModel, Command::execution?]
+  end
+end

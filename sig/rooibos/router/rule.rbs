@@ -1,0 +1,36 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Predicate type: callable matching (message, model).
+    type predicate = Predicate::Events | Predicate::Routed | Predicate::RoutedEnvelopes
+                   | Predicate::InstancesOf | Predicate::Always
+                   | ^(message, _DataModel) -> boolish
+
+    # Common behavior for routing rules (Forward, Receive, Observe, Otherwise).
+    module Rule
+      # Provided by including Data class: the message-matching predicate.
+      def predicate: () -> predicate
+
+      # Provided by including Data class: the guard condition.
+      def guard: () -> Guard
+
+      # Provided by including Data class: applies the rule to a message.
+      def apply: (message, _DataModel, Routes) -> Transition
+
+      # Tests predicate and guard.
+      def matches?: (Configuration config) -> boolish
+
+      # Matches and applies if matching. Returns Transition or nil.
+      def apply_if_matches: (Configuration config, Routes routes) -> Transition?
+
+      private
+
+      def predicate_matches?: (Configuration config) -> boolish
+      def guard_passes?: (Configuration config) -> boolish
+    end
+  end
+end

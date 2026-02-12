@@ -25,18 +25,20 @@ module DashboardRouter
   route :network, to: NetworkPanel
 
   # Guard: only handle keys when modal is not active
-  MODAL_INACTIVE = -> (model) { !CustomShellModal.active?(model.shell_modal) }
+  MODAL_INACTIVE = -> (_msg, model) { !CustomShellModal.active?(model.shell_modal) }
 
-  keymap do |map|
-    map.key :ctrl_c, -> { Command.exit }
-    map.only when: MODAL_INACTIVE do
-      map.key :q, -> { Command.exit }
-      map.key :s, -> { SystemInfo.fetch_command }
-      map.key :d, -> { DiskUsage.fetch_command }
-      map.key :p, -> { Ping.fetch_command }
-      map.key :u, -> { Uptime.fetch_command }
-      map.key :c, -> { CustomShellModal.open }
-    end
+  # Global Ctrl+C always works
+  action :quit, -> { Command.exit }
+  receive_events :ctrl_c, :quit
+
+  # Keys only active when modal is inactive
+  only when: MODAL_INACTIVE do
+    receive_events :q, :quit
+    receive_events :s, -> { SystemInfo.fetch_command }
+    receive_events :d, -> { DiskUsage.fetch_command }
+    receive_events :p, -> { Ping.fetch_command }
+    receive_events :u, -> { Uptime.fetch_command }
+    receive_events :c, -> { CustomShellModal.open }
   end
 
   Update = from_router

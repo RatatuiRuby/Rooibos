@@ -1,0 +1,20 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    # Collection of otherwise rules.
+    class Otherwises < Data
+      include Registry[Otherwise]
+
+      attr_reader rules: Array[Otherwise]
+
+      def initialize: (?rules: Array[Otherwise]) -> void
+
+      # Adds an otherwise rule with optional guard.
+      def add: (route_to: route_target, ?guard: guard?, ?when: guard?, ?unless: guard?) -> void
+    end
+  end
+end

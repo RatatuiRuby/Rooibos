@@ -97,7 +97,7 @@ class TestRuntimeCustomCommand < Minitest::Test
     end
   end
 
-  def test_normalize_update_return_recognizes_custom_command
+  def test_transition_from_recognizes_custom_command
     command_class = Class.new do
       include Rooibos::Command::Custom
     end
@@ -107,10 +107,10 @@ class TestRuntimeCustomCommand < Minitest::Test
 
     # Simulate update returning [model, custom_command]
     result = [:new_model, command]
-    normalized = Rooibos::Runtime.__send__(:normalize_update_return, result, previous_model)
+    transition = Rooibos::Transition.from(result, previous_model)
 
-    assert_equal :new_model, normalized[0], "Model should be extracted"
-    assert_equal command, normalized[1], "Custom command should be recognized as command"
+    assert_equal :new_model, transition.model, "Model should be extracted"
+    assert_equal command, transition.command, "Custom command should be recognized as command"
   end
 
   # Command class to capture outlet and token

@@ -1,0 +1,29 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    module Flow
+      # Shared dispatch logic mixed into Inward and Outward flows.
+      module Dispatch : _HasRoutes
+        # Interface for classes that include Dispatch.
+        interface _HasRoutes
+          def routes: () -> Routes
+        end
+
+        private
+
+        # Runs all rules, accumulating model changes and separate commands.
+        def run_all: (Observes rules, message, _DataModel) -> Transition
+
+        # Applies the first matching rule. Returns Transition or nil.
+        def apply_first_matching: (Enumerable[Rule] rules, Configuration config, Transition transition) -> Transition?
+
+        # Merges model from new_transition, keeps commands separate.
+        def separate_commands: (Transition transition, Transition new_transition) -> Transition
+      end
+    end
+  end
+end

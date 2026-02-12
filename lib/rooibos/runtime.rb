@@ -165,7 +165,7 @@ module Rooibos
     # SPDX-SnippetEnd
     #++
     def self.normalize_init(result)
-      normalize_update_return(result, nil)
+      Transition.from(result, nil).to_a
     end
 
     # Sentinel value avoids accidentally quitting from application exceptions.
@@ -285,46 +285,6 @@ module Rooibos
           "View returned nil. Return a widget, or use TUI#clear for an empty screen."
       end
 
-      # Extracts [model, command] from Update return value.
-      private def normalize_update_return(result, previous_model)
-        # Case 0: Nil result - preserve previous model
-        return [previous_model, nil] if result.nil?
-
-        # Case 1: Already a [model, command] tuple
-        if result.is_a?(Array) && (result.size == 2)
-          model, command = result
-          # Verify the second element is a valid command
-          if command.nil? ||
-              (command.respond_to?(:rooibos_command?) && command.rooibos_command?)
-
-            return [model, command]
-          end
-
-          # Debug-mode heuristic: warn about suspicious command-like objects
-          if RatatuiRuby::Debug.enabled? &&
-              command.respond_to?(:call) &&
-              !command.respond_to?(:rooibos_command?) &&
-              !Ractor.shareable?(result)
-
-            warn "WARNING: Update returned [model, #{command.class}] but #{command.class} " \
-              "responds to #call without #rooibos_command?. Did you forget to include Command::Custom? " \
-              "The tuple will be treated as the model, not as [model, command]. " \
-              "To suppress this warning if the array is your model, use Ractor.make_shareable on it. " \
-              "(#{caller.first})"
-          end
-
-        end
-
-        # Case 2: Result is a Command - use previous model
-        if result.respond_to?(:rooibos_command?) && result.rooibos_command?
-          command = result #: Rooibos::Command::execution
-          return [previous_model, command]
-        end
-
-        # Case 3: Result is the new model
-        [result, nil]
-      end
-
       # Validates an object is Ractor-shareable (deeply frozen).
       #
       # Models and messages must be shareable for future Ractor support.
@@ -361,7 +321,7 @@ module Rooibos
           return true
         end
 
-        @model, @command = normalize_update_return(@update.call(message, @model), @model)
+        @model, @command = Transition.from(@update.call(message, @model), @model).to_a
         validate_ractor_shareable!(@model, "model")
         throw QUIT if Command::Exit === @command
         dispatch_command
@@ -377,7 +337,7 @@ module Rooibos
           break if background_message == QUEUE_EMPTY
 
           result = @update.call(background_message, @model)
-          @model, @command = normalize_update_return(result, @model)
+          @model, @command = Transition.from(result, @model).to_a
           return unless dispatch
 
           validate_ractor_shareable!(@model, "model")

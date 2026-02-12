@@ -1,1055 +1,513 @@
-#--
-# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
 # frozen_string_literal: true
 
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
 # SPDX-License-Identifier: LGPL-3.0-or-later
 #++
 
+require_relative "router/route"
+require_relative "router/registry/routes"
+require_relative "router/guard"
+require_relative "router/rule"
+require_relative "router/predicate"
+require_relative "router/registry"
+require_relative "router/action"
+require_relative "router/registry/actions"
+require_relative "router/rule/forward"
+require_relative "router/registry/forwards"
+require_relative "router/rule/receive"
+require_relative "router/registry/receives"
+require_relative "router/rule/observe"
+require_relative "router/registry/observes"
+require_relative "router/rule/otherwise"
+require_relative "router/registry/otherwises"
+require_relative "router/flow/dispatch"
+require_relative "router/flow/inward"
+require_relative "router/flow/outward"
+require_relative "router/router_update"
+
 module Rooibos
-  # Declarative DSL for Fractal Architecture.
+  # Fractal routing DSL for composing hierarchical updates.
   #
-  # Large applications decompose into fragments. Each fragment has its own Model,
-  # UPDATE, and VIEW. Parent fragments route messages to child fragments and compose views.
-  # Writing this routing logic by hand is tedious and error-prone.
+  # A growing app accumulates message-handling logic. One Update handles
+  # dozens of cases. Model fields multiply. View code sprawls.
   #
-  # Include this module to declare routes and keymaps. Call +from_router+ to
-  # generate an Update lambda that handles routing automatically.
+  # Include Router in a fragment module. It decomposes your Update
+  # into declarative rules: routes bind nested fragments to model slices,
+  # forwards route messages inward, receives handle them exclusively,
+  # and observers process without stopping the flow.
   #
-  # A *fragment* is a module containing <tt>Model</tt>, <tt>Init</tt>,
-  # <tt>Update</tt>, and <tt>View</tt> constants. Fragments compose: parent fragments
-  # delegate to child fragments.
+  # Use it to build tab containers, panel layouts, or any hierarchy
+  # where messages flow inward through nested fragments.
   #
   # === Example
   #
-  #   class Dashboard
+  #   module Dashboard
   #     include Rooibos::Router
   #
-  #     route :stats, to: StatsPanel
-  #     route :network, to: NetworkPanel
+  #     route :sidebar, to: Sidebar
+  #     route :main,    to: MainPanel
   #
-  #     keymap do |map|
-  #       map.key "s", -> { SystemInfo.fetch_command }, route: :stats
-  #       map.key "q", -> { Command.exit }
-  #     end
+  #     receive_events :ctrl_c, :quit
+  #     action :quit, -> { Rooibos::Command.exit }
   #
-  #     Model = Data.define(:stats, :network)
-  #     Init = -> { Model.new(stats: StatsPanel::Init.(), network: NetworkPanel::Init.()) }
-  #     View = ->(model, tui) { ... }
+  #     forward_events :enter, to: :main, as: :submit
+  #     otherwise route_to: :main
+  #
   #     Update = from_router
   #   end
   module Router
-    # Configuration for key handlers.
-    KeyHandlerConfig = Data.define(:handler, :action, :route, :guard) do
-      def initialize(handler: nil, action: nil, route: nil, guard: nil)
-        super
-      end
-    end
-
-    # Configuration for scroll handlers (no coordinates).
-    ScrollHandlerConfig = Data.define(:handler, :action, :guard) do
-      def initialize(handler: nil, action: nil, guard: nil)
-        super
-      end
-    end
-
-    # Configuration for click handlers (x, y coordinates).
-    ClickHandlerConfig = Data.define(:handler, :action, :guard) do
-      def initialize(handler: nil, action: nil, guard: nil)
-        super
-      end
-    end
-
-    # Negated guard - inverts the result of another guard.
-    # Use instead of wrapping lambdas to avoid self-capture.
-    NegatedGuard = Data.define(:guard) do
-      def call(model) = !guard.call(model)
-    end
-
-    # Combined guard - returns true only if ALL guards pass.
-    # Use instead of wrapping lambdas to avoid self-capture.
-    CombinedGuard = Data.define(:guards) do
-      def call(model) = guards.all? { |g| g.call(model) }
-    end
+    # Sentinel for "all routes" - unique object prevents accidental collision
+    ALL_ROUTES = Object.new.freeze
+    private_constant :ALL_ROUTES
 
     def self.included(base) # :nodoc:
       base.extend(ClassMethods)
     end
 
-    # Class methods added when Router is included.
+    # The Router declaration surface.
+    #
+    # Fragments grow. One Update handles dozens of cases. Routing logic,
+    # keybindings, and guard conditions tangle together.
+    #
+    # These class methods decompose that logic into declarative rules.
+    # Declare routes, forwards, receives, observes, and otherwises.
+    # Call <tt>from_router</tt> to freeze them into an Update callable.
+    #
+    # Use it inside any module that includes <tt>Rooibos::Router</tt>.
     module ClassMethods
-      # Configuration for a route.
-      RouteConfig = Data.define(:fragment, :reader, :writer) do
-        def initialize(fragment:, reader: nil, writer: nil)
-          super
-        end
+      private def routes
+        @routes ||= Routes.new
       end
 
-      # Declares a route to a child fragment.
+      private def actions
+        @actions ||= Actions.new
+      end
+
+      private def forwards
+        @forwards ||= Forwards.new
+      end
+
+      private def receives
+        @receives ||= Receives.new(actions:)
+      end
+
+      private def observes
+        @observes ||= Observes.new(actions:)
+      end
+
+      private def otherwises
+        @otherwises ||= Otherwises.new
+      end
+
+      # Assembles all declared routes, forwards, receives, observes, and
+      # otherwises into a frozen RouterUpdate callable.
       #
-      # [prefix] Optional Symbol naming the attr on the parent's model
-      #   that holds this fragment's model instance (normalized via +.to_s.to_sym+).
-      # [read] Optional callable that extracts child model from parent.
-      # [write] Optional callable that updates parent with new child model.
-      # [to] The child fragment module (must have Update and Init constants).
-      def route(prefix = nil, read: nil, write: nil, to:)
-        # Generate a unique key for callable-only routes
-        key = prefix&.to_s&.to_sym || to.object_id.to_s.to_sym
-
-        # For symbol prefix, generate default reader/writer
-        prefix_sym = prefix&.to_sym
-        reader = read || (prefix_sym && -> (m) { m.public_send(prefix_sym) })
-        writer = write || (prefix_sym && -> (m, v) { m.with(prefix_sym => v) })
-
-        # Debug mode: validate Ractor shareability of custom accessors
-        if RatatuiRuby::Debug.enabled?
-          validate_shareable!(read, "route read: accessor") if read
-          validate_shareable!(write, "route write: accessor") if write
-        end
-
-        routes[key] = RouteConfig.new(fragment: to, reader:, writer:)
-      end
-
-      # Returns the registered routes hash.
-      def routes
-        @routes ||= {}
-      end
-
-      # Declares a named action.
+      # Call this once at the end of your Router declarations. Assign the
+      # result to <tt>Update</tt> so the runtime dispatches messages through
+      # your router.
       #
-      # Actions are shared handlers that keymap and mousemap can reference.
-      # This avoids duplicating logic for keys and mouse events that do
-      # the same thing.
-      #
-      # Supports both positional and keyword syntax:
-      #   action :scroll_up, -> { Command.scroll(-1) }  # Positional
-      #   action scroll_up: -> { Command.scroll(-1) }   # Keyword
-      #
-      # [name] Symbol or String identifying the action (normalized via +.to_s.to_sym+).
-      # [value] Callable that returns a command or message.
-      def action(name = nil, value = nil, keymap: nil, key: nil, keys: nil, mousemap: nil, **kwargs)
-        # key: and keys: are aliases for keymap:
-        effective_keymap = keymap || key || keys
-        action_name, action_value = if name && value
-          # Positional: action :name, handler
-          [name, value]
-        elsif name.respond_to?(:call) && value.nil?
-          # Anonymous: action -> { ... }, keymap: %i[...]
-          # No name, just handler with bindings
-          [nil, name]
-        elsif kwargs.size == 1
-          # Keyword: action name: handler
-          kwargs.first
-        else
-          raise(ArgumentError, "action requires (name, value) or (name: value)")
-        end
-
-        # @type var action_name: Symbol?
-        # @type var action_value: (^() -> Command::execution? | Module)?
-        register_action(action_name, action_value) if action_name && action_value
-
-        # For anonymous actions, store handler directly in keymap
-        handler_for_keymap = action_name.nil? ? action_value : nil
-
-        # Register keymap bindings if provided
-        if effective_keymap
-          Array(effective_keymap).each do |key_name|
-            key_handlers[key_name.to_s.to_sym] = Router::KeyHandlerConfig.new(
-              handler: handler_for_keymap,
-              action: action_name&.to_s&.to_sym,
-              guard: nil,
-              route: nil
-            )
-          end
-        end
-
-        # Register mousemap bindings if provided
-        if mousemap
-          Array(mousemap).each do |mouse_event|
-            scroll_handlers[mouse_event.to_s.to_sym] = Router::ScrollHandlerConfig.new(
-              handler: handler_for_keymap,
-              action: action_name&.to_s&.to_sym
-            )
-          end
-        end
-      end
-
-      private def register_action(name, value)
-        key = name.to_s.to_sym
-        case value
-        when Module
-          routed_actions[key] = value
-        else
-          actions[key] = value
-        end
-      end
-
-      private def validate_shareable!(callable, label)
-        return if callable.nil?
-        begin
-          Ractor.make_shareable(callable)
-        rescue Ractor::IsolationError
-          raise(Rooibos::Error::Invariant,
-            "Router #{label} must be Ractor-shareable. " \
-              "#{callable.class} is not shareable. Use Ractor.make_shareable or define at top-level.")
-        end
-      end
-
-      # Returns the registered handler actions hash.
-      def actions
-        @actions ||= {}
-      end
-
-      # Returns the registered routed actions hash.
-      def routed_actions
-        @routed_actions ||= {}
-      end
-
-      # Declares an intercept handler (stops further processing when predicate matches).
-      #
-      # Supports positional or keyword syntax:
-      #   intercept ->(msg) { msg.q? }, ->(msg, model) { ... }
-      #   intercept if: ->(msg) { msg.q? }, then: ->(msg, model) { ... }
-      #   intercept when: ->(msg) { msg.q? }, then: ->(msg, model) { ... }
-      #   intercept unless: ->(msg) { msg.none? }, then: ->(msg, model) { ... }
-      def intercept(predicate = nil, handler = nil, if: nil, when: nil, unless: nil, except: nil, then: nil)
-        # Extract predicate from keyword args
-        effective_predicate = predicate ||
-          binding.local_variable_get(:if) ||
-          binding.local_variable_get(:when)
-
-        # Handle inverted predicates (unless/except)
-        negative = binding.local_variable_get(:unless) || except
-        if negative
-          effective_predicate = -> (msg) { !negative.call(msg) }
-        end
-
-        # Extract handler from keyword args
-        effective_handler = handler || binding.local_variable_get(:then)
-
-        intercept_handlers << { predicate: effective_predicate, handler: effective_handler }
-      end
-
-      # Returns the registered intercept handlers array.
-      def intercept_handlers
-        @intercept_handlers ||= []
-      end
-
-      # Declares an intercept handler that matches all messages (arity 1 convenience).
-      def intercept_all(handler)
-        intercept(-> (_msg) { true }, handler)
-      end
-
-      # Declares an observe handler (continues processing after predicate matches).
-      #
-      # Supports positional or keyword syntax:
-      #   observe ->(msg) { msg.q? }, ->(msg, model) { ... }
-      #   observe if: ->(msg) { msg.q? }, then: ->(msg, model) { ... }
-      #   observe when: ->(msg) { msg.q? }, then: ->(msg, model) { ... }
-      #   observe unless: ->(msg) { msg.none? }, then: ->(msg, model) { ... }
-      def observe(predicate = nil, handler = nil, if: nil, when: nil, unless: nil, except: nil, then: nil)
-        # Extract predicate from keyword args
-        effective_predicate = predicate ||
-          binding.local_variable_get(:if) ||
-          binding.local_variable_get(:when)
-
-        # Handle inverted predicates (unless/except)
-        negative = binding.local_variable_get(:unless) || except
-
-        # Debug mode: validate Ractor shareability BEFORE wrapping (fail fast)
-        if RatatuiRuby::Debug.enabled?
-          # Validate the original predicates (not the wrapper we'll create)
-          validate_shareable!(effective_predicate, "observe predicate") if effective_predicate
-          validate_shareable!(negative, "observe predicate") if negative
-        end
-
-        if negative
-          # Create inverted wrapper - skip validation since we validated negative above
-          effective_predicate = -> (msg) { !negative.call(msg) }
-        end
-
-        # Extract handler from keyword args
-        effective_handler = handler || binding.local_variable_get(:then)
-
-        # Debug mode: validate handler
-        if RatatuiRuby::Debug.enabled?
-          validate_shareable!(effective_handler, "observe handler")
-        end
-
-        observe_handlers << { predicate: effective_predicate, handler: effective_handler }
-      end
-
-      # Returns the registered observe handlers array.
-      def observe_handlers
-        @observe_handlers ||= []
-      end
-
-      # Declares an observe handler that matches all messages (arity 1 convenience).
-      def observe_all(handler)
-        observe(-> (_msg) { true }, handler)
-      end
-
-      # Declares key handlers in a block.
+      # Raises Rooibos::Error::Invariant if any forward or otherwise target
+      # is ambiguous (e.g. two routes share the same prefix or fragment).
       #
       # === Example
       #
-      #   keymap do |map|
-      #     map.key "q", -> { Command.exit }
-      #     map.key :up, :scroll_up  # Delegate to action
+      #   module MyFragment
+      #     include Rooibos::Router
+      #
+      #     route :child, to: ChildFragment
+      #     forward_events :enter, to: :child, as: :submit
+      #
+      #     Update = from_router
       #   end
-      def keymap
-        builder = KeymapBuilder.new
-        yield(builder)
-        @key_handlers = builder.handlers
-      end
-
-      # Declares mouse handlers in a block.
-      #
-      # === Example
-      #
-      #   mousemap do |map|
-      #     map.click -> (x, y) { [:clicked, x, y] }
-      #     map.scroll :up, :scroll_up  # Delegate to action
-      #   end
-      def mousemap
-        builder = MousemapBuilder.new
-        yield(builder)
-        @scroll_handlers = builder.scroll_handlers
-        @click_handler = builder.click_handler
-      end
-
-      # Returns the registered key handlers hash.
-      private def key_handlers
-        @key_handlers ||= {}
-      end
-
-      # Returns the registered scroll handlers hash.
-      private def scroll_handlers
-        @scroll_handlers ||= {}
-      end
-
-      # Returns the registered click handler, if any.
-      private def click_handler
-        @click_handler
-      end
-
-      # Declares message forwarding rules in a block.
-      #
-      # === Example
-      #
-      #   forward do |messages|
-      #     messages.with_type :resize, broadcast_to: [:sidebar, :main]
-      #     messages.with_envelope :file_list, route_to: FileList
-      #   end
-      def forward
-        builder = ForwardBuilder.new
-        yield(builder)
-        @forward_handlers = builder.handlers
-      end
-
-      # Returns the registered forward handlers array.
-      private def forward_handlers
-        @forward_handlers ||= []
-      end
-
-      # Declares an otherwise fallback (routes unhandled messages to a fragment).
-      #
-      # === Example
-      #
-      #   otherwise route_to: :active_tab
-      def otherwise(route_to:)
-        @otherwise_handler = route_to.to_s.to_sym
-      end
-
-      # Returns the registered otherwise handler.
-      private def otherwise_handler
-        @otherwise_handler
-      end
-
-      # Generates an UPDATE lambda from routes, keymap, and mousemap.
-      #
-      # The generated UPDATE:
-      # 1. Routes prefixed messages to child UPDATEs
-      # 2. Handles keyboard events via keymap
-      # 3. Handles mouse events via mousemap
-      # 4. Handles message forwarding via forward
-      # 5. Returns model unchanged for unhandled messages
       def from_router
         RouterUpdate.new(
-          routes:,
-          actions:,
-          routed_actions:,
-          key_handlers:,
-          scroll_handlers:,
-          click_handler:,
-          observe_handlers:,
-          intercept_handlers:,
-          forward_handlers:,
-          otherwise_handler:
-        )
-      end
-    end
-
-    # Internal UPDATE callable with proper typing.
-    class RouterUpdate # :nodoc:
-      def initialize(routes:, actions:, routed_actions:, key_handlers:, scroll_handlers:, click_handler:, observe_handlers:, intercept_handlers:, forward_handlers:, otherwise_handler:)
-        @routes = routes
-        @actions = actions
-        @routed_actions = routed_actions
-        @key_handlers = key_handlers
-        @scroll_handlers = scroll_handlers
-        @click_handler = click_handler
-        @observe_handlers = observe_handlers
-        @intercept_handlers = intercept_handlers
-        @forward_handlers = forward_handlers
-        @otherwise_handler = otherwise_handler
-      end
-
-      # Process message and return [model, command] tuple.
-      def call(message, model)
-        accumulated_commands = [] #: Array[Command::execution?]
-
-        # 0a. Try observe handlers - all matches run, processing continues
-        @observe_handlers.each do |config|
-          if config[:predicate].call(message)
-            result = config[:handler].call(message, model)
-            new_model, cmd = normalize_handler_result(result, model)
-            model = new_model
-            accumulated_commands << cmd if cmd
-          end
-        end
-
-        # 0b. Try intercept handlers - first match stops processing
-        @intercept_handlers.each do |config|
-          if config[:predicate].call(message)
-            result = config[:handler].call(message, model)
-            new_model, cmd = normalize_handler_result(result, model)
-            accumulated_commands << cmd if cmd
-            return [new_model, merge_commands(accumulated_commands)]
-          end
-        end
-
-        # 1. Try routing prefixed messages to child fragments
-        @routes.each do |prefix, config|
-          # Check if message is prefixed for this route (only for symbol-based routes)
-          next unless message.is_a?(Array) && message.first == prefix
-
-          child_message = message[1]
-          fragment = config.fragment
-          fragment_update = fragment.const_get(:Update)
-
-          # Use reader if provided, otherwise default to public_send
-          child_model = config.reader ? config.reader.call(model) : model.public_send(prefix)
-
-          new_fragment_model, cmd = fragment_update.call(child_message, child_model)
-
-          # Use writer if provided, otherwise default to with()
-          model = config.writer ? config.writer.call(model, new_fragment_model) : model.with(prefix => new_fragment_model)
-
-          # Extract and process any bubbles from the command (direct, no wrapping)
-          model = extract_bubbles_from_command(cmd, model, accumulated_commands)
-
-          return [model, merge_commands(accumulated_commands)]
-        end
-
-        # 2. Try keymap handlers (message is an Event::Key)
-        if message.is_a?(RatatuiRuby::Event::Key)
-          @key_handlers.each do |key_name, config|
-            predicate = :"#{key_name}?"
-            next unless message.respond_to?(predicate) && message.public_send(predicate)
-
-            # Check guard if present
-            if (config.guard) && !config.guard.call(model)
-              next
-            end
-
-            # Get handler - either inline or from actions registry
-            handler = config.handler
-            if handler.nil? && config.action
-              handler = @actions[config.action]
-            end
-
-            # Handle route: option - dispatch to specific fragment with Message::Routed
-            if config.route
-              route_key, route_config = find_route_config(config.route)
-              if route_config && route_key
-                # Determine envelope: use action name if present, otherwise the route key
-                envelope = config.action || route_key
-                routed_message = Rooibos::Message::Routed.new(envelope:, event: message)
-
-                fragment_update = route_config.fragment.const_get(:Update)
-                child_model = route_config.reader ? route_config.reader.call(model) : model.public_send(route_key)
-                new_child_model, cmd = fragment_update.call(routed_message, child_model)
-                model = route_config.writer ? route_config.writer.call(model, new_child_model) : model.with(route_key => new_child_model)
-                model = extract_bubbles_from_command(cmd, model, accumulated_commands)
-
-                # Also call the handler if provided (for side effects like commands)
-                if handler
-                  handler_cmd = handler.call
-                  accumulated_commands << handler_cmd if handler_cmd
-                end
-
-                return [model, merge_commands(accumulated_commands)]
-              end
-            end
-
-            # Check for routed action if no handler found
-            if handler.nil? && config.action
-              routed_fragment = @routed_actions[config.action]
-              if routed_fragment
-                # Find the route config for this fragment
-                fragment_model_instance_attr, route_config = find_route_config(routed_fragment)
-                next unless route_config && fragment_model_instance_attr
-
-                # Synthesize Message::Routed and dispatch to child
-                routed_message = Rooibos::Message::Routed.new(envelope: config.action, event: message)
-                child_update = routed_fragment.const_get(:Update)
-                previous_child_fragment_model_instance = route_config.reader ? route_config.reader.call(model) : model.public_send(fragment_model_instance_attr)
-                updated_child_fragment_model_instance, command = child_update.call(routed_message, previous_child_fragment_model_instance)
-                new_model = route_config.writer ? route_config.writer.call(model, updated_child_fragment_model_instance) : model.with(fragment_model_instance_attr => updated_child_fragment_model_instance)
-                return [new_model, command]
-              end
-            end
-
-            next unless handler
-
-            command = handler.call
-            accumulated_commands << command if command
-            return [model, merge_commands(accumulated_commands)] #: [_DataModel, Command::execution?]
-          end
-        end
-
-        # 3. Try mousemap handlers (message is an Event::Mouse)
-        if message.is_a?(RatatuiRuby::Event::Mouse)
-          # Scroll events (handler takes no arguments)
-          if message.scroll_up?
-            config = @scroll_handlers[:scroll_up]
-            if config
-              # Check guard if present
-              if config.guard && !config.guard.call(model)
-                return [model, merge_commands(accumulated_commands)]
-              end
-              scroll_handler = config.handler
-              if scroll_handler.nil? && config.action
-                scroll_handler = @actions[config.action]
-              end
-              cmd = scroll_handler&.call
-              accumulated_commands << cmd if cmd
-              return [model, merge_commands(accumulated_commands)]
-            end
-          end
-          if message.scroll_down?
-            config = @scroll_handlers[:scroll_down]
-            if config
-              # Check guard if present
-              if config.guard && !config.guard.call(model)
-                return [model, merge_commands(accumulated_commands)]
-              end
-              scroll_handler = config.handler
-              if scroll_handler.nil? && config.action
-                scroll_handler = @actions[config.action]
-              end
-              cmd = scroll_handler&.call
-              accumulated_commands << cmd if cmd
-              return [model, merge_commands(accumulated_commands)]
-            end
-          end
-          # Click events (handler takes x, y coordinates)
-          click_config = @click_handler
-          if message.down? && click_config
-            # Check guard if present
-            if click_config.guard && !click_config.guard.call(model)
-              return [model, merge_commands(accumulated_commands)]
-            end
-            click_handler_proc = click_config.handler
-            if click_handler_proc.nil? && click_config.action
-              # Actions don't take coordinates, so just call without args
-              action_handler = @actions[click_config.action]
-              cmd = action_handler&.call
-              accumulated_commands << cmd if cmd
-              return [model, merge_commands(accumulated_commands)]
-            elsif click_handler_proc
-              cmd = click_handler_proc.call(message.x, message.y)
-              accumulated_commands << cmd if cmd
-              return [model, merge_commands(accumulated_commands)]
-            end
-          end
-        end
-
-        # 4. Try forward handlers (message type/envelope routing)
-        @forward_handlers.each do |config|
-          if config[:predicate].call(message)
-            if config[:broadcast] || config[:broadcast_to]
-              # Broadcast to routes
-              routes_to_broadcast = if config[:broadcast]
-                @routes.keys
-              else
-                config[:broadcast_to]
-              end
-
-              routes_to_broadcast&.each do |route_name|
-                route_key, route_config = find_route_config(route_name)
-                next unless route_config && route_key
-
-                fragment_update = route_config.fragment.const_get(:Update)
-                child_model = route_config.reader ? route_config.reader.call(model) : model.public_send(route_key)
-                new_child_model, cmd = fragment_update.call(message, child_model)
-                model = route_config.writer ? route_config.writer.call(model, new_child_model) : model.with(route_key => new_child_model)
-                model = extract_bubbles_from_command(cmd, model, accumulated_commands)
-              end
-              return [model, merge_commands(accumulated_commands)]
-            elsif config[:route_to]
-              # Route to specific fragment (can be symbol or module)
-              route_key, route_config = find_route_config(config[:route_to])
-              if route_config && route_key
-                fragment_update = route_config.fragment.const_get(:Update)
-                child_model = route_config.reader ? route_config.reader.call(model) : model.public_send(route_key)
-                new_child_model, cmd = fragment_update.call(message, child_model)
-                model = route_config.writer ? route_config.writer.call(model, new_child_model) : model.with(route_key => new_child_model)
-                model = extract_bubbles_from_command(cmd, model, accumulated_commands)
-              end
-              return [model, merge_commands(accumulated_commands)]
-            elsif config[:handler]
-              # Block handler takes (model, message)
-              result = config[:handler].call(model, message)
-              new_model, cmd = normalize_handler_result(result, model)
-              accumulated_commands << cmd if cmd
-              return [new_model, merge_commands(accumulated_commands)]
-            elsif config[:action]
-              # Action handler takes no args, just returns command
-              cmd = @actions[config[:action]]&.call
-              accumulated_commands << cmd if cmd
-              return [model, merge_commands(accumulated_commands)]
-            end
-          end
-        end
-
-        # 4.5. Otherwise fallback (route unhandled messages to a fragment)
-        if (otherwise_route = @otherwise_handler)
-          route_key, route_config = find_route_config(otherwise_route)
-          if route_config && route_key
-            fragment_update = route_config.fragment.const_get(:Update)
-            child_model = route_config.reader ? route_config.reader.call(model) : model.public_send(route_key)
-            new_child_model, cmd = fragment_update.call(message, child_model)
-            model = route_config.writer ? route_config.writer.call(model, new_child_model) : model.with(route_key => new_child_model)
-            model = extract_bubbles_from_command(cmd, model, accumulated_commands)
-            return [model, merge_commands(accumulated_commands)]
-          end
-        end
-
-        # 5. Unhandled - return model with any accumulated observe commands
-        [model, merge_commands(accumulated_commands)]
-      end
-
-      # Find a route config by key (symbol) or by fragment module.
-      # Returns [key, config] tuple or [nil, nil] if not found.
-      private def find_route_config(identifier)
-        case identifier
-        when Symbol, String
-          key = identifier.to_s.to_sym
-          config = @routes[key]
-          config ? [key, config] : [nil, nil]
-        when Module
-          # Find by fragment module
-          @routes.find { |_k, c| c.fragment == identifier } || [nil, nil]
-        else
-          [nil, nil]
-        end
-      end
-
-      # Extract bubbles from command: only direct Bubble or Batch(Bubble, ...)
-      # Processes each bubble through observe/intercept handlers
-      # Returns the updated model
-      private def extract_bubbles_from_command(cmd, model, accumulated_commands)
-        return model unless cmd
-
-        case cmd
-        when Rooibos::Command::Bubble
-          # Direct bubble - process it
-          process_bubble(cmd.message, model, accumulated_commands)
-        when Rooibos::Command::Batch
-          # Check direct children only (no recursion)
-          cmd.commands.each do |inner_cmd|
-            if inner_cmd.is_a?(Rooibos::Command::Bubble)
-              model = process_bubble(inner_cmd.message, model, accumulated_commands)
-            else
-              accumulated_commands << inner_cmd
-            end
-          end
-          model
-        else
-          # Not a bubble structure - preserve the command
-          accumulated_commands << cmd
-          model
-        end
-      end
-      # Process a bubbled message through observe and intercept handlers
-      # Returns [model, intercepted?] - if NOT intercepted, bubble continues upward
-      private def process_bubble(bubbled_message, model, accumulated_commands)
-        # Run observe handlers (all matching) - observe NEVER stops propagation
-        @observe_handlers.each do |config|
-          if config[:predicate].call(bubbled_message)
-            handler_result = config[:handler].call(bubbled_message, model)
-            new_model, handler_cmd = normalize_handler_result(handler_result, model)
-            model = new_model
-            accumulated_commands << handler_cmd if handler_cmd
-          end
-        end
-
-        # Run intercept handlers (first match stops and DOES NOT re-bubble)
-        @intercept_handlers.each do |config|
-          if config[:predicate].call(bubbled_message)
-            handler_result = config[:handler].call(bubbled_message, model)
-            new_model, handler_cmd = normalize_handler_result(handler_result, model)
-            model = new_model
-            accumulated_commands << handler_cmd if handler_cmd
-            # Intercept consumed the bubble - do NOT re-bubble
-            return model
-          end
-        end
-
-        # No intercept matched - re-bubble so parent can handle
-        accumulated_commands << Rooibos::Command.bubble(bubbled_message)
-        model
-      end
-
-      private def normalize_handler_result(result, previous_model)
-        # Nil - preserve model
-        return [previous_model, nil] if result.nil?
-
-        # Already a [model, command] tuple
-        if result.is_a?(Array) && result.size == 2
-          model, command = result
-          if command.nil? || (command.respond_to?(:rooibos_command?) && command.rooibos_command?)
-            return [model, command]
-          end
-        end
-
-        # Just a command - preserve model
-        if result.respond_to?(:rooibos_command?) && result.rooibos_command?
-          return [previous_model, result]
-        end
-
-        # Just a model
-        [result, nil]
-      end
-
-      private def merge_commands(commands)
-        commands = commands.compact
-        return nil if commands.empty?
-        return commands.first if commands.size == 1
-        # Use internal Separate wrapper so runtime dispatches each independently
-        # (Batch would cause unexpected Message::Batch to be sent to app developers)
-        # Access via const_get to bypass private_constant (internal use only)
-        Rooibos::Command.const_get(:Separate).new(commands:)
-      end
-    end
-    private_constant :RouterUpdate
-
-    # Builder for keymap DSL.
-    class KeymapBuilder
-      # Returns the registered handlers hash.
-      attr_reader :handlers
-
-      def initialize # :nodoc:
-        @handlers = {}
-        @guard_stack = []
-      end
-
-      # Registers a key handler.
-      #
-      # Supports multiple forms:
-      #   key :q, -> { Command.exit }           # Single key with handler
-      #   key :q, :quit                         # Single key with action name
-      #   key :down, :j, action: :move_down     # Multiple keys with action
-      #   key :enter, -> { ... }, route: :foo   # With options
-      #
-      # [*key_names] One or more key names (String or Symbol).
-      # [handler_or_action] Callable or Symbol (action name) - optional if action: given.
-      # [action] Action name as keyword arg (alternative to positional).
-      # [route] Optional route prefix for the command result.
-      # [when/if/only/guard] Guard that runs if truthy (aliases).
-      # [unless/except/skip] Guard that runs if falsy (negative aliases).
-      def key(*args, action: nil, route: nil, when: nil, if: nil, only: nil, guard: nil, unless: nil, except: nil, skip: nil, **bindings)
-        # Parse args: all symbols/strings are keys, last callable is handler
-        key_names = [] #: Array[Symbol | String]
-        handler = nil
-        action_name = action
-
-        args.each do |arg|
-          if arg.is_a?(Hash)
-            # Hash passed positionally: key({q: -> { ... }})
-            bindings.merge!(arg)
-          elsif arg.respond_to?(:call)
-            handler = arg
-          elsif arg.is_a?(Symbol) || arg.is_a?(String)
-            # Could be a key name or action name (positional action from old API)
-            key_names << arg
-          end
-        end
-
-        # Keyword syntax: key ctrl_c: -> { ... }
-        # Each kwarg is key_name => handler
-        bindings.each do |key_name, handler_or_action|
-          if handler_or_action.respond_to?(:call)
-            register_key_handler(key_name, handler_or_action, nil, route, nil)
-          else
-            register_key_handler(key_name, nil, handler_or_action, route, nil)
-          end
-        end
-
-        # If we had keyword bindings, skip positional processing
-        return if bindings.any?
-
-        # Old API: key :q, :quit - last symbol is the action
-        if handler.nil? && action_name.nil? && key_names.size >= 2
-          # Check if last "key" is actually an action by seeing if it looks like a handler
-          action_name = key_names.pop
-        end
-
-        guards = @guard_stack.dup
-
-        # Positive guards (when, if, only, guard)
-        positive = binding.local_variable_get(:when) ||
-          binding.local_variable_get(:if) ||
-          only ||
-          guard
-        guards << positive if positive
-
-        # Negative guards (unless, except, skip) - wrap to invert
-        negative = binding.local_variable_get(:unless) || except || skip
-        if negative
-          guards << NegatedGuard.new(guard: negative)
-        end
-
-        combined_guard = if guards.any?
-          CombinedGuard.new(guards: guards.freeze)
-        end
-
-        # Register each key
-        key_names.each do |key_name|
-          register_key_handler(key_name, handler, action_name, route, combined_guard)
-        end
-      end
-
-      private def register_key_handler(key_name, handler, action_name, route, guard)
-        @handlers[key_name.to_s] = KeyHandlerConfig.new(
-          handler:,
-          action: action_name,
-          route:,
-          guard:
+          inward: Flow::Inward.new(observes:, receives:, forwards:, otherwises:, routes:),
+          outward: Flow::Outward.new(observes:, receives:, routes:)
         )
       end
 
-      # Alias for key (reads better with multiple keys)
-      alias_method :keys, :key
-
-      # Applies a guard to all keys in the block.
+      # Declares a child route binding a nested fragment to a model slice.
       #
-      # [when/if/only/guard] Guard that runs if truthy.
-      def only(when: nil, if: nil, only: nil, guard: nil, &)
-        arg_count = 0
-        arg_count += 1 if binding.local_variable_get(:when)
-        arg_count += 1 if binding.local_variable_get(:if)
-        arg_count += 1 if only
-        arg_count += 1 if guard
-
-        if arg_count > 1
-          raise(ArgumentError, "only accepts exactly one of: when, if, only, guard")
-        end
-
-        positive = binding.local_variable_get(:when) ||
-          binding.local_variable_get(:if) ||
-          only ||
-          guard
-        with_guard(positive, &)
-      end
-
-      # Skips all keys in the block when the guard is true.
+      # The simplest form names a model attribute. <tt>:sidebar</tt> means
+      # "read from <tt>model.sidebar</tt>, write back with
+      # <tt>model.with(sidebar: ...)</tt>."
       #
-      # [when/if/skip/guard] Guard that skips if truthy.
-      def skip(when: nil, if: nil, skip: nil, guard: nil, &)
-        arg_count = 0
-        arg_count += 1 if binding.local_variable_get(:when)
-        arg_count += 1 if binding.local_variable_get(:if)
-        arg_count += 1 if skip
-        arg_count += 1 if guard
-
-        if arg_count > 1
-          raise(ArgumentError, "skip accepts exactly one of: when, if, skip, guard")
-        end
-
-        skip_guard = binding.local_variable_get(:when) ||
-          binding.local_variable_get(:if) ||
-          skip ||
-          guard
-
-        # Invert the guard: skip when true means run when false
-        inverted = skip_guard ? -> (model) { !skip_guard.call(model) } : nil
-        with_guard(inverted, &)
-      end
-      private def with_guard(guard, &block)
-        if guard
-          @guard_stack << guard
-          begin
-            block.call
-          ensure
-            @guard_stack.pop
-          end
-        else
-          block.call
-        end
-      end
-    end
-
-    # Builder for mousemap DSL.
-    class MousemapBuilder
-      # Returns the registered scroll handlers (scroll_up, scroll_down).
-      attr_reader :scroll_handlers
-
-      # Returns the registered click handler.
-      attr_reader :click_handler
-
-      def initialize # :nodoc:
-        @scroll_handlers = {}
-        @click_handler = nil
-        @guard_stack = []
-      end
-
-      # Registers a click handler.
+      # When your model stores fragments in hashes or other structures, pass
+      # <tt>read:</tt> and <tt>write:</tt> lambdas for custom extraction and
+      # merging. A route with lambdas has no prefix symbol.
       #
-      # [handler_or_action] Callable `^(Integer, Integer) -> Command` or Symbol (action name).
-      def click(handler_or_action, when: nil, if: nil, only: nil, guard: nil, unless: nil, except: nil, skip: nil, **_ignored)
-        guards = @guard_stack.dup
-
-        positive = binding.local_variable_get(:when) || binding.local_variable_get(:if) || only || guard
-        guards << positive if positive
-
-        negative = binding.local_variable_get(:unless) || except || skip
-        guards << NegatedGuard.new(guard: negative) if negative
-
-        combined_guard = if guards.any?
-          CombinedGuard.new(guards: guards.freeze)
-        end
-
-        if handler_or_action.is_a?(Symbol)
-          @click_handler = ClickHandlerConfig.new(action: handler_or_action, guard: combined_guard)
-        else
-          @click_handler = ClickHandlerConfig.new(handler: handler_or_action, guard: combined_guard)
-        end
-      end
-
-      # Registers a scroll handler.
+      # Returns the Route object. Capture it when neither the prefix symbol
+      # nor the fragment module can unambiguously identify the route.
       #
-      # [direction] <tt>:up</tt> or <tt>:down</tt>.
-      # [handler_or_action] Callable `^() -> Command` or Symbol (action name).
-      def scroll(direction, handler_or_action, when: nil, if: nil, only: nil, guard: nil, unless: nil, except: nil, skip: nil, **_ignored)
-        guards = @guard_stack.dup
-
-        positive = binding.local_variable_get(:when) || binding.local_variable_get(:if) || only || guard
-        guards << positive if positive
-
-        negative = binding.local_variable_get(:unless) || except || skip
-        guards << NegatedGuard.new(guard: negative) if negative
-
-        combined_guard = if guards.any?
-          CombinedGuard.new(guards: guards.freeze)
-        end
-
-        config = if handler_or_action.is_a?(Symbol)
-          ScrollHandlerConfig.new(action: handler_or_action, guard: combined_guard)
-        else
-          ScrollHandlerConfig.new(handler: handler_or_action, guard: combined_guard)
-        end
-        @scroll_handlers[:"scroll_#{direction}"] = config
-      end
-
-      # Applies a guard to all handlers in the block.
-      def only(when: nil, if: nil, only: nil, guard: nil, &)
-        positive = binding.local_variable_get(:when) ||
-          binding.local_variable_get(:if) ||
-          only ||
-          guard
-        with_guard(positive, &)
-      end
-
-      private def with_guard(guard, &block)
-        if guard
-          @guard_stack << guard
-          begin
-            block.call
-          ensure
-            @guard_stack.pop
-          end
-        else
-          block.call
-        end
-      end
-
-      # Skips all handlers in the block when guard returns true.
-      def skip(when: nil, if: nil, skip: nil, guard: nil, &)
-        negative = binding.local_variable_get(:when) ||
-          binding.local_variable_get(:if) ||
-          skip ||
-          guard
-        with_guard(NegatedGuard.new(guard: negative), &)
-      end
-    end
-
-    # Builder for forward DSL.
-    class ForwardBuilder
-      # Returns the registered handlers array.
-      attr_reader :handlers
-
-      def initialize # :nodoc:
-        @handlers = []
-      end
-
-      # Routes messages by type predicate.
-      #
-      # The type is converted to a predicate method name (e.g., :resize -> :resize?)
-      # and matched against the message.
+      # [prefix] Symbol or String naming the model attribute. Optional when
+      #          using <tt>read:</tt>/<tt>write:</tt>.
+      # [to]     The fragment module whose <tt>Update</tt> handles messages.
+      # [read]   Lambda <tt>->(model) -> nested_model</tt>. Overrides prefix-based extraction.
+      # [write]  Lambda <tt>->(model, value) -> model</tt>. Overrides prefix-based merging.
       #
       # === Example
       #
-      #   messages.with_type :resize do |model, message|
-      #     model.merge(dimensions: [message.width, message.height])
-      #   end
+      #   # Named attribute (most common)
+      #   route :sidebar, to: Sidebar
       #
-      #   messages.with_type :theme_changed, action: :apply_theme
-      #   messages.with_type :resize, broadcast: true
-      #   messages.with_type :resize, broadcast_to: [:sidebar, :main]
-      def with_type(type_name, action: nil, broadcast: false, broadcast_to: nil, &handler)
-        predicate = :"#{type_name}?"
-        @handlers << {
-          predicate: -> (msg) { msg.respond_to?(predicate) && msg.public_send(predicate) },
-          handler:,
-          action: action&.to_s&.to_sym,
-          broadcast:,
-          broadcast_to: broadcast_to&.map { |r| r.to_s.to_sym },
-        }
+      #   # Custom accessors for hash-stored fragments
+      #   route read: ->(model) { model.panels[:sidebar] },
+      #         write: ->(model, value) { model.with(panels: model.panels.merge(sidebar: value)) },
+      #         to: Sidebar
+      #
+      #   # Capture for disambiguation
+      #   ACTIVE = route read: ->(m) { m.tabs[m.active_tab] },
+      #                 write: ->(m, v) { m.with(tabs: m.tabs.merge(m.active_tab => v)) },
+      #                 to: TabContent
+      #   forward_events :enter, to: ACTIVE, as: :submit
+      def route(prefix = nil, to:, read: nil, write: nil, **)
+        routes.add(Route.new(prefix: prefix&.to_s&.to_sym, fragment: to, read:, write:))
       end
 
-      # Routes messages by envelope attribute.
+      # Forwards all instances of a class to routes.
       #
-      # Matches messages where message.envelope == envelope_name.
+      # Matches messages by class. Ideal for custom message types or
+      # RatatuiRuby event classes like <tt>Event::Resize</tt>.
+      #
+      # Use <tt>broadcast: true</tt> to send to all declared routes, or
+      # <tt>broadcast_to:</tt> with an array of specific route targets.
       #
       # === Example
       #
-      #   messages.with_envelope :file_list do |model, message|
-      #     model.merge(handled: true)
-      #   end
+      #   forward_instances_of RatatuiRuby::Event::Resize, to: :main_layout
+      #   forward_instances_of ThemeChanged, broadcast: true
+      def forward_instances_of(klass, ...)
+        forwards.add_instances_of(klass, ...)
+      end
+
+      # Defines a named action referenceable by symbol.
       #
-      #   messages.with_envelope :file_list, route_to: FileList
-      def with_envelope(envelope_name, route_to: nil, &handler)
-        envelope_sym = envelope_name.to_s.to_sym
-        @handlers << {
-          predicate: -> (msg) { msg.respond_to?(:envelope) && msg.envelope == envelope_sym }, # steep:ignore NoMethod
-          handler:,
-          action: nil,
-          broadcast: false,
-          broadcast_to: nil,
-          route_to:,
-        }
+      # Actions are reusable handlers. Reference them by name in
+      # <tt>receive*</tt>, <tt>intercept*</tt>, and <tt>observe*</tt>
+      # methods anywhere a handler lambda is accepted.
+      #
+      # Lambda actions run directly. Routed actions dispatch a
+      # <tt>Message::Routed</tt> to a fragment, using the action name as
+      # the envelope.
+      #
+      # [name]    Symbol identifying the action.
+      # [handler] A lambda or a fragment Module for routed dispatch.
+      #
+      # === Example
+      #
+      #   # Lambda action
+      #   action :quit, -> { Rooibos::Command.exit }
+      #
+      #   # Keyword form
+      #   action scroll_up: ->(_, model) { model.with(offset: model.offset - 1) }
+      #
+      #   # Routed action (dispatches :go_back to HistoryPanel)
+      #   action :go_back, HistoryPanel
+      def action(name = nil, handler = nil, **kwargs)
+        if name && handler
+          actions.add(name, handler)
+        elsif kwargs.any?
+          kwargs.each { |k, v| actions.add(k, v) }
+        else
+          raise ArgumentError, "action requires name and handler, or keyword arguments"
+        end
+      end
+
+      # Handles matching key events directly. Stops further processing.
+      #
+      # Matches raw RatatuiRuby events by their <tt>to_sym</tt> value.
+      # The second argument is an action name (Symbol) or a handler lambda.
+      # The first matching receive wins; later handlers do not run.
+      #
+      # <tt>intercept_events</tt> is an alias. Use <tt>receive</tt> when the
+      # message is addressed to you. Use <tt>intercept</tt> when stopping a
+      # bubbled message mid-chain.
+      #
+      # === Example
+      #
+      #   receive_events :ctrl_c, :quit
+      #   receive_events :q, :quit
+      #   receive_events :enter, ->(_, model) { model.with(submitted: true) }
+      def receive_events(...)
+        receives.add_events(...)
+      end
+
+      # Handles matching routed messages. Stops further processing.
+      #
+      # Matches <tt>Message::Routed</tt> messages by their envelope symbol.
+      # Use this when an outer fragment has forwarded a message with
+      # <tt>as:</tt> and your fragment handles it.
+      #
+      # <tt>intercept_routed</tt> is an alias.
+      #
+      # === Example
+      #
+      #   receive_routed :panel_self,
+      #     ->(_, model) { model.with(count: model.count + 1) }
+      def receive_routed(...)
+        receives.add_routed(...)
+      end
+
+      # Handles matching class instances. Stops further processing.
+      #
+      # Matches messages by class. Use <tt>receive</tt> for messages
+      # addressed to you. Use <tt>intercept</tt> to stop a bubbled message
+      # mid-chain.
+      #
+      # <tt>intercept_instances_of</tt> is an alias.
+      #
+      # === Example
+      #
+      #   receive_instances_of FatalError,
+      #     ->(msg, model) { [model.with(error: msg), Rooibos::Command.exit] }
+      def receive_instances_of(...)
+        receives.add_instances_of(...)
+      end
+
+      # Handles any message. Stops further processing.
+      #
+      # Matches every message. Combine with guards to create conditional
+      # catch-alls. For example, block all input when a fragment is inactive.
+      #
+      # <tt>intercept_all</tt> is an alias.
+      #
+      # === Example
+      #
+      #   receive_all ->(msg, model) { [model, nil] },
+      #     unless: ->(_, model) { model.active }
+      def receive_all(...)
+        receives.add_all(...)
+      end
+
+      # Handles messages matching a custom predicate. Stops further processing.
+      #
+      # The predicate lambda receives <tt>(message, model)</tt>. If it returns
+      # a truthy value, the handler runs and no later handlers execute.
+      #
+      # <tt>intercept</tt> is an alias.
+      #
+      # === Example
+      #
+      #   receive ->(msg, _) { msg.key? && msg.text? },
+      #     ->(msg, model) { model.with(buffer: model.buffer + msg.char) }
+      def receive(...)
+        receives.add_custom(...)
+      end
+
+      alias intercept_events receive_events
+      alias intercept_routed receive_routed
+      alias intercept_instances_of receive_instances_of
+      alias intercept_all receive_all
+      alias intercept receive
+
+      # Routes matching key events to a declared route.
+      #
+      # Matches raw RatatuiRuby events by their <tt>to_sym</tt> value.
+      # Pass a symbol for a single event or an array for multiple events
+      # that route to the same destination.
+      #
+      # The <tt>to:</tt> parameter accepts a symbol (model attribute), a
+      # module (fragment), or a Route (return value of <tt>route</tt>).
+      #
+      # Use <tt>as:</tt> to wrap the event in a <tt>Message::Routed</tt>
+      # with a semantic envelope. This decouples keybindings from nested
+      # fragment internals.
+      #
+      # === Example
+      #
+      #   forward_events :enter, to: :active_form, as: :submit
+      #   forward_events [:up, :k], to: :list, as: :move_up
+      def forward_events(keys, to: @_scoped_target, **)
+        forwards.add_events(keys, to:, **)
+      end
+
+      # Routes matching routed messages to a declared route.
+      #
+      # Matches <tt>Message::Routed</tt> messages by envelope. Use this
+      # when an outer fragment has already routed an event and you need
+      # to route it further to a nested fragment.
+      #
+      # Use <tt>as:</tt> to transform the envelope before forwarding.
+      # Each layer speaks its inner fragment's API without knowing what
+      # lies deeper.
+      #
+      # === Example
+      #
+      #   forward_routed :leaf_1, to: :top_leaf, as: :increment
+      #   forward_routed :leaf_2, to: :bottom_leaf, as: :increment
+      def forward_routed(envelopes, to: @_scoped_target, **)
+        forwards.add_routed(envelopes, to:, **)
+      end
+
+      # Routes any message to a declared route.
+      #
+      # Matches every message. Combine with guards to conditionally route
+      # unhandled messages. Without guards, acts as a catch-all forward.
+      #
+      # === Example
+      #
+      #   only when: -> (_, model) { model.active_tab == :counter_tab } do
+      #     forward_all to: :counter_tab
+      #   end
+      #   forward_all to: :active_panel
+      def forward_all(to: @_scoped_target, **guard_opts)
+        forwards.add_custom(Predicate::Always.new, to:, **guard_opts)
+      end
+
+      # Routes messages matching a custom predicate to a declared route.
+      #
+      # The predicate lambda receives <tt>(message, model)</tt>. If it
+      # returns a truthy value, the message is forwarded. Use this for
+      # complex matching logic that the specialized variants cannot express.
+      #
+      # === Example
+      #
+      #   forward ->(msg, _) { msg.key? && msg.ctrl? },  to: :editor
+      #   forward ->(msg, _) { msg.key? && msg.shift? }, to: Sidebar
+      def forward(predicate, to: @_scoped_target, **)
+        forwards.add_custom(predicate, to:, **)
+      end
+
+      # Observes matching key events. Does not stop further processing.
+      #
+      # Matches raw RatatuiRuby events by <tt>to_sym</tt>. All matching
+      # observers run in declaration order. The message continues to later
+      # handlers. Use observe for side effects that should not block other
+      # handlers: logging, counting, updating derived state.
+      #
+      # === Example
+      #
+      #   observe_events :enter,
+      #     ->(_, model) { [model, Rooibos::Command.custom(Logger.log("Enter pressed"))] }
+      def observe_events(...)
+        observes.add_events(...)
+      end
+
+      # Observes matching routed messages. Does not stop further processing.
+      #
+      # Matches <tt>Message::Routed</tt> by envelope. The message continues
+      # to later handlers after this observer runs.
+      #
+      # === Example
+      #
+      #   observe_routed :submit,
+      #     ->(_, model) { model.with(submissions: model.submissions + 1) }
+      def observe_routed(...)
+        observes.add_routed(...)
+      end
+
+      # Observes matching class instances. Does not stop further processing.
+      #
+      # Matches messages by class. Use it to react to custom message types
+      # while allowing them to continue to other handlers.
+      #
+      # === Example
+      #
+      #   observe_instances_of LeafReset,
+      #     ->(_, model) { model.with(nested_resets: model.nested_resets + 1) }
+      def observe_instances_of(...)
+        observes.add_instances_of(...)
+      end
+
+      # Observes any message. Does not stop further processing.
+      #
+      # Matches every message. Useful for metrics, debugging, or global
+      # state updates that apply regardless of message type.
+      #
+      # === Example
+      #
+      #   observe_all ->(msg, model) {
+      #     model.with(message_count: model.message_count + 1)
+      #   }
+      def observe_all(...)
+        observes.add_all(...)
+      end
+
+      # Observes messages matching a custom predicate. Does not stop further
+      # processing.
+      #
+      # The predicate lambda receives <tt>(message, model)</tt>. All matching
+      # observers run. The message continues to later handlers.
+      #
+      # === Example
+      #
+      #   observe ->(msg, _) { msg.leaf_reset? || msg.panel_reset? },
+      #     ->(_, model) { model.with(total_resets: model.total_resets + 1) }
+      def observe(...)
+        observes.add_custom(...)
+      end
+
+      # Catches unhandled messages as a router-level fallback.
+      #
+      # Messages not handled by <tt>receive</tt>, <tt>intercept</tt>, or
+      # <tt>forward</tt> fall through to <tt>otherwise</tt>. The
+      # <tt>route_to:</tt> parameter accepts the same three forms as
+      # <tt>to:</tt> in the forward family. Multiple <tt>otherwise</tt>
+      # declarations with guards create a conditional fallthrough chain.
+      #
+      # This keeps outer fragments minimal. Declare what you handle;
+      # everything else flows to the nested fragment.
+      #
+      # === Example
+      #
+      #   otherwise route_to: :counter_tab,
+      #     when: ->(_, model) { model.active_tab == :counter }
+      #   otherwise route_to: :color_tab,
+      #     when: ->(_, model) { model.active_tab == :color }
+      #   otherwise route_to: :dashboard
+      def otherwise(...)
+        otherwises.add(...)
+      end
+
+      # Scopes a positive guard over declarations within the block.
+      #
+      # Every forward, receive, intercept, observe, and otherwise inside
+      # the block runs only when the guard returns truthy. Blocks nest;
+      # inner guards combine with outer ones.
+      #
+      # === Example
+      #
+      #   only when: -> (_, model) { model.focused? } do
+      #     forward_events :j, to: :list, as: :move_down
+      #   end
+      private def only(when: nil, if: nil, &)
+        Guard.scoped(binding.local_variable_get(:when) || binding.local_variable_get(:if), &)
+      end
+
+      # Scopes a negative guard over declarations within the block.
+      #
+      # The inverse of <tt>only</tt>. Declarations inside the block run
+      # only when the guard returns falsy.
+      #
+      # === Example
+      #
+      #   skip when: -> (_, model) { model.locked? } do
+      #     receive_events :d, :delete
+      #   end
+      private def skip(when: nil, if: nil, &)
+        positive = binding.local_variable_get(:when) || binding.local_variable_get(:if)
+        Guard.scoped(-> (msg, model) { !positive.call(msg, model) }, &)
+      end
+
+      # Scopes the default <tt>to:</tt> target for forwards and receives
+      # within the block.
+      #
+      # Avoids repeating <tt>to: :some_route</tt> on every declaration.
+      # The scoped target resets after the block.
+      #
+      # === Example
+      #
+      #   route_to :left_panel do
+      #     forward_events :a, as: :panel_self
+      #     forward_events :"1", as: :leaf_1
+      #     forward_events :"2", as: :leaf_2
+      #   end
+      private def route_to(target)
+        @_scoped_target = target
+        yield if block_given?
+      ensure
+        @_scoped_target = nil
       end
     end
   end

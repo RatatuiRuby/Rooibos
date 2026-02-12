@@ -1,0 +1,36 @@
+#--
+# SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#++
+
+module Rooibos
+  module Router
+    module Flow
+      # Outward flow: bubbled messages traveling toward the root.
+      class Outward < Data
+        include Dispatch
+
+        attr_reader observes: Observes
+        attr_reader receives: Receives
+        attr_reader routes: Routes
+
+        def initialize: (
+          observes: Observes,
+          receives: Receives,
+          routes: Routes
+        ) -> void
+
+        # Sentinel: intercept consumed the bubble.
+        INTERCEPTED: Object
+
+        # Dispatches a bubbled message through observe -> intercept.
+        def call: (message, _DataModel) -> Transition
+
+        private
+
+        # Applies the first matching intercept rule.
+        def intercept_first_matching: (Receives rules, Configuration config, Transition transition) -> Transition?
+      end
+    end
+  end
+end
