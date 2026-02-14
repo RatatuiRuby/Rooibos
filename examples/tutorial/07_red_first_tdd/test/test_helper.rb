@@ -27,4 +27,8 @@ module TestDirectoryHelper
   private def with_example_files(&)
     with_test_directory(EXAMPLE_FILES, &)
   end
+
+  private def routed(envelope)
+    Rooibos::Message::Routed.new(envelope:, event: nil)
+  end
 end

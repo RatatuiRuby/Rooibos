@@ -26,6 +26,8 @@ module FileBrowser
   forward_events %i[up k],             to: :file_list, as: :move_up
   forward_events %i[home g],           to: :file_list, as: :jump_first
   forward_events %i[end shift_g],      to: :file_list, as: :jump_last
+  forward_events :enter,               to: :file_list, as: :enter_directory
+  forward_events %i[backspace escape], to: :file_list, as: :go_parent
 
   Update = from_router
 end

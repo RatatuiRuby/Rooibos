@@ -7,12 +7,12 @@ module FileBrowser
 
   Model = Data.define(:entries, :selected_index)
 
-  Init = lambda {
+  Init = -> {
     entries = ReadEntries.call(Dir.pwd)
     Ractor.make_shareable Model.new(entries:, selected_index: 0)
   }
 
-  View = lambda { |model, tui|
+  View = -> (model, tui) {
     items = model.entries.map do |entry|
       if entry.directory?
         "#{entry.name}/"
@@ -30,7 +30,7 @@ module FileBrowser
                ])
   }
 
-  Update = lambda { |message, model|
+  Update = -> (message, model) {
     last_index = model.entries.length - 1
 
     case message
@@ -41,22 +41,24 @@ module FileBrowser
     in type: :key, code: "home" | "g"
       model.with selected_index: 0
     in type: :key, code: "up" | "k"
-      model.with selected_index: if model.selected_index.positive?
-                                   model.selected_index - 1
-                                 else
-                                   last_index
+      selected_index = if model.selected_index.positive?
+        model.selected_index - 1
+      else
+        last_index
       end
+      model.with(selected_index:)
     in type: :key, code: "down" | "j"
-      model.with selected_index: if model.selected_index < last_index
-                                   model.selected_index + 1
-                                 else
-                                   0
+      selected_index = if model.selected_index < last_index
+        model.selected_index + 1
+      else
+        0
       end
+      model.with(selected_index:)
     else
     end
   }
 
-  ReadEntries = lambda { |path|
+  ReadEntries = -> (path) {
     entries = Dir.children(path).map do |name|
       full_path = File.join(path, name)
       Entry.new(name:, directory?: File.directory?(full_path))

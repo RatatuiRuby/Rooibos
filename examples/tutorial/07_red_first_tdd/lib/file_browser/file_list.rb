@@ -8,11 +8,12 @@ module FileBrowser
 
     Entry = Data.define(:name, :directory?)
 
-    Model = Data.define(:entries, :selected_index)
+    Model = Data.define(:path, :entries, :selected_index)
 
     Init = -> {
-      entries = ReadEntries.call(Dir.pwd)
-      Ractor.make_shareable Model.new(entries:, selected_index: 0)
+      path = Dir.pwd
+      entries = ReadEntries.call(path)
+      Ractor.make_shareable Model.new(path:, entries:, selected_index: 0)
     }
 
     View = -> (model, tui) {
@@ -60,6 +61,23 @@ module FileBrowser
     receive_routed :jump_last, -> (_message, model) {
       last_index = model.entries.length - 1
       model.with selected_index: last_index
+    }
+
+    receive_routed :enter_directory, -> (_message, model) {
+      selected = model.entries[model.selected_index]
+      return model unless selected.directory?
+
+      new_path = File.join(model.path, selected.name)
+      entries = ReadEntries.call(new_path)
+      model.with(path: new_path, entries:, selected_index: 0)
+    }
+
+    receive_routed :go_parent, -> (_message, model) {
+      parent = File.dirname(model.path)
+      return model if parent == model.path
+
+      entries = ReadEntries.call(parent)
+      model.with(path: parent, entries:, selected_index: 0)
     }
 
     Update = from_router
