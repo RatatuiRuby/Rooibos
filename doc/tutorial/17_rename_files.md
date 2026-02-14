@@ -39,4 +39,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Text Input Widget](./15_text_input_widget.md) | [**Next:** Confirmation Dialogs](./17_confirmation_dialogs.md)
+[**Previous:** Text Input Widget](./16_text_input_widget.md) | [**Next:** Confirmation Dialogs](./18_confirmation_dialogs.md)

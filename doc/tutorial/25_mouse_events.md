@@ -40,4 +40,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Terminal Capabilities](./23_terminal_capabilities.md) | [**Next:** Resize Events](./25_resize_events.md)
+[**Previous:** Terminal Capabilities](./24_terminal_capabilities.md) | [**Next:** Resize Events](./26_resize_events.md)

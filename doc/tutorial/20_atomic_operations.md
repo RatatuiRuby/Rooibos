@@ -39,4 +39,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Progress Indicators](./18_progress_indicators.md) | [**Next:** External Editor](./20_external_editor.md)
+[**Previous:** Progress Indicators](./19_progress_indicators.md) | [**Next:** External Editor](./21_external_editor.md)

@@ -40,4 +40,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Toggle Hidden Files](./14_toggle_hidden.md) | [**Next:** Rename Files](./16_rename_files.md)
+[**Previous:** Toggle Hidden Files](./15_toggle_hidden.md) | [**Next:** Rename Files](./17_rename_files.md)

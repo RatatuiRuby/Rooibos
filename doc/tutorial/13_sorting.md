@@ -38,4 +38,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Pane Focus](./11_pane_focus.md) | [**Next:** Filtering](./13_filtering.md)
+[**Previous:** Pane Focus](./12_pane_focus.md) | [**Next:** Filtering](./14_filtering.md)

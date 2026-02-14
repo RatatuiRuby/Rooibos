@@ -39,4 +39,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Resize Events](./25_resize_events.md) | [**Next:** Performance](./27_performance.md)
+[**Previous:** Resize Events](./26_resize_events.md) | [**Next:** Performance](./28_performance.md)

@@ -39,4 +39,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Red-First TDD](./07_red_first_tdd.md) | [**Next:** Text Preview](./09_text_preview.md)
+[**Previous:** Multi-Fragment Layout](./08_multi_fragment_layout.md) | [**Next:** Text Preview](./10_text_preview.md)

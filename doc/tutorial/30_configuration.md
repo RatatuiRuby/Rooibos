@@ -121,4 +121,4 @@ Stories are ordered to:
 
 ---
 
-[**Previous:** Color Schemes](./28_color_schemes.md) | [**Next:** Going Further](./30_going_further.md)
+[**Previous:** Color Schemes](./29_color_schemes.md) | [**Next:** Going Further](./31_going_further.md)

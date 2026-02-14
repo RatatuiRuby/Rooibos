@@ -50,4 +50,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Error Handling](./22_error_handling.md) | [**Next:** Mouse Events](./24_mouse_events.md)
+[**Previous:** Error Handling](./23_error_handling.md) | [**Next:** Mouse Events](./25_mouse_events.md)

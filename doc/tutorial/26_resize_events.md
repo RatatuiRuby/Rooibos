@@ -40,4 +40,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Mouse Events](./24_mouse_events.md) | [**Next:** Loading States](./26_loading_states.md)
+[**Previous:** Mouse Events](./25_mouse_events.md) | [**Next:** Loading States](./27_loading_states.md)

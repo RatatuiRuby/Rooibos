@@ -304,7 +304,7 @@ From reading **12 docs** across all three frameworks (Vue's quick-start, watcher
 > **Delete all existing user-facing documentation** (`doc/` except `doc/contributors/`).
 > We are starting from scratch with a completely new information architecture.
 
-### Proposed Structure (46 files, ~370KB total)
+### Proposed Structure (47 files, ~380KB total)
 
 ```
 doc/
@@ -320,38 +320,40 @@ doc/
 │   ├── for_python_developers.md     # Textual → Rooibos translation guide
 │   └── ruby_primer.md               # Ruby basics for polyglots
 │
-├── tutorial/                        # 31 files, ~240KB (TDD-first, one concept per step)
+├── tutorial/                        # 32 files, ~250KB (TDD-first, one concept per step)
 │   ├── index.md                     # Tutorial overview, what you'll build
 │   ├── 01_project_setup.md          # Story -4: Creating project structure
 │   ├── 02_hello_world.md            # Story -3: VIEW, UPDATE, quit
 │   ├── 03_static_file_list.md       # Story -2: MODEL, INIT, testing intro ⭐
 │   ├── 04_arrow_navigation.md       # Story -1: State updates, more tests
 │   ├── 05_real_files.md             # Story 0: Tests break, learn mocking ⭐⭐⭐
-│   ├── 06_safe_refactoring.md       # Story 4a: Extract fragment, tests protect ⭐
-│   ├── 07_red_first_tdd.md          # Story 4b: Build second fragment via TDD ⭐
-│   ├── 08_file_metadata.md          # Story 5: Pre-calculation pattern
-│   ├── 09_text_preview.md           # Story 6: File reading, scrolling
-│   ├── 10_directory_tree.md         # Story 7: Recursive data structures
-│   ├── 11_pane_focus.md             # Story 8: Message routing
-│   ├── 12_sorting.md                # Story 9: Pre-calculation (sort in UPDATE)
-│   ├── 13_filtering.md              # Story 10: Manual text input (cursor state)
-│   ├── 14_toggle_hidden.md          # Story 11: Conditional rendering
-│   ├── 15_text_input_widget.md      # Story 12: Cancellation tokens ⭐
-│   ├── 16_rename_files.md           # Story 13: Pre-populated input
-│   ├── 17_confirmation_dialogs.md   # Story 14: Modal UI state
-│   ├── 18_progress_indicators.md    # Story 15: Long-running with progress ⭐
-│   ├── 19_atomic_operations.md      # Story 16: Fallback strategies
-│   ├── 20_external_editor.md        # Story 17: Suspend/resume
-│   ├── 21_modal_overlays.md         # Story 18: Help overlay pattern
-│   ├── 22_error_handling.md         # Story 19: Auto-dismiss timers
-│   ├── 23_terminal_capabilities.md  # Story 23: NO_COLOR, fallbacks ⭐
-│   ├── 24_mouse_events.md           # Story 20: Optional input handling
-│   ├── 25_resize_events.md          # Story 21: Responsive layouts
-│   ├── 26_loading_states.md         # Story 22: Tri-state models
-│   ├── 27_performance.md            # Story 24: Profiling, optimization
-│   ├── 28_color_schemes.md          # Story 26: Theme system
-│   ├── 29_configuration.md          # Story 27: Config files
-│   └── 30_going_further.md          # Links to advanced topics
+│   │                                # (Stories 1-2 covered by Steps 03-05)
+│   ├── 06_safe_refactoring.md       # Extract fragment, tests protect ⭐
+│   ├── 07_red_first_tdd.md          # Story 3: Enter Directories via TDD ⭐⭐
+│   ├── 08_multi_fragment_layout.md  # Story 4: PathBar + Preview placeholder ⭐
+│   ├── 09_file_metadata.md          # Story 5: Pre-calculation pattern
+│   ├── 10_text_preview.md           # Story 6: File reading, scrolling
+│   ├── 11_directory_tree.md         # Story 7: Recursive data structures
+│   ├── 12_pane_focus.md             # Story 8: Message routing
+│   ├── 13_sorting.md                # Story 9: Pre-calculation (sort in UPDATE)
+│   ├── 14_filtering.md              # Story 10: Manual text input (cursor state)
+│   ├── 15_toggle_hidden.md          # Story 11: Conditional rendering
+│   ├── 16_text_input_widget.md      # Story 12: Cancellation tokens ⭐
+│   ├── 17_rename_files.md           # Story 13: Pre-populated input
+│   ├── 18_confirmation_dialogs.md   # Story 14: Modal UI state
+│   ├── 19_progress_indicators.md    # Story 15: Long-running with progress ⭐
+│   ├── 20_atomic_operations.md      # Story 16: Fallback strategies
+│   ├── 21_external_editor.md        # Story 17: Suspend/resume
+│   ├── 22_modal_overlays.md         # Story 18: Help overlay pattern
+│   ├── 23_error_handling.md         # Story 19: Auto-dismiss timers
+│   ├── 24_terminal_capabilities.md  # Story 23: NO_COLOR, fallbacks ⭐
+│   ├── 25_mouse_events.md           # Story 20: Optional input handling
+│   ├── 26_resize_events.md          # Story 21: Responsive layouts
+│   ├── 27_loading_states.md         # Story 22: Tri-state models
+│   ├── 28_performance.md            # Story 24: Profiling, optimization
+│   ├── 29_color_schemes.md          # Story 26: Theme system
+│   ├── 30_configuration.md          # Story 27: Config files
+│   └── 31_going_further.md          # Links to advanced topics
 │
 ├── essentials/                      # 8 files, ~80KB (Vue-style concepts)
 │   ├── the_elm_architecture.md      # MVU pattern + "Why MVU?"
@@ -389,8 +391,8 @@ doc/
     └── ...
 ```
 
-**File count**: 64 files  
-**Target size**: ~510KB (avg ~8KB per file)
+**File count**: 65 files  
+**Target size**: ~520KB (avg ~8KB per file)
 
 ---
 
@@ -424,14 +426,15 @@ Our tutorial introduces a **controlled failure** that teaches professional testi
 - Run snapshot tests → still pass ✅
 - **Teaches:** Tests enable fearless refactoring, fragments are just modules
 
-**Step 7: Red-First TDD**
-- Build second fragment (directory tree) via **red-first TDD**:
-  - Write failing test for TreeFragment.view ❌ (red)
-  - Implement TreeFragment.view ✅ (green)
-  - Write failing test for TreeFragment.update ❌ (red)
-  - Implement TreeFragment.update ✅ (green)
-  - Refactor both fragments, tests keep passing ✅
-- **Teaches:** Red-Green-Refactor cycle, unit testing fragments, TDD workflow
+**Step 7: Red-First TDD (Story 3: Enter Directories)**
+- Learner discovers snapshots can't drive design (auto-create on first run, no "red" phase)
+- Write failing assertion-based test: "Enter on directory changes path" ❌ (red)
+- Implement directory traversal in FileList::Update ✅ (green)
+- Write failing test: "Enter on file does nothing" ❌ (red)
+- Implement the guard ✅ (green)
+- Write failing test: "Backspace goes to parent" ❌ (red)
+- Implement parent navigation ✅ (green)
+- **Teaches:** Red-Green-Refactor, assertion tests vs snapshots, TDD workflow
 
 ### Why This Beats the Competition
 
@@ -485,7 +488,7 @@ This is **experiential learning** - the student discovers WHY through controlled
 | `for_python_developers.md` | 6 | Textual → Rooibos translation |
 | `ruby_primer.md` | 5 | Ruby basics for polyglots |
 
-### Tutorial (31 files, ~240KB)
+### Tutorial (32 files, ~250KB)
 
 A comprehensive TDD-first tutorial building a **File Browser** using Ruby's `Pathname`/`File`.
 
@@ -499,39 +502,40 @@ A comprehensive TDD-first tutorial building a **File Browser** using Ruby's `Pat
 | `03_static_file_list.md` | 10 | -2 | MODEL, INIT, **testing intro** ⭐ |
 | `04_arrow_navigation.md` | 8 | -1 | State updates (.with), more tests |
 | `05_real_files.md` | 12 | 0 | **Tests break, learn mocking** ⭐⭐⭐ |
-| `06_safe_refactoring.md` | 8 | 4a | **Extract fragment, tests protect** ⭐ |
-| `07_red_first_tdd.md` | 10 | 4b | **Build via red-first TDD** ⭐ |
-| `08_file_metadata.md` | 8 | 5 | Pre-calculation pattern (sort in UPDATE) |
-| `09_text_preview.md` | 8 | 6 | File reading, text detection, scrolling |
-| `10_directory_tree.md` | 10 | 7 | Recursive data structures in Model |
-| `11_pane_focus.md` | 8 | 8 | Message routing, context-sensitive keys |
-| `12_sorting.md` | 8 | 9 | **Pre-calculation (no VIEW computation!)** |
-| `13_filtering.md` | 8 | 10 | **Manual text input (cursor state)** |
-| `14_toggle_hidden.md` | 6 | 11 | Conditional rendering, visual styling |
-| `15_text_input_widget.md` | 10 | 12 | **Cancellation tokens, Command.cancel** ⭐ |
-| `16_rename_files.md` | 8 | 13 | Pre-populated input, validation |
-| `17_confirmation_dialogs.md` | 8 | 14 | Modal UI state, Y/N handling |
-| `18_progress_indicators.md` | 8 | 15 | **Long-running with progress** ⭐ |
-| `19_atomic_operations.md` | 8 | 16 | **Fallback strategies, error recovery** |
-| `20_external_editor.md` | 8 | 17 | Suspend/resume, process spawning |
-| `21_modal_overlays.md` | 8 | 18 | Help overlay pattern |
-| `22_error_handling.md` | 8 | 19 | Auto-dismiss timers (Command.wait) |
-| `23_terminal_capabilities.md` | 10 | 23 | **NO_COLOR, ANSI/ASCII fallbacks** ⭐ |
-| `24_mouse_events.md` | 8 | 20 | **Optional input, capability detection** |
-| `25_resize_events.md` | 8 | 21 | **Responsive layouts, degradation** |
-| `26_loading_states.md` | 8 | 22 | Tri-state models, cancellable Commands |
-| `27_performance.md` | 8 | 24 | Profiling, optimization, caching |
-| `28_color_schemes.md` | 8 | 26 | **Theme system, validation** |
-| `29_configuration.md` | 8 | 27 | **YAML parsing, config files** |
-| `30_going_further.md` | 5 | — | Links to scaling_up/ and best_practices/ |
+| `06_safe_refactoring.md` | 8 | — | **Extract fragment, tests protect** ⭐ |
+| `07_red_first_tdd.md` | 10 | 3 | **Enter Directories via assertion-based TDD** ⭐⭐ |
+| `08_multi_fragment_layout.md` | 8 | 4 | **PathBar + Preview placeholder, layout** ⭐ |
+| `09_file_metadata.md` | 8 | 5 | Pre-calculation pattern (sort in UPDATE) |
+| `10_text_preview.md` | 8 | 6 | File reading, text detection, scrolling |
+| `11_directory_tree.md` | 10 | 7 | Recursive data structures in Model |
+| `12_pane_focus.md` | 8 | 8 | Message routing, context-sensitive keys |
+| `13_sorting.md` | 8 | 9 | **Pre-calculation (no VIEW computation!)** |
+| `14_filtering.md` | 8 | 10 | **Manual text input (cursor state)** |
+| `15_toggle_hidden.md` | 6 | 11 | Conditional rendering, visual styling |
+| `16_text_input_widget.md` | 10 | 12 | **Cancellation tokens, Command.cancel** ⭐ |
+| `17_rename_files.md` | 8 | 13 | Pre-populated input, validation |
+| `18_confirmation_dialogs.md` | 8 | 14 | Modal UI state, Y/N handling |
+| `19_progress_indicators.md` | 8 | 15 | **Long-running with progress** ⭐ |
+| `20_atomic_operations.md` | 8 | 16 | **Fallback strategies, error recovery** |
+| `21_external_editor.md` | 8 | 17 | Suspend/resume, process spawning |
+| `22_modal_overlays.md` | 8 | 18 | Help overlay pattern |
+| `23_error_handling.md` | 8 | 19 | Auto-dismiss timers (Command.wait) |
+| `24_terminal_capabilities.md` | 10 | 23 | **NO_COLOR, ANSI/ASCII fallbacks** ⭐ |
+| `25_mouse_events.md` | 8 | 20 | **Optional input, capability detection** |
+| `26_resize_events.md` | 8 | 21 | **Responsive layouts, degradation** |
+| `27_loading_states.md` | 8 | 22 | Tri-state models, cancellable Commands |
+| `28_performance.md` | 8 | 24 | Profiling, optimization, caching |
+| `29_color_schemes.md` | 8 | 26 | **Theme system, validation** |
+| `30_configuration.md` | 8 | 27 | **YAML parsing, config files** |
+| `31_going_further.md` | 5 | — | Links to scaling_up/ and best_practices/ |
 
 **Tutorial Philosophy:**
 
-1. **TDD from Step 3** - Tests are not optional, they're fundamental
+1. **Automated tests from Step 3, TDD from Step 7** - Tests are not optional, they're fundamental
 2. **Controlled failure at Step 5** - Tests break when adding real files, teaching why mocking matters
-3. **Every step includes tests** - Build confidence through green → green → red → green
+3. **Snapshots vs assertions at Step 7** - Snapshots guard regressions; assertions drive design
 4. **One pedagogical moment per step** - Each step teaches ONE concept clearly
-5. **30 steps total** - Comprehensive coverage of all file browser stories
+5. **31 steps total** - Comprehensive coverage of all file browser stories
 
 ### Essentials (8 files, ~80KB)
 

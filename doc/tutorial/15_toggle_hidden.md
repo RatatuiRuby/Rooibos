@@ -38,4 +38,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Filtering](./13_filtering.md) | [**Next:** Text Input Widget](./15_text_input_widget.md)
+[**Previous:** Filtering](./14_filtering.md) | [**Next:** Text Input Widget](./16_text_input_widget.md)

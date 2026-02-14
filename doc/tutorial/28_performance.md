@@ -40,4 +40,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Loading States](./26_loading_states.md) | [**Next:** Color Schemes](./28_color_schemes.md)
+[**Previous:** Loading States](./27_loading_states.md) | [**Next:** Color Schemes](./29_color_schemes.md)

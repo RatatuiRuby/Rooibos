@@ -39,4 +39,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Text Preview](./09_text_preview.md) | [**Next:** Pane Focus](./11_pane_focus.md)
+[**Previous:** Text Preview](./10_text_preview.md) | [**Next:** Pane Focus](./12_pane_focus.md)

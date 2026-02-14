@@ -40,4 +40,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Rename Files](./16_rename_files.md) | [**Next:** Progress Indicators](./18_progress_indicators.md)
+[**Previous:** Rename Files](./17_rename_files.md) | [**Next:** Progress Indicators](./19_progress_indicators.md)

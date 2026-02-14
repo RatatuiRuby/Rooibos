@@ -14,4 +14,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Configuration](./29_configuration.md) | 
+[**Previous:** Configuration](./30_configuration.md) | 

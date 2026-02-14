@@ -40,4 +40,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Sorting](./12_sorting.md) | [**Next:** Toggle Hidden Files](./14_toggle_hidden.md)
+[**Previous:** Sorting](./13_sorting.md) | [**Next:** Toggle Hidden Files](./15_toggle_hidden.md)

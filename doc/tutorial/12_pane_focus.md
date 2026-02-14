@@ -37,4 +37,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Directory Tree](./10_directory_tree.md) | [**Next:** Sorting](./12_sorting.md)
+[**Previous:** Directory Tree](./11_directory_tree.md) | [**Next:** Sorting](./13_sorting.md)

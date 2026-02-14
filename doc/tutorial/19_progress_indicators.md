@@ -40,4 +40,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Confirmation Dialogs](./17_confirmation_dialogs.md) | [**Next:** Atomic Operations](./19_atomic_operations.md)
+[**Previous:** Confirmation Dialogs](./18_confirmation_dialogs.md) | [**Next:** Atomic Operations](./20_atomic_operations.md)

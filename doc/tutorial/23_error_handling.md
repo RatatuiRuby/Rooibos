@@ -40,4 +40,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Modal Overlays](./21_modal_overlays.md) | [**Next:** Terminal Capabilities](./23_terminal_capabilities.md)
+[**Previous:** Modal Overlays](./22_modal_overlays.md) | [**Next:** Terminal Capabilities](./24_terminal_capabilities.md)

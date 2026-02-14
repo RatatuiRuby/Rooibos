@@ -41,4 +41,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** File Metadata](./08_file_metadata.md) | [**Next:** Directory Tree](./10_directory_tree.md)
+[**Previous:** File Metadata](./09_file_metadata.md) | [**Next:** Directory Tree](./11_directory_tree.md)

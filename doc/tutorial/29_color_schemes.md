@@ -44,4 +44,4 @@ By the end of this guide, you will:
 
 ---
 
-[**Previous:** Performance](./27_performance.md) | [**Next:** Configuration](./29_configuration.md)
+[**Previous:** Performance](./28_performance.md) | [**Next:** Configuration](./30_configuration.md)
