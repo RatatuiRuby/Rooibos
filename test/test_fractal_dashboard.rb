@@ -9,7 +9,7 @@ require "test_helper"
 require_relative "../examples/app_fractal_dashboard/dashboard/update_manual"
 
 class TestFractalDashboard < Minitest::Test
-  def test_update_routes_stats_panel_message
+  def test_update_routes_system_info_batch_to_stats
     model = DashboardManual::Init.()
     batch = Rooibos::Message::System::Batch.new(
       envelope: :system_info,
@@ -17,16 +17,14 @@ class TestFractalDashboard < Minitest::Test
       stderr: "",
       status: 0
     )
-    msg = [:stats, batch]
 
-    result = DashboardManual::Update.call(msg, model)
+    new_model, cmd = DashboardManual::Update.call(batch, model)
 
-    new_model, cmd = result
     assert_equal "Darwin", new_model.stats.system_info.output
     assert_nil cmd
   end
 
-  def test_update_routes_network_panel_message
+  def test_update_routes_ping_batch_to_network
     model = DashboardManual::Init.()
     batch = Rooibos::Message::System::Batch.new(
       envelope: :ping,
@@ -34,56 +32,53 @@ class TestFractalDashboard < Minitest::Test
       stderr: "",
       status: 0
     )
-    msg = [:network, batch]
 
-    result = DashboardManual::Update.call(msg, model)
+    new_model, cmd = DashboardManual::Update.call(batch, model)
 
-    new_model, cmd = result
     assert_equal "PING localhost", new_model.network.ping.output
     assert_nil cmd
   end
 
-  def test_s_key_triggers_mapped_system_info_command
+  def test_s_key_triggers_system_info_command
     model = DashboardManual::Init.()
     msg = RatatuiRuby::Event::Key.new(code: "s", modifiers: [])
 
-    result = DashboardManual::Update.call(msg, model)
+    new_model, cmd = DashboardManual::Update.call(msg, model)
 
-    new_model, cmd = result
     assert new_model.stats.system_info.loading, "Should set loading state"
-    assert_kind_of Rooibos::Command::Mapped, cmd
-    assert_kind_of Rooibos::Command::System, cmd.inner_command
-    assert_equal :system_info, cmd.inner_command.envelope
+    assert_kind_of Rooibos::Command::System, cmd
+    assert_equal :system_info, cmd.envelope
   end
 
-  def test_p_key_triggers_mapped_ping_command
+  def test_p_key_triggers_ping_command
     model = DashboardManual::Init.()
     msg = RatatuiRuby::Event::Key.new(code: "p", modifiers: [])
 
-    result = DashboardManual::Update.call(msg, model)
+    new_model, cmd = DashboardManual::Update.call(msg, model)
 
-    new_model, cmd = result
     assert new_model.network.ping.loading, "Should set loading state"
-    assert_kind_of Rooibos::Command::Mapped, cmd
-    assert_kind_of Rooibos::Command::System, cmd.inner_command
-    assert_equal :ping, cmd.inner_command.envelope
+    assert_kind_of Rooibos::Command::System, cmd
+    assert_equal :ping, cmd.envelope
   end
 
-  def test_mapper_wraps_with_panel_prefix
-    # Verify the mapper transforms the message correctly
-    inner_cmd = SystemInfo.fetch_command
-    cmd = Rooibos::Command.map(inner_cmd) { |m| [:stats, m] }
+  def test_stream_messages_route_to_modal
+    model = DashboardManual::Init.()
+    # Activate the modal first
+    model = model.with(shell_modal: CustomShellModal.open)
+    # Transition from input to output mode
+    output = CustomShellOutput::Init.().with(command: "echo hi", running: true)
+    model = model.with(shell_modal: model.shell_modal.with(mode: :output, output:))
 
-    # Simulate what dispatch would produce (System::Batch object)
-    inner_msg = Rooibos::Message::System::Batch.new(
-      envelope: :system_info,
-      stdout: "test",
-      stderr: "",
-      status: 0
+    stream_msg = Rooibos::Message::System::Stream.new(
+      envelope: :shell_output,
+      stream: :stdout,
+      content: "hi\n",
+      status: nil
     )
-    transformed = cmd.mapper.call(inner_msg)
 
-    assert_equal :stats, transformed[0]
-    assert_kind_of Rooibos::Message::System::Batch, transformed[1]
+    new_model, _cmd = DashboardManual::Update.call(stream_msg, model)
+
+    assert_equal 1, new_model.shell_modal.output.chunks.length
+    assert_equal "hi\n", new_model.shell_modal.output.chunks.first.text
   end
 end

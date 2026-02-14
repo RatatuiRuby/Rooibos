@@ -15,7 +15,7 @@ module CustomShellOutput
   ProcessOutput = Data.define(:command, :chunks, :running, :exit_status, :dismissed)
 
   Init = -> do
-    Ractor.make_shareable(ProcessOutput.new(command: "", chunks: [].freeze, running: false, exit_status: nil, dismissed: false))
+    ProcessOutput.new(command: "", chunks: [].freeze, running: false, exit_status: nil, dismissed: false)
   end
 
   View = -> (model, tui) do
@@ -62,19 +62,20 @@ module CustomShellOutput
 
   Update = -> (message, model) do
     case message
-    in [:stdout, chunk]
-      new_chunks = Ractor.make_shareable([*model.chunks, Chunk.new(stream: :stdout, text: chunk)].freeze)
+    # Message::System::Stream from Command.system(..., stream: true)
+    in { type: :system_stream, stream: :stdout, content: }
+      new_chunks = [*model.chunks, Chunk.new(stream: :stdout, text: content)].freeze
       [model.with(chunks: new_chunks), nil]
 
-    in [:stderr, chunk]
-      new_chunks = Ractor.make_shareable([*model.chunks, Chunk.new(stream: :stderr, text: chunk)].freeze)
+    in { type: :system_stream, stream: :stderr, content: }
+      new_chunks = [*model.chunks, Chunk.new(stream: :stderr, text: content)].freeze
       [model.with(chunks: new_chunks), nil]
 
-    in [:complete, { status: }]
+    in { type: :system_stream, stream: :complete, status: }
       [model.with(running: false, exit_status: status), nil]
 
-    in [:error, { message: error_msg }]
-      new_chunks = Ractor.make_shareable([*model.chunks, Chunk.new(stream: :stderr, text: "Error: #{error_msg}\n")].freeze)
+    in { type: :system_stream, stream: :error, content: error_msg }
+      new_chunks = [*model.chunks, Chunk.new(stream: :stderr, text: "Error: #{error_msg}\n")].freeze
       [model.with(chunks: new_chunks, running: false, exit_status: 1), nil]
 
     in _ if message.respond_to?(:esc?) && message.esc?

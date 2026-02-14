@@ -24,6 +24,7 @@ gem "nokogiri" # For RDoc sidebar post-processing
 gem "faker"    # For realistic example data
 gem "steep"
 gem "debug"
+gem "benchmark"
 
 group :development do
   gem "ratatui_ruby-devtools"

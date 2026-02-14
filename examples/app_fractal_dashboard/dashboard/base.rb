@@ -10,7 +10,7 @@ require_relative "../fragments/network_panel"
 require_relative "../fragments/custom_shell_modal"
 
 # Shared Model, Init, and View for the Dashboard.
-# Each Dashboard variation (Manual, Router, Helpers) provides its own Update.
+# Each Dashboard variation (Manual, Router) provides its own Update.
 module DashboardBase
   Command = Rooibos::Command
 

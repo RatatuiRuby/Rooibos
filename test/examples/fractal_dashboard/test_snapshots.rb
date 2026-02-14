@@ -12,7 +12,6 @@ require "rooibos/test_helper"
 require "open3"
 require "minitest/autorun"
 require_relative "../../../examples/app_fractal_dashboard/dashboard/update_manual"
-require_relative "../../../examples/app_fractal_dashboard/dashboard/update_helpers"
 require_relative "../../../examples/app_fractal_dashboard/dashboard/update_router"
 
 # Integration tests for the Fractal Dashboard example.
@@ -114,25 +113,12 @@ class TestFractalDashboardSnapshots < Minitest::Test
   end
 
   def test_all_update_variants_produce_same_view
-    skip "TODO: Router stub doesn't handle quit - enable after Phase 3"
     # Capture with manual
     manual_content = nil
     with_test_terminal do
       inject_key(:q)
       Rooibos.run(DashboardManual)
       manual_content = buffer_content
-    end
-
-    # Capture with helpers
-    helpers_content = nil
-    with_test_terminal do
-      inject_key(:q)
-      Rooibos.run(
-        model: DashboardHelpers::Init.(),
-        view: DashboardHelpers::View,
-        update: DashboardHelpers::Update
-      )
-      helpers_content = buffer_content
     end
 
     # Capture with router
@@ -147,9 +133,7 @@ class TestFractalDashboardSnapshots < Minitest::Test
       router_content = buffer_content
     end
 
-    assert_equal manual_content, helpers_content, "Manual and Helpers views differ"
     assert_equal manual_content, router_content, "Manual and Router views differ"
-    assert_equal helpers_content, router_content, "Helpers and Router views differ"
   end
 
   def test_custom_modal_opens_and_escapes

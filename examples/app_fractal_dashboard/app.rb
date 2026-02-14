@@ -10,17 +10,16 @@ $LOAD_PATH.unshift File.expand_path("../../lib", __dir__)
 require "ratatui_ruby"
 require "rooibos"
 
-# Demonstrates three approaches to UPDATE routing in Fractal Architecture.
+# Demonstrates two approaches to Update routing in Fractal Architecture.
 #
 # == Usage
 #
 #   ruby app.rb           # Defaults to 'manual'
 #   ruby app.rb manual    # Verbose pattern matching
-#   ruby app.rb helpers   # Rooibos.route and Rooibos.delegate helpers
 #   ruby app.rb router    # Rooibos::Router DSL
 #
-# All three share the same fragments, Model, INITIAL, and VIEW. Only the UPDATE
-# implementation differs. Compare the three update_*.rb files to see the
+# Both share the same fragments, Model, INITIAL, and VIEW. Only the Update
+# implementation differs. Compare the two update_*.rb files to see the
 # progression from verbose to declarative.
 #
 # == Architecture
@@ -29,7 +28,6 @@ require "rooibos"
 #   dashboard/
 #   ├── base.rb         ← Shared: Model, INITIAL, VIEW
 #   ├── update_manual.rb
-#   ├── update_helpers.rb
 #   └── update_router.rb
 #   fragments/
 #   ├── system_info.rb
@@ -39,9 +37,9 @@ require "rooibos"
 #   ├── stats_panel.rb
 #   └── network_panel.rb
 
-VALID_MODES = %w[manual helpers router].freeze
+VALID_MODES = %w[manual router].freeze
 
-mode = ARGV[0] || "manual"
+mode = ARGV[0] || VALID_MODES.sample
 unless VALID_MODES.include?(mode)
   warn "Usage: ruby app.rb [#{VALID_MODES.join('|')}]"
   exit 1
@@ -51,13 +49,10 @@ dashboard = case mode
             when "manual"
               require_relative "dashboard/update_manual"
               DashboardManual
-            when "helpers"
-              require_relative "dashboard/update_helpers"
-              DashboardHelpers
             when "router"
               require_relative "dashboard/update_router"
               DashboardRouter
 end
 
-puts "Running with #{mode} UPDATE..."
-Rooibos.run(fragment: dashboard)
+puts "Running with #{mode} Update..."
+Rooibos.run(dashboard)

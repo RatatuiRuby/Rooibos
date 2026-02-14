@@ -10,9 +10,12 @@ require_relative "base"
 # UPDATE using verbose manual routing.
 #
 # This is the most explicit approach: full pattern matching, explicit
-# Command.map calls, manual model updates. Maximum control, maximum boilerplate.
+# delegation calls, manual model updates. Maximum control, maximum boilerplate.
+#
+# This manually simulates exactly what DashboardRouter does via the Router DSL.
 module DashboardManual
   Command = Rooibos::Command
+  Routed = Rooibos::Message::Routed
 
   # Shared with other UPDATE variants
   Model = DashboardBase::Dashboard
@@ -20,65 +23,64 @@ module DashboardManual
   View = DashboardBase::View
 
   Update = -> (message, model) do
-    # Global Force Quit
-    return [model, Rooibos::Command.exit] if message.respond_to?(:ctrl_c?) && message.ctrl_c?
+    # Global Force Quit — always handled, even during modal
+    return [model, Command.exit] if message.respond_to?(:ctrl_c?) && message.ctrl_c?
 
-    # IMPORTANT: Route command results BEFORE modal intercept.
-    # Async command results must always reach their destination, even when a
+    # IMPORTANT: Route async command results BEFORE modal intercept.
+    # Command results must always reach their destination, even when a
     # modal is active. Only user input (keys/mouse) should be blocked.
-    case message
-    # Route command results to panels
-    in [:stats, rest]
-      new_panel, command = StatsPanel::Update.call(rest, model.stats)
-      mapped_command = command ? Command.map(command) { |child_result| [:stats, *child_result] } : nil
-      return [model.with(stats: new_panel), mapped_command]
 
-    in [:network, rest]
-      new_panel, command = NetworkPanel::Update.call(rest, model.network)
-      mapped_command = command ? Command.map(command) { |child_result| [:network, *child_result] } : nil
-      return [model.with(network: new_panel), mapped_command]
-
-    in [:shell_output, rest]
-      # Route streaming command output to modal
-      new_modal, command = CustomShellModal::Update.call(message, model.shell_modal)
-      return [model.with(shell_modal: new_modal), command]
-    else
-      nil # Fall through to input handling
+    # Route Message::System::Batch results to the correct panel
+    if Rooibos::Message::System::Batch === message
+      case message.envelope
+      when :system_info, :disk_usage
+        new_child, command = StatsPanel::Update.call(message, model.stats)
+        return [model.with(stats: new_child), command]
+      when :ping, :uptime
+        new_child, command = NetworkPanel::Update.call(message, model.network)
+        return [model.with(network: new_child), command]
+      end
     end
 
-    # Modal intercepts user input (not command results)
+    # Route Message::System::Stream results to the modal
+    if Rooibos::Message::System::Stream === message
+      new_modal, command = CustomShellModal::Update.call(message, model.shell_modal)
+      return [model.with(shell_modal: new_modal), command]
+    end
+
+    # Modal intercepts all user input (not command results)
     if CustomShellModal.active?(model.shell_modal)
       new_modal, command = CustomShellModal::Update.call(message, model.shell_modal)
       return [model.with(shell_modal: new_modal), command]
     end
 
+    # Handle user input when modal is inactive
     case message
-    # Handle user input
-    in _ if message.q? || message.ctrl_c?
+    in _ if message.q?
       Command.exit
 
     in _ if message.c?
       [model.with(shell_modal: CustomShellModal.open), nil]
 
     in _ if message.s?
-      command = Command.map(SystemInfo.fetch_command) { |batch| [:stats, batch] }
-      new_stats = model.stats.with(system_info: model.stats.system_info.with(loading: true))
-      [model.with(stats: new_stats), command]
+      routed = Routed.new(envelope: :fetch_system_info, event: message)
+      new_child, command = StatsPanel::Update.call(routed, model.stats)
+      [model.with(stats: new_child), command]
 
     in _ if message.d?
-      command = Command.map(DiskUsage.fetch_command) { |batch| [:stats, batch] }
-      new_stats = model.stats.with(disk_usage: model.stats.disk_usage.with(loading: true))
-      [model.with(stats: new_stats), command]
+      routed = Routed.new(envelope: :fetch_disk_usage, event: message)
+      new_child, command = StatsPanel::Update.call(routed, model.stats)
+      [model.with(stats: new_child), command]
 
     in _ if message.p?
-      command = Command.map(Ping.fetch_command) { |batch| [:network, batch] }
-      new_network = model.network.with(ping: model.network.ping.with(loading: true))
-      [model.with(network: new_network), command]
+      routed = Routed.new(envelope: :fetch_ping, event: message)
+      new_child, command = NetworkPanel::Update.call(routed, model.network)
+      [model.with(network: new_child), command]
 
     in _ if message.u?
-      command = Command.map(Uptime.fetch_command) { |batch| [:network, batch] }
-      new_network = model.network.with(uptime: model.network.uptime.with(loading: true))
-      [model.with(network: new_network), command]
+      routed = Routed.new(envelope: :fetch_uptime, event: message)
+      new_child, command = NetworkPanel::Update.call(routed, model.network)
+      [model.with(network: new_child), command]
 
     else
       model

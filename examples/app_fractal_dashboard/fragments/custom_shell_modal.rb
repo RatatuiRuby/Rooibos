@@ -17,7 +17,7 @@ module CustomShellModal
   Init = -> do
     input, = Rooibos.normalize_init(CustomShellInput::Init.())
     output, = Rooibos.normalize_init(CustomShellOutput::Init.())
-    Ractor.make_shareable(ShellSession.new(mode: :none, input:, output:))
+    ShellSession.new(mode: :none, input:, output:)
   end
 
   View = -> (model, tui) do

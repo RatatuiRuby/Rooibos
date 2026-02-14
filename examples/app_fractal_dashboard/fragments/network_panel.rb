@@ -32,12 +32,24 @@ module NetworkPanel
 
   Update = -> (message, model) do
     case message
-    in { envelope: :ping, ** }
+    # Key events forwarded from Router as semantic routed messages
+    in { type: :routed, envelope: :fetch_ping }
+      new_model = model.with(ping: model.ping.with(loading: true))
+      [new_model, Ping.fetch_command]
+
+    in { type: :routed, envelope: :fetch_uptime }
+      new_model = model.with(uptime: model.uptime.with(loading: true))
+      [new_model, Uptime.fetch_command]
+
+    # Async command results forwarded from Router
+    in { type: :system, envelope: :ping }
       new_child, command = Ping::Update.call(message, model.ping)
       [model.with(ping: new_child), command]
-    in { envelope: :uptime, ** }
+
+    in { type: :system, envelope: :uptime }
       new_child, command = Uptime::Update.call(message, model.uptime)
       [model.with(uptime: new_child), command]
+
     else
       [model, nil]
     end

@@ -3,58 +3,60 @@
   SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Cmd.map Fractal Dashboard
+# Fractal Dashboard
 
-Demonstrates **Fractal Architecture** using `Cmd.map` for component composition.
-
-## Problem
-
-Without composition, a complex app needs one giant `case` statement handling every possible message from every child—the "God Reducer" anti-pattern. This doesn't scale.
-
-## Solution
-
-`Cmd.map` wraps child commands so their results route through parents:
-
-```ruby
-# Child produces [:system_info, {stdout:, ...}]
-child_cmd = SystemInfoWidget.fetch_cmd
-
-# Parent wraps to produce [:stats, :system_info, {...}]
-parent_cmd = Cmd.map(child_cmd) { |m| [:stats, *m] }
-```
-
-Each layer handles only its own messages. Parents pattern-match on the first element to route to the correct child.
+Demonstrates **Fractal Architecture** with two Update styles: manual routing
+and the declarative `Rooibos::Router` DSL.
 
 ## Architecture
 
 ```
 Dashboard (root)
 ├── StatsPanel
-│   ├── SystemInfoWidget → Cmd.exec("uname -a", :system_info)
-│   └── DiskUsageWidget  → Cmd.exec("df -h", :disk_usage)
-└── NetworkPanel
-    ├── PingWidget       → Cmd.exec("ping -c 1 localhost", :ping)
-    └── UptimeWidget     → Cmd.exec("uptime", :uptime)
+│   ├── SystemInfo  → Command.system("uname -a", :system_info)
+│   └── DiskUsage   → Command.system("df -h", :disk_usage)
+├── NetworkPanel
+│   ├── Ping        → Command.system("ping -c 1 localhost", :ping)
+│   └── Uptime      → Command.system("uptime", :uptime)
+└── CustomShellModal
+    ├── CustomShellInput   (text input)
+    └── CustomShellOutput  (streaming output)
 ```
 
 ## Hotkeys
 
-| Key | Action |
-|-----|--------|
-| `s` | Fetch system info |
-| `d` | Fetch disk usage |
-| `p` | Ping localhost |
-| `u` | Fetch uptime |
-| `q` | Quit |
+| Key      | Action                            |
+|----------|-----------------------------------|
+| `s`      | Fetch system info                 |
+| `d`      | Fetch disk usage                  |
+| `p`      | Ping localhost                    |
+| `u`      | Fetch uptime                      |
+| `c`      | Open shell command modal          |
+| `q`      | Quit                              |
+| `Ctrl+C` | Force quit (works during modal)   |
+
+## Two Update Variants
+
+Both variants produce identical behavior. Only the Update implementation differs.
+
+- **Manual** (`update_manual.rb`) — Explicit pattern matching on `Message::System::Batch`,
+  `Message::System::Stream`, and `Message::Routed`. Full control, full boilerplate.
+- **Router** (`update_router.rb`) — Declarative `Rooibos::Router` DSL with `route`,
+  `forward_events`, `forward`, and `otherwise`. Minimal boilerplate.
 
 ## Key Concepts
 
-1. **Widget isolation**: Each widget has its own `Model`, `UPDATE`, and `fetch_cmd`. It knows nothing about parents.
-2. **Message routing**: Parents prefix child messages (`:stats`, `:network`) and pattern-match to route.
-3. **Recursive dispatch**: `Cmd.map` delegates inner command execution to the runtime, then transforms the result.
+1. **Fragment isolation**: Each fragment has its own Model, Init, Update, and View.
+   It knows nothing about parents.
+2. **Message routing**: The Router (or manual code) forwards `Message::System::Batch`
+   results and `Message::System::Stream` chunks to the correct child fragment.
+3. **Semantic triggers**: Key presses are forwarded as `Message::Routed` envelopes
+   (e.g. `:fetch_system_info`), so panels decide how to handle their own triggers.
 
 ## Usage
 
 ```bash
-ruby examples/widget_cmd_map/app.rb
+ruby examples/app_fractal_dashboard/app.rb manual   # Verbose pattern matching
+ruby examples/app_fractal_dashboard/app.rb router   # Router DSL
+ruby examples/app_fractal_dashboard/app.rb          # Coin flip!
 ```

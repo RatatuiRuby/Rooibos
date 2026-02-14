@@ -13,7 +13,7 @@ module CustomShellInput
   InputBuffer = Data.define(:text, :canceled, :submitted)
 
   Init = -> do
-    Ractor.make_shareable(InputBuffer.new(text: "", canceled: false, submitted: false))
+    InputBuffer.new(text: "", canceled: false, submitted: false)
   end
 
   View = -> (model, tui) do

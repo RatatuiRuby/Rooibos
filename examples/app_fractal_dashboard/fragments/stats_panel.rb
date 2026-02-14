@@ -32,12 +32,24 @@ module StatsPanel
 
   Update = -> (message, model) do
     case message
-    in { envelope: :system_info, ** }
+    # Key events forwarded from Router as semantic routed messages
+    in { type: :routed, envelope: :fetch_system_info }
+      new_model = model.with(system_info: model.system_info.with(loading: true))
+      [new_model, SystemInfo.fetch_command]
+
+    in { type: :routed, envelope: :fetch_disk_usage }
+      new_model = model.with(disk_usage: model.disk_usage.with(loading: true))
+      [new_model, DiskUsage.fetch_command]
+
+    # Async command results forwarded from Router
+    in { type: :system, envelope: :system_info }
       new_child, command = SystemInfo::Update.call(message, model.system_info)
       [model.with(system_info: new_child), command]
-    in { envelope: :disk_usage, ** }
+
+    in { type: :system, envelope: :disk_usage }
       new_child, command = DiskUsage::Update.call(message, model.disk_usage)
       [model.with(disk_usage: new_child), command]
+
     else
       [model, nil]
     end
