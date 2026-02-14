@@ -315,7 +315,7 @@ screen with keyboard and mouse support.
 Ratatui[https://ratatui.rs]. You get native performance with the joy of Ruby.
 \Rooibos is one way to manage state and composition. Kit is another.
 
-==== Rooibos[https://git.sr.ht/~kerrick/rooibos]
+==== Rooibos[https://www.rooibos.run]
 
 Model-View-Update architecture. Inspired by Elm, Bubble Tea, and React +
 Redux. Your UI is a pure function of state.
@@ -342,25 +342,25 @@ that fits your brain.
 === Links
 
 [Get Started]
-  {Getting Started}[https://git.sr.ht/~kerrick/rooibos/tree/trunk/item/doc/getting_started/index.md],
-  {Tutorial}[https://git.sr.ht/~kerrick/rooibos/tree/trunk/item/doc/tutorial/index.md],
-  {Examples}[https://git.sr.ht/~kerrick/rooibos/tree/trunk/item/examples]
+  {Getting Started}[https://www.rooibos.run/docs/trunk/doc/getting_started/index_md.html],
+  {Tutorial}[https://www.rooibos.run/docs/trunk/doc/tutorial/index_md.html],
+  {Examples}[https://www.rooibos.run/docs/trunk/examples/app_fractal_dashboard/README_md.html]
 
 [Coming From...]
-  {React/Redux}[https://git.sr.ht/~kerrick/rooibos/tree/trunk/item/doc/getting_started/for_react_developers.md],
-  {BubbleTea}[https://git.sr.ht/~kerrick/rooibos/tree/trunk/item/doc/getting_started/for_go_developers.md],
-  {Textual}[https://git.sr.ht/~kerrick/rooibos/tree/trunk/item/doc/getting_started/for_python_developers.md]
+  {React/Redux}[https://www.rooibos.run/docs/trunk/doc/getting_started/for_react_developers_md.html],
+  {BubbleTea}[https://www.rooibos.run/docs/trunk/doc/getting_started/for_go_developers_md.html],
+  {Textual}[https://www.rooibos.run/docs/trunk/doc/getting_started/for_python_developers_md.html]
 
 [Learn More]
-  {Essentials}[https://git.sr.ht/~kerrick/rooibos/tree/trunk/item/doc/essentials/index.md],
-  {Scaling Up}[https://git.sr.ht/~kerrick/rooibos/tree/trunk/item/doc/scaling_up/index.md],
-  {Best Practices}[https://git.sr.ht/~kerrick/rooibos/tree/trunk/item/doc/best_practices/index.md],
-  {Troubleshooting}[https://git.sr.ht/~kerrick/rooibos/tree/trunk/item/doc/troubleshooting/index.md]
+  {Essentials}[https://www.rooibos.run/docs/trunk/doc/essentials/index_md.html],
+  {Scaling Up}[https://www.rooibos.run/docs/trunk/doc/scaling_up/index_md.html],
+  {Best Practices}[https://www.rooibos.run/docs/trunk/doc/best_practices/index_md.html],
+  {Troubleshooting}[https://www.rooibos.run/docs/trunk/doc/troubleshooting/index_md.html]
 
 [Community]
-  {Discuss}[https://lists.sr.ht/~kerrick/ratatui_ruby-discuss],
-  {Announcements}[https://lists.sr.ht/~kerrick/ratatui_ruby-announce],
-  {Bug Tracker}[https://todo.sr.ht/~kerrick/ratatui_ruby],
+  {Forum}[https://forum.setdef.com/c/ratatui-ruby/6],
+  {Announcements}[https://forum.setdef.com/tags/c/ratatui-ruby/6/announcement],
+  {Bug Tracker}[https://forum.setdef.com/tags/c/ratatui-ruby/6/bug],
   {Contribution Guide}[https://man.sr.ht/~kerrick/ratatui_ruby/contributing.md],
   {Code of Conduct}[https://man.sr.ht/~kerrick/ratatui_ruby/code_of_conduct.md]
 
@@ -368,7 +368,7 @@ that fits your brain.
 ---
 
 [Website] https://rooibos.run
-[Source] https://git.sr.ht/~kerrick/rooibos
+[Source] https://github.com/setdef/Rooibos
 [RubyGems] https://rubygems.org/gems/rooibos
 
 © 2026 Kerrick Long · Library: LGPL-3.0-or-later · Website: CC-BY-NC-ND-4.0 · Snippets: MIT-0

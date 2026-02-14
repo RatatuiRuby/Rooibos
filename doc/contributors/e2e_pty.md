@@ -163,6 +163,6 @@ Rooibos::TestHelper.with_pty("rooibos", "run") do |pty_in, pty_out, pid|
 end
 ```
 
-If you'd use this, please email the
-[~kerrick/ratatui_ruby-discuss](https://lists.sr.ht/~kerrick/ratatui_ruby-discuss)
-mailing list to request it as a feature.
+If you'd use this, please post to the
+[RatatuiRuby forum](https://forum.setdef.com/tags/c/ratatui-ruby/6/feature-request)
+to request it as a feature.

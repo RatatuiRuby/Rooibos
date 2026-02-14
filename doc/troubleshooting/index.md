@@ -20,4 +20,4 @@ When things go wrong.
 ## Still Stuck?
 
 - Check the [RatatuiRuby Troubleshooting](https://ratatui-ruby.dev/docs) for widget-related issues
-- Open an issue on [GitHub](https://github.com/your-org/rooibos/issues)
+- Open an issue on the [forum](https://forum.setdef.com/tags/c/ratatui-ruby/6/bug)

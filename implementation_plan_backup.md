@@ -103,7 +103,7 @@ When `as:` is provided, the Router should create a **new** `Message::Routed` wit
 
 ### Implementation Location
 
-[ForwardBuilder#with_envelope](file:///Users/kerrick/Developer/ratatui_ruby-tea/lib/rooibos/router.rb#L1043) in `lib/rooibos/router.rb`
+`ForwardBuilder#with_envelope` in `lib/rooibos/router.rb` (around line 1043)
 
 ### Changes Required
 

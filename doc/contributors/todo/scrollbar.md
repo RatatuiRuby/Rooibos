@@ -113,6 +113,6 @@ Investigate more options.
 
 ## See Also
 
-- [no_stateful_widgets.md](../best_practices/no_stateful_widgets.md) — MVU scroll offset patterns
-- [RatatuiRuby Scrollbar](https://git.sr.ht/~kerrick/ratatui_ruby/tree/stable/item/lib/ratatui_ruby/widgets/scrollbar.rb)
-- [widget_scrollbar example](https://git.sr.ht/~kerrick/ratatui_ruby/tree/stable/item/examples/widget_scrollbar)
+- [no_stateful_widgets.md](../../best_practices/no_stateful_widgets.md) — MVU scroll offset patterns
+- [RatatuiRuby Scrollbar](https://github.com/setdef/RatatuiRuby/blob/stable/lib/ratatui_ruby/widgets/scrollbar.rb)
+- [widget_scrollbar example](https://github.com/setdef/RatatuiRuby/tree/stable/examples/widget_scrollbar)
