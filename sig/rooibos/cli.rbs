@@ -29,6 +29,7 @@ module Rooibos
         def self.exe_template: (String, String) -> String
         def self.app_template: (String, String) -> String
         def self.test_template: (String, String) -> String
+        def self.rubocop_template: () -> String
       end
 
       module Run

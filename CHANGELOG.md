@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Curated RuboCop config shipped with gem**: Rooibos now includes a curated RuboCop configuration at `lib/rooibos/rubocop.yml`. Use `inherit_gem: { rooibos: lib/rooibos/rubocop.yml }` in your `.rubocop.yml` to adopt it.
+
 - **`Message::Predicates` new predicates**: Added `milestone?` and `custom?` predicate methods. Use `message.milestone?` to check for milestone messages (e.g., completion signals) and `message.custom?` to check for custom user-defined message types.
 
 - **`Command.deliver(message)`**: New built-in command for sending structured messages to Update. Wraps any message and delivers it via the runtime. Works with pattern matching and predicates.
@@ -53,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Router unnamed routes**: Routes can omit the symbol prefix when using `read:`/`write:` callable accessors for custom model extraction. Combine with a captured Route object for forwarding.
 ### Changed
+
+- **`rooibos new` generates curated RuboCop config**: Scaffolded applications now get a `.rubocop.yml` that inherits the Rooibos curated cop profile via `inherit_gem`, replacing the bare defaults that `bundle gem --linter=rubocop` produces.
 
 - **BREAKING: `keymap` DSL removed**: The `keymap do |map|` / `map.key` DSL is removed. Use `receive_events` for handling events and `forward_events` for routing to nested fragments. Migrate:
   - `keymap { |map| map.key :q, -> { Command.exit } }` becomes `receive_events :q, -> (_msg, _model) { Command.exit }`

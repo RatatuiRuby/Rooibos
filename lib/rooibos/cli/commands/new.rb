@@ -236,6 +236,13 @@ module Rooibos
             end
           end
 
+          # Overwrite bundle gem's .rubocop.yml with Rooibos config
+          rubocop_file = app_path / ".rubocop.yml"
+          if rubocop_file.exist?
+            File.write(rubocop_file.to_s, rubocop_template)
+            puts "Updated #{rubocop_file}"
+          end
+
           # Make initial git commit if git is enabled and bundle didn't
           if git_enabled?(passthrough_args)
             make_initial_commit(app_path)
@@ -367,6 +374,23 @@ module Rooibos
           RUBY
         end
         private_class_method :test_template
+
+        def self.rubocop_template
+          <<~YAML
+            inherit_gem:
+              rooibos: lib/rooibos/rubocop.yml
+
+            AllCops:
+              TargetRubyVersion: 3.2
+
+            Style/StringLiterals:
+              EnforcedStyle: double_quotes
+
+            Style/StringLiteralsInInterpolation:
+              EnforcedStyle: double_quotes
+          YAML
+        end
+        private_class_method :rubocop_template
       end
     end
   end

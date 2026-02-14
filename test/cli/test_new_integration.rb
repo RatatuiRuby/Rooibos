@@ -132,6 +132,18 @@ class TestCLINewIntegration < Minitest::Test
     end
   end
 
+  def test_new_rubocop_config_inherits_from_rooibos
+    Dir.chdir(@tmpdir) do
+      rooibos("new", "test_app", "--no-bundle")
+
+      rubocop_content = File.read(File.join("test_app", ".rubocop.yml"))
+      assert_match(/inherit_gem:.*rooibos/m, rubocop_content,
+        "Expected .rubocop.yml to use inherit_gem for rooibos")
+      assert_includes rubocop_content, "lib/rooibos/rubocop.yml",
+        "Expected .rubocop.yml to reference lib/rooibos/rubocop.yml"
+    end
+  end
+
   # Verifies that a scaffolded app can be launched with `rooibos run` and
   # responds to Ctrl+C. Uses PTY.spawn to properly establish a controlling
   # terminal (crossterm reads from /dev/tty, not stdin).
