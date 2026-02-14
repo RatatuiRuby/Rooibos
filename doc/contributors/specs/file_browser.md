@@ -75,9 +75,8 @@ The application uses a three-pane layout optimized for terminal displays:
 - Selected item information
 - Operation status messages
 
-**Title Bar (Top)**
-- Application name
-- Current operation mode
+**Path Bar (Top)**
+- Current path
 - Help hint
 
 ### 2.2 Visual Design
@@ -99,7 +98,8 @@ The application uses a three-pane layout optimized for terminal displays:
 
 **Spacing:**
 - Single-line spacing between items
-- Borders between panes using box-drawing characters
+- Borders around content panes using box-drawing characters
+- Path bar and status bar are unbordered text rows
 - Padding: 1 space inside pane borders
 
 ### 2.3 Accessibility
@@ -352,7 +352,7 @@ The application must gracefully handle terminal resize events and adapt the layo
 - Pane widths adjust proportionally when terminal width changes
 - Pane heights adjust proportionally when terminal height changes
 - Maintain 25% / 40% / 35% ratio for panes when possible
-- Status bar and title bar always visible
+- Status bar and path bar always visible
 
 **EV-RESIZE-003: Content Reflow**
 - File list reflows to fit new width
@@ -571,9 +571,8 @@ The following features are explicitly deferred to future versions:
 #### Default View - Directory Listing
 
 ```
-┌─ File Browser ──────────────────────────────────────────────────────────────────────┐
-│ ~/projects/myapp                                                      ? for help     │
-├──────────────────────┬────────────────────────────────┬────────────────────────────┤
+~/projects/myapp                                                      ? for help
+┌──────────────────────┬────────────────────────────────┬────────────────────────────┐
 │ Directory Tree       │ Files                          │ Preview                    │
 │                      │                                │                            │
 │ 📁 myapp             │ Name          Size    Modified │ README.md                  │
@@ -593,17 +592,15 @@ The following features are explicitly deferred to future versions:
 │                      │                                │                            │
 │                      │                                │                            │
 │                      │                                │                            │
-├──────────────────────┴────────────────────────────────┴────────────────────────────┤
-│ ~/projects/myapp │ 8 items (5 dirs, 3 files) │ README.md - 3.4KB                   │
-└──────────────────────────────────────────────────────────────────────────────────────┘
+└──────────────────────┴────────────────────────────────┴────────────────────────────┘
+~/projects/myapp │ 8 items (5 dirs, 3 files) │ README.md - 3.4KB
 ```
 
 #### File Preview - Source Code
 
 ```
-┌─ File Browser ──────────────────────────────────────────────────────────────────────┐
-│ ~/projects/myapp/app/models                                           ? for help     │
-├──────────────────────┬────────────────────────────────┬────────────────────────────┤
+~/projects/myapp/app/models                                           ? for help
+┌──────────────────────┬────────────────────────────────┬────────────────────────────┐
 │ Directory Tree       │ Files                          │ Preview                    │
 │                      │                                │                            │
 │ 📁 myapp             │ Name          Size    Modified │ user.rb                    │
@@ -624,17 +621,15 @@ The following features are explicitly deferred to future versions:
 │                      │                                │     "#{first_name} #{la... │
 │                      │                                │   end                      │
 │                      │                                │ end                        │
-├──────────────────────┴────────────────────────────────┴────────────────────────────┤
-│ ~/projects/myapp/app/models │ 2 items │ user.rb - 2.1KB - 45 lines                 │
-└──────────────────────────────────────────────────────────────────────────────────────┘
+└──────────────────────┴────────────────────────────────┴────────────────────────────┘
+~/projects/myapp/app/models │ 2 items │ user.rb - 2.1KB - 45 lines
 ```
 
 #### Filter Active - Searching for Files
 
 ```
-┌─ File Browser ──────────────────────────────────────────────────────────────────────┐
-│ ~/projects/myapp                                                      ? for help     │
-├──────────────────────┬────────────────────────────────┬────────────────────────────┤
+~/projects/myapp                                                      ? for help
+┌──────────────────────┬────────────────────────────────┬────────────────────────────┐
 │ Directory Tree       │ Files (filter: *test*)         │ Preview                    │
 │                      │                                │                            │
 │ 📁 myapp             │ Name              Size Modified│ user_test.rb               │
@@ -655,17 +650,15 @@ The following features are explicitly deferred to future versions:
 │                      │                                │     refute user.valid?     │
 │                      │                                │   end                      │
 │                      │                                │ end                        │
-├──────────────────────┴────────────────────────────────┴────────────────────────────┤
-│ Filter: *test* │ 3 matches │ Press Esc to clear filter                              │
-└──────────────────────────────────────────────────────────────────────────────────────┘
+└──────────────────────┴────────────────────────────────┴────────────────────────────┘
+Filter: *test* │ 3 matches │ Press Esc to clear filter
 ```
 
 #### Delete Confirmation Dialog
 
 ```
-┌─ File Browser ──────────────────────────────────────────────────────────────────────┐
-│ ~/projects/myapp/test                                                 ? for help     │
-├──────────────────────┬────────────────────────────────┬────────────────────────────┤
+~/projects/myapp/test                                                 ? for help
+┌──────────────────────┬────────────────────────────────┬────────────────────────────┐
 │ Directory Tree       │ Files                          │ Preview                    │
 │                      │                                │                            │
 │ 📁 myapp             │ Name              Size Modified│ old_test.rb                │
@@ -685,17 +678,15 @@ The following features are explicitly deferred to future versions:
 │                      │    │  [Y] Yes   [N] No      │ │                            │
 │                      │    └────────────────────────┘ │                            │
 │                      │                                │                            │
-├──────────────────────┴────────────────────────────────┴────────────────────────────┤
-│ ~/projects/myapp/test │ 4 items │ old_test.rb - 456B                                │
-└──────────────────────────────────────────────────────────────────────────────────────┘
+└──────────────────────┴────────────────────────────────┴────────────────────────────┘
+~/projects/myapp/test │ 4 items │ old_test.rb - 456B
 ```
 
 #### Help Overlay
 
 ```
-┌─ File Browser ──────────────────────────────────────────────────────────────────────┐
-│ ~/projects/myapp                                                      ? for help     │
-├──────────────────────┬────────────────────────────────┬────────────────────────────┤
+~/projects/myapp                                                      ? for help
+┌──────────────────────┬────────────────────────────────┬────────────────────────────┐
 │ Directory Tree       │ ┌─ Keyboard Shortcuts ───────┐│ Preview                    │
 │                      │ │                             ││                            │
 │ 📁 myapp             │ │ Navigation:                 ││ README.md                  │
@@ -724,17 +715,15 @@ The following features are explicitly deferred to future versions:
 │                      │ │                             ││                            │
 │                      │ │ Press any key to close...   ││                            │
 │                      │ └─────────────────────────────┘│                            │
-├──────────────────────┴────────────────────────────────┴────────────────────────────┤
-│ ~/projects/myapp │ 8 items (5 dirs, 3 files) │ README.md - 3.4KB                   │
-└──────────────────────────────────────────────────────────────────────────────────────┘
+└──────────────────────┴────────────────────────────────┴────────────────────────────┘
+~/projects/myapp │ 8 items (5 dirs, 3 files) │ README.md - 3.4KB
 ```
 
 #### Error State - Permission Denied
 
 ```
-┌─ File Browser ──────────────────────────────────────────────────────────────────────┐
-│ ~/restricted                                                          ? for help     │
-├──────────────────────┬────────────────────────────────┬────────────────────────────┤
+~/restricted                                                          ? for help
+┌──────────────────────┬────────────────────────────────┬────────────────────────────┐
 │ Directory Tree       │ Files                          │ Preview                    │
 │                      │                                │                            │
 │ 📁 home              │ Name          Size    Modified │                            │
@@ -752,18 +741,15 @@ The following features are explicitly deferred to future versions:
 │                      │                                │                            │
 │                      │                                │                            │
 │                      │                                │                            │
-│                      │                                │                            │
-├──────────────────────┴────────────────────────────────┴────────────────────────────┤
-│ ⚠ Error: Permission denied - Cannot read directory /restricted/secret               │
-└──────────────────────────────────────────────────────────────────────────────────────┘
+└──────────────────────┴────────────────────────────────┴────────────────────────────┘
+⚠ Error: Permission denied - Cannot read directory /restricted/secret
 ```
 
 #### Loading State - Large Directory
 
 ```
-┌─ File Browser ──────────────────────────────────────────────────────────────────────┐
-│ ~/large-project/node_modules                                          ? for help     │
-├──────────────────────┬────────────────────────────────┬────────────────────────────┤
+~/large-project/node_modules                                          ? for help
+┌──────────────────────┬────────────────────────────────┬────────────────────────────┐
 │ Directory Tree       │ Files                          │ Preview                    │
 │                      │                                │                            │
 │ 📁 large-project     │ Name          Size    Modified │                            │
@@ -782,8 +768,7 @@ The following features are explicitly deferred to future versions:
 │                      │                                │                            │
 │                      │                                │                            │
 │                      │                                │                            │
-├──────────────────────┴────────────────────────────────┴────────────────────────────┤
-│ ~/large-project/node_modules │ Loading... │ Press Esc to cancel                     │
-└──────────────────────────────────────────────────────────────────────────────────────┘
+└──────────────────────┴────────────────────────────────┴────────────────────────────┘
+~/large-project/node_modules │ Loading... │ Press Esc to cancel
 ```
 

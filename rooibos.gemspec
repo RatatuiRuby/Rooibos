@@ -42,7 +42,7 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "ratatui_ruby", "~> 1.3", ">= 1.3.2"
+  spec.add_dependency "ratatui_ruby", "~> 1.4"
   spec.add_dependency "concurrent-ruby", "~> 1.3"
   spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
   spec.add_development_dependency "rdoc", "~> 7.0"

@@ -38,7 +38,10 @@ GEM
     rainbow (3.1.1)
     rake (13.3.1)
     rake-compiler-dock (1.11.0)
-    ratatui_ruby (1.3.2)
+    ratatui_ruby (1.4.0)
+      rb_sys (~> 0.9)
+      rexml (~> 3.4)
+    ratatui_ruby (1.4.0-arm64-darwin-24)
       rb_sys (~> 0.9)
       rexml (~> 3.4)
     rb_sys (0.9.124)
@@ -110,7 +113,8 @@ CHECKSUMS
   rainbow (3.1.1) sha256=039491aa3a89f42efa1d6dec2fc4e62ede96eb6acd95e52f1ad581182b79bc6a
   rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
   rake-compiler-dock (1.11.0) sha256=eab51f2cd533eb35cea6b624a75281f047123e70a64c58b607471bb49428f8c2
-  ratatui_ruby (1.3.2) sha256=e90148bbb86bba8ad2be1025cbe11649dca0bd452171fa99312df20e92d8dd58
+  ratatui_ruby (1.4.0) sha256=6802a10d86f74ab6dfb47d9f330d6571af9c57bdd54c1185ba51de3b4bf1bb62
+  ratatui_ruby (1.4.0-arm64-darwin-24) sha256=3b6ebb931b5522874acb0adafbebe398f4803ef379e84c7d02565b1e51d521ab
   rb_sys (0.9.124) sha256=513476557b12eaf73764b3da9f8746024558fe8699bda785fb548c9aa3877ae7
   rdoc (7.2.0) sha256=8650f76cd4009c3b54955eb5d7e3a075c60a57276766ebf36f9085e8c9f23192
   regexp_parser (2.11.3) sha256=ca13f381a173b7a93450e53459075c9b76a10433caadcb2f1180f2c741fc55a4

@@ -178,8 +178,8 @@ _Note: If you started with negative-numbered stories, this happened in Story 0._
 - Left pane shows directory tree (current path only, not expanded yet)
 - Center pane shows file list (existing functionality)
 - Right pane shows "Preview" placeholder
-- Title bar shows application name
-- Status bar shows current path and item count
+- Path bar shows current directory
+- Status bar shows item count
 
 ### Notes
 - Major UI refactoring
