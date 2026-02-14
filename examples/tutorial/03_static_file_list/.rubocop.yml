@@ -1,0 +1,11 @@
+inherit_gem:
+  rooibos: lib/rooibos/rubocop.yml
+
+AllCops:
+  TargetRubyVersion: 3.2
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes

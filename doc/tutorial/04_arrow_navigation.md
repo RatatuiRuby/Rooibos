@@ -10,13 +10,12 @@ By the end of this guide, you will:
 
 - Add a `selected` field to your Model to track which file is highlighted
 - Use `model.with(...)` to create updated state immutably
-- Use pattern matching (`case message`) to handle multiple keys
-- Combine pattern matching with predicate guards (`in _ if message.up?`)
-- Handle arrow keys (up/down) and vim keys (j/k) in one UPDATE
-- Scroll through the file list when it's longer than the screen
-- Return an updated model from UPDATE to change state
-- Write tests that verify state transitions (selected: 0 → selected: 1)
-- Understand when to use pattern matching vs simple if/else
+- Use `case message in type: :key, code:` to match keyboard events
+- Use `|` alternation to match multiple keys in one pattern (`"down" | "j"`)
+- Use `modifiers:` to match modifier keys (e.g., `modifiers: ["shift"]` for Shift+G)
+- Handle arrow keys (up/down) and vim keys (j/k) in one Update
+- Return an updated model from Update to change state
+- Write tests that verify state transitions (selected_index: 0 → 1)
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
 

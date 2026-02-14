@@ -8,13 +8,13 @@
 
 By the end of this guide, you will:
 
-- Write your first VIEW callable that renders text to the terminal
-- Write your first UPDATE callable that handles keyboard events
-- Use predicate helpers (`.q?`, `.ctrl_c?`) to check which key was pressed
-- Return `Command.exit` from UPDATE to quit the application
+- Write your first View callable that renders text to the terminal
+- Write your first Update callable that handles keyboard events
+- Use pattern matching (`case message in type: :key, code:`) to check which key was pressed
+- Return `Command.exit` from Update to quit the application
 - Understand what `Rooibos.run` does to start your app
-- Understand what a VIEW returns (RatatuiRuby widgets like `paragraph`)
-- Understand what an UPDATE returns (model or command)
+- Understand what a View returns (RatatuiRuby widgets like `paragraph`)
+- Understand what an Update returns (model or command)
 - Run your app and see it respond to keyboard input
 
 > ⚠️ **This page is a stub.** Help us write it! See the [Documentation Plan](../contributors/documentation_plan.md) and [Style Guide](../contributors/documentation_style.md).
