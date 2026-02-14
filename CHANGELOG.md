@@ -80,6 +80,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **`Rooibos.route` helper**: Removed. Use the Router DSL (`forward`, `forward_events`, `forward_routed`) instead of manual command prefix wrapping.
+- **`Rooibos.delegate` helper**: Removed. Use the Router DSL (`receive`, `observe`, `forward`) instead of manual message prefix dispatch.
+
 ## [0.6.2] - 2026-01-27
 
 ### Added

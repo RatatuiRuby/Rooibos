@@ -30,16 +30,6 @@ module Rooibos
     ?command: Command::execution?
   ) -> Model
 
-  # Wraps a command with a routing prefix.
-  def self.route: (Command::execution command, Symbol prefix) -> Command::Mapped
-
-  # Delegates a prefixed message to a child fragment's UPDATE.
-  def self.delegate: (
-    untyped message,
-    Symbol prefix,
-    ^(Array[untyped]?, untyped) -> [untyped, Command::execution?] child_update,
-    untyped child_model
-  ) -> ([untyped, Command::execution?] | nil)
 
   # Normalizes Init callable return value to [model, command] tuple.
   def self.normalize_init: [Model] (Runtime::init_result result) -> [Model?, Command::execution?]
