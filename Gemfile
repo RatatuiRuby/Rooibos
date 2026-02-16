@@ -24,5 +24,5 @@ gem "faker"    # For realistic example data
 gem "benchmark"
 
 group :development do
-  gem "ratatui_ruby-devtools"
+  gem "ratatui_ruby-devtools", "~> 0.2"
 end
