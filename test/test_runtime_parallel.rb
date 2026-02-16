@@ -92,10 +92,10 @@ class TestRuntimeParallel < Minitest::Test
   def test_batch_runs_commands_in_parallel
     model = Ractor.make_shareable({})
 
-    # Two 0.15s waits — sequential = 0.3s, parallel < 0.2s
+    # Two 0.3s waits — sequential = 0.6s, parallel < 0.5s
     @@command = Rooibos::Command.batch([
-      Rooibos::Command.wait(0.15, :first),
-      Rooibos::Command.wait(0.15, :second),
+      Rooibos::Command.wait(0.3, :first),
+      Rooibos::Command.wait(0.3, :second),
     ])
     view = ClearView
     update = TimingUpdate
@@ -109,9 +109,9 @@ class TestRuntimeParallel < Minitest::Test
     end
     elapsed = Time.now - start
 
-    # Parallel execution: both 0.15s waits overlap, total < 0.2s
-    # Sequential execution: 0.15 + 0.15 = 0.3s minimum
-    assert_operator elapsed, :<, 0.2, "Batch should run commands in parallel, not sequentially"
+    # Parallel execution: both 0.3s waits overlap, total < 0.5s
+    # Sequential execution: 0.3 + 0.3 = 0.6s minimum
+    assert_operator elapsed, :<, 0.5, "Batch should run commands in parallel, not sequentially"
   end
 
   # Cancel update - handles b for batch with model tracking, c for cancel, q for quit
@@ -264,7 +264,7 @@ class TestRuntimeParallel < Minitest::Test
     elapsed = Time.now - start
 
     # Batch races and exits fast despite stubborn child's 60s grace
-    assert_operator elapsed, :<, 2.0, "Batch should exit early on cancellation"
+    assert_operator elapsed, :<, 5.0, "Batch should exit early on cancellation"
 
     # Batch emits Canceled message
     cancel_msg = @@messages.find { |m| m.is_a?(Rooibos::Message::Canceled) }

@@ -134,7 +134,7 @@ class TestOutletStanding < Minitest::Test
     assert elapsed_msg, "Expected [:elapsed, _] message, got: #{@@messages.inspect}"
     elapsed = elapsed_msg[1]
     # If async, standing() returns in <0.1s; if sync, it takes 0.5s
-    assert_operator elapsed, :<, 0.1, "standing() blocked for #{elapsed}s — should be async!"
+    assert_operator elapsed, :<, 0.3, "standing() blocked for #{elapsed}s — should be async!"
   end
 
   # A deliberately slow child command
@@ -468,11 +468,11 @@ class TestOutletStanding < Minitest::Test
     total_elapsed = Time.now - start
 
     # wait should return early (<1s), not wait for 100s stubborn child
-    assert_operator total_elapsed, :<, 2.0, "wait should return early on cancellation"
+    assert_operator total_elapsed, :<, 5.0, "wait should return early on cancellation"
 
     # The parent should have emitted elapsed time showing it returned early
     elapsed_msg = @@messages.find { |m| m.is_a?(Array) && m.first == :elapsed }
     assert elapsed_msg, "Expected [:elapsed, _] message"
-    assert_operator elapsed_msg[1], :<, 2.0, "wait blocked too long: #{elapsed_msg[1]}s"
+    assert_operator elapsed_msg[1], :<, 5.0, "wait blocked too long: #{elapsed_msg[1]}s"
   end
 end

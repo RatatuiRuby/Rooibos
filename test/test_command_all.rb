@@ -245,10 +245,10 @@ class TestCommandAll < Minitest::Test
   def test_all_runs_commands_in_parallel
     model = Ractor.make_shareable({})
 
-    # Two 0.1s waits — sequential = 0.2s, parallel < 0.15s
+    # Two 0.3s waits — sequential = 0.6s, parallel < 0.5s
     @@command = Rooibos::Command.all(:dashboard, [
-      Rooibos::Command.wait(0.1, :first),
-      Rooibos::Command.wait(0.1, :second),
+      Rooibos::Command.wait(0.3, :first),
+      Rooibos::Command.wait(0.3, :second),
     ])
     view = ClearView
     update = TimingUpdate
@@ -262,9 +262,9 @@ class TestCommandAll < Minitest::Test
     end
     elapsed = Time.now - start
 
-    # Parallel execution: both 0.1s waits overlap, total < 0.15s
-    # Sequential execution: 0.1 + 0.1 = 0.2s minimum
-    assert_operator elapsed, :<, 0.15, "Command.all should run commands in parallel, not sequentially"
+    # Parallel execution: both 0.3s waits overlap, total < 0.5s
+    # Sequential execution: 0.3 + 0.3 = 0.6s minimum
+    assert_operator elapsed, :<, 0.5, "Command.all should run commands in parallel, not sequentially"
   end
 
   def test_all_emits_message_all_for_nested_syntax

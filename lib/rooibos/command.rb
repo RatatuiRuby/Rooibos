@@ -56,6 +56,13 @@ module Rooibos
     class Exit < Data.define
       include Custom
 
+      # Ruby 3.x does not auto-freeze zero-member Data.define instances,
+      # which prevents Ractor shareability. Explicit freeze is idempotent on 4.0+.
+      def initialize # :nodoc:
+        super
+        freeze
+      end
+
       # Stub - Exit is a sentinel handled by runtime before dispatch.
       def call(_out, _token)
         raise "Exit command should never be dispatched"

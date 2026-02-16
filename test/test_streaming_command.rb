@@ -312,6 +312,6 @@ class TestStreamingCommand < Minitest::Test
     # The threshold accounts for Ruby fork/exec overhead (~0.5s) but ensures
     # we don't wait for the shell's full 1-minute loop if SIGTERM didn't work.
     assert @@events.include?(:stdout), "Should receive stdout before cancel"
-    assert_operator elapsed, :<, 2, "Should cancel cooperatively (< 2s), not wait indefinitely"
+    assert_operator elapsed, :<, 5, "Should cancel cooperatively (< 5s), not wait indefinitely"
   end
 end

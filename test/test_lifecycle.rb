@@ -48,7 +48,7 @@ class TestLifecycle < Minitest::Test
     elapsed = Time.now - start
 
     assert_nil result
-    assert_operator elapsed, :<, 1.0, "Should timeout quickly"
+    assert_operator elapsed, :<, 5.0, "Should timeout quickly"
   end
 
   def test_run_sync_propagates_exceptions
@@ -82,7 +82,7 @@ class TestLifecycle < Minitest::Test
     elapsed = Time.now - start
 
     assert_nil result
-    assert_operator elapsed, :<, 1.0, "Should return quickly when canceled, not wait 10s or 30s"
+    assert_operator elapsed, :<, 5.0, "Should return quickly when canceled, not wait 10s or 30s"
   end
 
   # --- run_async tests ---

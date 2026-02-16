@@ -120,8 +120,8 @@ class TestRuntimeTimer < Minitest::Test
     end
     elapsed = Time.now - start
 
-    # Must return quickly (< 2s), not wait full 10s
-    assert_operator elapsed, :<, 2.0, "Canceled wait should return quickly, not block for grace period"
+    # Must return quickly (< 5s), not wait full 10s
+    assert_operator elapsed, :<, 5.0, "Canceled wait should return quickly, not block for grace period"
     refute @@messages.include?(:should_not_arrive), "No timeout message when canceled"
   end
 

@@ -115,6 +115,7 @@ class TestCallableTypes < Minitest::Test
   end
 
   def test_method_objects_work_as_view_and_update
+    skip "Method objects are not Ractor-shareable on Ruby < 4.0" if RUBY_VERSION < "4.0"
     @@method_view_called = false
     @@method_update_called = false
     model = Ractor.make_shareable({ text: "hello" })

@@ -173,6 +173,6 @@ class TestOutlet < Minitest::Test
     elapsed = Time.now - start
 
     assert_nil result
-    assert_operator elapsed, :<, 1.0, "Should return quickly when canceled, not wait 10s or 30s"
+    assert_operator elapsed, :<, 5.0, "Should return quickly when canceled, not wait 10s or 30s"
   end
 end

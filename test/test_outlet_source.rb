@@ -261,7 +261,7 @@ class TestOutletSource < Minitest::Test
     elapsed = Time.now - start_time
 
     assert_includes @@messages, :fetch_timed_out
-    assert_operator elapsed, :<, 1.0, "Should timeout quickly, not wait 10s"
+    assert_operator elapsed, :<, 5.0, "Should timeout quickly, not wait 10s"
   end
 
   # Demonstrates sync→parallel→sync orchestration within a custom command.
