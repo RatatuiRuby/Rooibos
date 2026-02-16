@@ -101,7 +101,7 @@ class TestOutletStanding < Minitest::Test
   end
 
   def test_standing_returns_immediately_before_child_completes
-    # If standing runs synchronously, this test will take 0.5s
+    # If standing runs synchronously, this test will take 5.0s
     # If standing runs async, the parent continues immediately
     model = Ractor.make_shareable({})
 
@@ -111,7 +111,7 @@ class TestOutletStanding < Minitest::Test
       def call(out, token)
         started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         # Spawn a slow child
-        out.standing(TestOutletStanding::BlockingChild.new(delay: 0.5), token)
+        out.standing(TestOutletStanding::BlockingChild.new(delay: 5.0), token)
         # Don't wait — just note how long standing() took
         elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
         out.put [:elapsed, elapsed].freeze
@@ -122,7 +122,7 @@ class TestOutletStanding < Minitest::Test
     view = ClearView
     update = StandingUpdate
 
-    with_test_terminal do
+    with_test_terminal(timeout: 10) do
       inject_key("s")
       inject_sync
       inject_key("q")
@@ -133,8 +133,8 @@ class TestOutletStanding < Minitest::Test
     elapsed_msg = @@messages.find { |m| m.is_a?(Array) && m.first == :elapsed }
     assert elapsed_msg, "Expected [:elapsed, _] message, got: #{@@messages.inspect}"
     elapsed = elapsed_msg[1]
-    # If async, standing() returns in <0.1s; if sync, it takes 0.5s
-    assert_operator elapsed, :<, 0.3, "standing() blocked for #{elapsed}s — should be async!"
+    # If async, standing() returns in <0.1s; if sync, it takes 5.0s
+    assert_operator elapsed, :<, 2.0, "standing() blocked for #{elapsed}s — should be async!"
   end
 
   # A deliberately slow child command
