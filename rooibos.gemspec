@@ -31,11 +31,15 @@ Gem::Specification.new do |spec|
   spec.metadata["rubygems_mfa_required"] = "true"
 
   gemspec = File.basename(__FILE__)
+  root_allowlist = %w[LICENSE REUSE.toml]
+  dir_denylist = %w[bin/ test/ spec/ features/ doc/ examples/ tasks/ .builds/ .git .github appveyor]
+
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
-    ls.readlines("\x0", chomp: true).reject do |f|
-      (f == gemspec) ||
-        f.end_with?(".gitkeep") ||
-        f.start_with?(*%w[bin/ test/ spec/ features/ .git .github appveyor Gemfile])
+    ls.readlines("\x0", chomp: true).select do |f|
+      next false if f == gemspec
+      next true if root_allowlist.include?(f)
+      next false unless f.include?("/")
+      !f.start_with?(*dir_denylist)
     end
   end
   spec.bindir = "exe"
