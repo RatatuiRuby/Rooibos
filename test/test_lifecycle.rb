@@ -193,7 +193,7 @@ class TestLifecycle < Minitest::Test
     lifecycle.run_async(command_class.new(canceled_count), channel)
     lifecycle.run_async(command_class.new(canceled_count), channel)
     lifecycle.run_async(command_class.new(canceled_count), channel)
-    sleep 0.01 # Let commands start
+    sleep 0.1 # Let commands start
 
     # Shutdown should cancel all
     lifecycle.shutdown

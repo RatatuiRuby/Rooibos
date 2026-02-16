@@ -148,6 +148,7 @@ class TestCLINewIntegration < Minitest::Test
   # responds to Ctrl+C. Uses PTY.spawn to properly establish a controlling
   # terminal (crossterm reads from /dev/tty, not stdin).
   def test_new_app_runs_and_exits_on_ctrl_c
+    skip "PTY is Unix-only" unless RUBY_PLATFORM =~ /linux|darwin/i
     require "pty"
     require_global_rooibos!
 
