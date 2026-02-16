@@ -1,0 +1,80 @@
+<!--
+  SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+  SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
+# Contributing
+
+This guide walks you through setting up a development environment for
+Rooibos. By the end, you will have a working test suite on macOS, Linux,
+or Windows.
+
+## Prerequisites
+
+The only prerequisite is [mise](https://mise.jdx.dev/installing-mise.html), a
+dev tool manager. It installs Ruby, Python, and pre-commit hooks
+according to `mise.toml`.
+
+## Setup
+
+Clone the repository and run the setup script for your platform.
+
+### macOS / Linux
+
+<!-- SPDX-SnippetBegin -->
+<!--
+  SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+  SPDX-License-Identifier: MIT-0
+-->
+```sh
+bin/setup
+```
+<!-- SPDX-SnippetEnd -->
+
+### Windows (PowerShell)
+
+<!-- SPDX-SnippetBegin -->
+<!--
+  SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+  SPDX-License-Identifier: MIT-0
+-->
+```powershell
+bin/setup.ps1
+```
+<!-- SPDX-SnippetEnd -->
+
+Both scripts install Python, Bundler, and gem dependencies. On macOS
+and Linux, mise handles everything including Ruby. On Windows, the script
+installs Ruby via [RubyInstaller](https://rubyinstaller.org/) (winget) since
+mise cannot compile working Ruby on Windows. RubyInstaller bundles the MSYS2
+devkit for native gem compilation.
+
+## Running Tests
+
+The default Rake task runs lint fixes, the test suite, code quality tools,
+license checks, and the Steep type checker:
+
+<!-- SPDX-SnippetBegin -->
+<!--
+  SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
+  SPDX-License-Identifier: MIT-0
+-->
+```sh
+bundle exec rake
+```
+<!-- SPDX-SnippetEnd -->
+
+## Community
+
+Active development happens on the `trunk` branch. The `stable` branch tracks
+releases only. Use `trunk` for contributions.
+
+The [discussion forum](https://forum.setdef.com/tags/c/rooibos/discussion)
+is the best place to ask questions, share patches, and get feedback. Report bugs
+on the [bug tracker](https://forum.setdef.com/tags/c/rooibos/bug). Follow
+[announcements](https://forum.setdef.com/tags/c/rooibos/announcement)
+for release notes. All participants follow the
+[Code of Conduct](./CODE_OF_CONDUCT.md).
+
+File issues for the underlying Rust library at
+[ratatui/ratatui](https://github.com/ratatui/ratatui).

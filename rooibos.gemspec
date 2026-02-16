@@ -21,18 +21,16 @@ Gem::Specification.new do |spec|
 
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["bug_tracker_uri"] = "https://forum.setdef.com/tags/c/ratatui-ruby/6/bug"
-  spec.metadata["mailing_list_uri"] = "https://forum.setdef.com/c/ratatui-ruby/6"
+  spec.metadata["bug_tracker_uri"] = "https://forum.setdef.com/tags/c/rooibos/bug"
+  spec.metadata["mailing_list_uri"] = "https://forum.setdef.com/c/rooibos"
   spec.metadata["source_code_uri"] = "https://github.com/setdef/Rooibos"
   spec.metadata["changelog_uri"] = "https://rooibos.run/docs/trunk/CHANGELOG_md.html"
   spec.metadata["documentation_uri"] = "https://rooibos.run/docs/"
-  spec.metadata["wiki_uri"] = "https://man.sr.ht/~kerrick/ratatui_ruby/"
-  spec.metadata["funding_uri"] = "https://opencollective.com/ratatui"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   gemspec = File.basename(__FILE__)
   root_allowlist = %w[LICENSE REUSE.toml]
-  dir_denylist = %w[bin/ test/ spec/ features/ doc/ examples/ tasks/ .builds/ .git .github appveyor]
+  dir_denylist = %w[bin/ test/ spec/ features/ doc/ examples/ tasks/ .git .github appveyor Gemfile]
 
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).select do |f|
@@ -49,7 +47,10 @@ Gem::Specification.new do |spec|
   spec.add_dependency "ratatui_ruby", "~> 1.4"
   spec.add_dependency "concurrent-ruby", "~> 1.3"
   spec.add_dependency "concurrent-ruby-edge", "~> 0.7"
+  spec.add_dependency "ostruct", "~> 0.6"
   spec.add_development_dependency "rdoc", "~> 7.0"
   spec.add_development_dependency "faker", "~> 3.5"
-  spec.add_development_dependency "minitest-mock", "~> 5.27"
+  spec.add_development_dependency "minitest-mock"
+  spec.add_development_dependency "steep"
+  spec.add_development_dependency "debug", ">= 1.0"
 end

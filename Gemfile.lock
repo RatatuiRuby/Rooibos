@@ -4,6 +4,7 @@ PATH
     rooibos (0.6.2)
       concurrent-ruby (~> 1.3)
       concurrent-ruby-edge (~> 0.7)
+      ostruct (~> 0.6)
       ratatui_ruby (~> 1.4)
 
 GEM
@@ -272,15 +273,14 @@ PLATFORMS
 
 DEPENDENCIES
   benchmark
-  debug
+  debug (>= 1.0)
   faker (~> 3.5, >= 0)
   flog (= 4.8.0)
   inch (~> 0.4)
   irb
   minitest (~> 5.16)
-  minitest-mock (~> 5.27)
+  minitest-mock
   nokogiri
-  ostruct (~> 0.6.3)
   rake (~> 13.0)
   ratatui_ruby-devtools
   rdoc (~> 7.0)

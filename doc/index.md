@@ -91,3 +91,4 @@ When things go wrong.
 - [Documentation Plan](./contributors/documentation_plan.md) — The roadmap for these docs
 - [Documentation Style Guide](./contributors/documentation_style.md) — How to write docs
 - [Design Documents](./contributors/design/) — Architecture decisions
+- [Contributing Guidelines](./CONTRIBUTING.md): How to contribute patches and features

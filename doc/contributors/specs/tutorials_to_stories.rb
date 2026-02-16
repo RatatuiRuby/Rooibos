@@ -144,8 +144,8 @@ end
 
 # Main execution
 if __FILE__ == $0
-  stories_file = "/Users/kerrick/Developer/ratatui_ruby-tea/doc/contributors/specs/file_browser_stories.md"
-  tutorial_dir = "/Users/kerrick/Developer/ratatui_ruby-tea/doc/tutorial"
+  stories_file = "/Users/kerrick/Developer/rooibos/doc/contributors/specs/file_browser_stories.md"
+  tutorial_dir = "/Users/kerrick/Developer/rooibos/doc/tutorial"
 
   puts "Parsing stories from #{stories_file}..."
   stories = parse_stories(stories_file)

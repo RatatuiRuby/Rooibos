@@ -5,13 +5,13 @@
 # rooibos
 
 [![
-builds.sr.ht status](https://builds.sr.ht/~kerrick/rooibos.svg)](https://builds.sr.ht/~kerrick/rooibos?) [![
-License](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2Fsetdef%2FRooibos%2Fstable%2Frooibos.gemspec&search=spec%5C.license%20%3D%20%22(.*)%22&replace=%241&label=License&color=a2c93e)](https://spdx.org/licenses/LGPL-3.0-or-later.html) [![
+CI](https://github.com/setdef/Rooibos/actions/workflows/ci.yml/badge.svg)](https://github.com/setdef/Rooibos/actions/workflows/ci.yml) [![
+License](https://img.shields.io/badge/License-LGPL-3.0-or-later-a2c93e)](https://spdx.org/licenses/LGPL-3.0-or-later.html) [![
 Gem Total Downloads](https://img.shields.io/gem/dt/rooibos)](https://rubygems.org/gems/rooibos) [![
 Gem Version](https://img.shields.io/gem/v/rooibos)](https://rubygems.org/gems/rooibos) [![
-Forum: Discussion](https://img.shields.io/badge/forum-discussion-5865F2.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iaWNvbiBpY29uLXRhYmxlciBpY29ucy10YWJsZXItb3V0bGluZSBpY29uLXRhYmxlci1tYWlsIj48cGF0aCBzdHJva2U9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMyA3YTIgMiAwIDAgMSAyIC0yaDE0YTIgMiAwIDAgMSAyIDJ2MTBhMiAyIDAgMCAxIC0yIDJoLTE0YTIgMiAwIDAgMSAtMiAtMnYtMTB6IiAvPjxwYXRoIGQ9Ik0zIDdsOSA2bDkgLTYiIC8+PC9zdmc+Cg==)](https://forum.setdef.com/tags/c/ratatui-ruby/6/discussion) [![
-Forum: Development](https://img.shields.io/badge/forum-development-4954d5.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iaWNvbiBpY29uLXRhYmxlciBpY29ucy10YWJsZXItb3V0bGluZSBpY29uLXRhYmxlci1tYWlsIj48cGF0aCBzdHJva2U9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMyA3YTIgMiAwIDAgMSAyIC0yaDE0YTIgMiAwIDAgMSAyIDJ2MTBhMiAyIDAgMCAxIC0yIDJoLTE0YTIgMiAwIDAgMSAtMiAtMnYtMTB6IiAvPjxwYXRoIGQ9Ik0zIDdsOSA2bDkgLTYiIC8+PC9zdmc+Cg==)](https://forum.setdef.com/tags/c/ratatui-ruby/6/development) [![
-Forum: Announcements](https://img.shields.io/badge/forum-announcements-3b44ac.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iaWNvbiBpY29uLXRhYmxlciBpY29ucy10YWJsZXItb3V0bGluZSBpY29uLXRhYmxlci1tYWlsIj48cGF0aCBzdHJva2U9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMyA3YTIgMiAwIDAgMSAyIC0yaDE0YTIgMiAwIDAgMSAyIDJ2MTBhMiAyIDAgMCAxIC0yIDJoLTE0YTIgMiAwIDAgMSAtMiAtMnYtMTB6IiAvPjxwYXRoIGQ9Ik0zIDdsOSA2bDkgLTYiIC8+PC9zdmc+Cg==)](https://forum.setdef.com/tags/c/ratatui-ruby/6/announcement)
+Discussion](https://img.shields.io/badge/forum-discussion-5865F2.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iaWNvbiBpY29uLXRhYmxlciBpY29ucy10YWJsZXItb3V0bGluZSBpY29uLXRhYmxlci1tYWlsIj48cGF0aCBzdHJva2U9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMyA3YTIgMiAwIDAgMSAyIC0yaDE0YTIgMiAwIDAgMSAyIDJ2MTBhMiAyIDAgMCAxIC0yIDJoLTE0YTIgMiAwIDAgMSAtMiAtMnYtMTB6IiAvPjxwYXRoIGQ9Ik0zIDdsOSA2bDkgLTYiIC8+PC9zdmc+Cg==)](https://forum.setdef.com/tags/c/rooibos/discussion) [![
+Bug Reports](https://img.shields.io/badge/forum-bug_reports-4954d5.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iaWNvbiBpY29uLXRhYmxlciBpY29ucy10YWJsZXItb3V0bGluZSBpY29uLXRhYmxlci1tYWlsIj48cGF0aCBzdHJva2U9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMyA3YTIgMiAwIDAgMSAyIC0yaDE0YTIgMiAwIDAgMSAyIDJ2MTBhMiAyIDAgMCAxIC0yIDJoLTE0YTIgMiAwIDAgMSAtMiAtMnYtMTB6IiAvPjxwYXRoIGQ9Ik0zIDdsOSA2bDkgLTYiIC8+PC9zdmc+Cg==)](https://forum.setdef.com/tags/c/rooibos/bug) [![
+Announcements](https://img.shields.io/badge/forum-announcements-3b44ac.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0iaWNvbiBpY29uLXRhYmxlciBpY29ucy10YWJsZXItb3V0bGluZSBpY29uLXRhYmxlci1tYWlsIj48cGF0aCBzdHJva2U9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMyA3YTIgMiAwIDAgMSAyIC0yaDE0YTIgMiAwIDAgMSAyIDJ2MTBhMiAyIDAgMCAxIC0yIDJoLTE0YTIgMiAwIDAgMSAtMiAtMnYtMTB6IiAvPjxwYXRoIGQ9Ik0zIDdsOSA2bDkgLTYiIC8+PC9zdmc+Cg==)](https://forum.setdef.com/tags/c/rooibos/announcement)
 
 
 ## Introduction
@@ -22,9 +22,9 @@ Forum: Announcements](https://img.shields.io/badge/forum-announcements-3b44ac.sv
 > [!WARNING]
 > **rooibos** is currently in **BETA**. The API may change with minor versions.
 
-**[Why RatatuiRuby?](https://man.sr.ht/~kerrick/ratatui_ruby/why.md)** — Native Rust performance, zero runtime overhead, and Ruby's expressiveness. [See how we compare](https://man.sr.ht/~kerrick/ratatui_ruby/why.md) to CharmRuby, raw Rust, and Go.
+**[Why RatatuiRuby?](https://www.ratatui-ruby.dev/docs/trunk/doc/getting_started/why_md.html)** — Native Rust performance, zero runtime overhead, and Ruby's expressiveness. [See how we compare](https://www.ratatui-ruby.dev/docs/trunk/doc/getting_started/why_md.html) to CharmRuby, raw Rust, and Go.
 
-Please join the **announcements** forum at https://forum.setdef.com/tags/c/ratatui-ruby/6/announcement to stay up-to-date on new releases and announcements. See the [`trunk` branch](https://github.com/setdef/Rooibos/tree/trunk) for pre-release updates.
+Please follow the [announcements](https://forum.setdef.com/tags/c/rooibos/announcement) to stay up-to-date on new releases. See the [`trunk` branch](https://github.com/setdef/Rooibos/tree/trunk) for pre-release updates.
 
 ---
 
@@ -32,15 +32,31 @@ Please join the **announcements** forum at https://forum.setdef.com/tags/c/ratat
 
 ### The Ecosystem
 
-**RatatuiRuby:** [Core engine](https://github.com/setdef/RatatuiRuby) • **Rooibos:** [MVU architecture](https://www.rooibos.run) • **Kit:** [Component architecture](https://sr.ht/~kerrick/ratatui_ruby/#chapter-3-the-object-path--kit) (Planned) • **DSL:** [Glimmer syntax](https://sr.ht/~kerrick/ratatui_ruby/#chapter-4-the-syntax) (Planned) • **Framework:** [Omakase framework](https://sr.ht/~kerrick/ratatui_ruby/#chapter-5-the-framework) (Planned) • **UI:** [Polished widgets](https://sr.ht/~kerrick/ratatui_ruby#chapter-6-licensing) (Planned) • **UI Pro:** [More polished widgets](https://sr.ht/~kerrick/ratatui_ruby#chapter-6-licensing) (Planned)
+**RatatuiRuby:** [Core engine](https://www.ratatui-ruby.dev)
+• **Rooibos:** [MVU architecture](https://www.rooibos.run)
+• **Kit:** [Component architecture](https://sr.ht/~kerrick/ratatui_ruby/#chapter-3-the-object-path--kit) (Planned)
+• **DSL:** [Glimmer syntax](https://sr.ht/~kerrick/ratatui_ruby/#chapter-4-the-syntax) (Planned)
+• **Framework:** [Omakase framework](https://sr.ht/~kerrick/ratatui_ruby/#chapter-5-the-framework) (Planned)
+• **UI:** [Polished widgets](https://sr.ht/~kerrick/ratatui_ruby#chapter-6-licensing) (Planned)
+• **UI Pro:** [More polished widgets](https://sr.ht/~kerrick/ratatui_ruby#chapter-6-licensing) (Planned)
 
 ### For App Developers
 
-**Get Started:** [Quickstart](https://www.ratatui-ruby.dev/docs/stable/doc/getting_started/quickstart_md.html) • [Examples](https://www.ratatui-ruby.dev/docs/trunk/examples/app_all_events/README_md.html) ⸺ **Stay Informed:** [Announcements](https://forum.setdef.com/tags/c/ratatui-ruby/6/announcement) • [FAQ](https://man.sr.ht/~kerrick/ratatui_ruby/troubleshooting.md) ⸺ **Reach Out:** [Forum](https://forum.setdef.com/c/ratatui-ruby/6) • [Bug Tracker](https://forum.setdef.com/tags/c/ratatui-ruby/6/bug)
+**Get Started:** [Quickstart](https://www.ratatui-ruby.dev/docs/trunk/doc/getting_started/quickstart_md.html)
+• [Examples](https://www.ratatui-ruby.dev/docs/trunk/examples/app_all_events/README_md.html)
+⸺ **Stay Informed:** [Announcements](https://forum.setdef.com/tags/c/rooibos/announcement)
+• [FAQ](https://www.ratatui-ruby.dev/docs/trunk/doc/troubleshooting/index_md.html)
+⸺ **Reach Out:** [Forum](https://forum.setdef.com/c/rooibos)
+• [Bug Tracker](https://forum.setdef.com/tags/c/rooibos/bug)
 
 ### For Contributors
 
-**Get Started:** [Contributing Guide](https://man.sr.ht/~kerrick/ratatui_ruby/contributing.md) • [Code of Conduct](https://man.sr.ht/~kerrick/ratatui_ruby/code_of_conduct.md) ⸺ **Stay Informed:** [Announcements](https://forum.setdef.com/tags/c/ratatui-ruby/6/announcement) • [Project History](https://man.sr.ht/~kerrick/ratatui_ruby/history/index.md) ⸺ **Reach Out:** [Development](https://forum.setdef.com/tags/c/ratatui-ruby/6/development) • [Bug Tracker](https://forum.setdef.com/tags/c/ratatui-ruby/6/bug)
+**Get Started:** [Contributing Guide](./CONTRIBUTING.md)
+• [Code of Conduct](./CODE_OF_CONDUCT.md)
+⸺ **Stay Informed:** [Announcements](https://forum.setdef.com/tags/c/rooibos/announcement)
+• [FAQ](https://www.ratatui-ruby.dev/docs/trunk/doc/troubleshooting/index_md.html)
+⸺ **Reach Out:** [Forum](https://forum.setdef.com/c/rooibos)
+• [Bug Tracker](https://forum.setdef.com/tags/c/rooibos/bug)
 
 ---
 
@@ -157,15 +173,15 @@ _Because this gem is in alpha, it lacks documentation. Please check the source f
 | [Scaling Up](./doc/scaling_up/index.md) | Patterns for scaling your app |
 | [Guides](./doc/index.md) | Tutorials, examples, and more |
 | API Reference | To generate full RDoc documentation, run `bundle exec rake rdoc` |
-| [Wiki](https://man.sr.ht/~kerrick/ratatui_ruby) | Learn more about the RatatuiRuby ecosystem |
+| [Ecosystem](https://www.ratatui-ruby.dev) | Learn more about the RatatuiRuby ecosystem |
 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on [GitHub](https://github.com/setdef/Rooibos). This project is intended to be a safe, productive collaboration, and contributors are expected to adhere to the [Code of Conduct](https://man.sr.ht/~kerrick/ratatui_ruby/code_of_conduct.md).
+The [discussion forum](https://forum.setdef.com/tags/c/rooibos/discussion) is the best place to ask questions, share patches, and get feedback. Report bugs on the [bug tracker](https://forum.setdef.com/tags/c/rooibos/bug). All participants follow the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 
-Want to help develop **rooibos**? Check out the [contribution guide on the wiki](https://man.sr.ht/~kerrick/ratatui_ruby/contributing.md).
+Want to help develop **rooibos**? Check out the [contribution guide](./CONTRIBUTING.md).
 
 **Note**: Active development happens on the `trunk` branch. Use `trunk` if you are a contributor or want the latest cutting-edge features. `stable` is for stable releases only.
 

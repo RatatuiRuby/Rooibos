@@ -16,14 +16,11 @@ gem "minitest", "~> 5.16"
 
 gem "rubocop", "~> 1.21"
 gem "rubycritic", "~> 4.11"
-gem "ostruct", "~> 0.6.3"
 gem "inch", "~> 0.4"
 gem "flog", "4.8.0"
 
 gem "nokogiri" # For RDoc sidebar post-processing
 gem "faker"    # For realistic example data
-gem "steep"
-gem "debug"
 gem "benchmark"
 
 group :development do

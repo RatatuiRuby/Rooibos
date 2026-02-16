@@ -1,8 +1,7 @@
-<!--
-SPDX-FileCopyrightText: 2025 Kerrick Long <me@kerricklong.com>
-
+<%#
+SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
 SPDX-License-Identifier: LGPL-3.0-or-later
--->
+%>
 
 <!DOCTYPE html>
 <html>
@@ -25,9 +24,9 @@ SPDX-License-Identifier: LGPL-3.0-or-later
   <ul>
     <% versions.each do |version| %>
       <li>
-        <a href='<%= version.slug %>/index.html'>
+        <a href="<%= version.slug %>/index.html">
           <%= version.name %>
-          <span class='meta'>
+          <span class="meta">
             <% if version.latest? %>
               Latest
             <% elsif version.edge? %>
