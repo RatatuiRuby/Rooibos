@@ -85,6 +85,8 @@ GEM
     faker (3.5.3)
       i18n (>= 1.8.11, < 2)
     ffi (1.17.3-arm64-darwin)
+    ffi (1.17.3-x64-mingw-ucrt)
+    ffi (1.17.3-x86_64-linux-gnu)
     fileutils (1.8.0)
     flay (2.13.3)
       erubi (~> 1.10)
@@ -126,6 +128,10 @@ GEM
     mutex_m (0.3.0)
     nokogiri (1.19.0-arm64-darwin)
       racc (~> 1.4)
+    nokogiri (1.19.0-x64-mingw-ucrt)
+      racc (~> 1.4)
+    nokogiri (1.19.0-x86_64-linux-gnu)
+      racc (~> 1.4)
     ostruct (0.6.3)
     parallel (1.27.0)
     parser (3.3.10.1)
@@ -148,7 +154,13 @@ GEM
     rainbow (3.1.1)
     rake (13.3.1)
     rake-compiler-dock (1.11.0)
-    ratatui_ruby (1.4.0-arm64-darwin-24)
+    ratatui_ruby (1.4.1-arm64-darwin-24)
+      rb_sys (~> 0.9)
+      rexml (~> 3.4)
+    ratatui_ruby (1.4.1-x64-mingw-ucrt)
+      rb_sys (~> 0.9)
+      rexml (~> 3.4)
+    ratatui_ruby (1.4.1-x86_64-linux)
       rb_sys (~> 0.9)
       rexml (~> 3.4)
     ratatui_ruby-devtools (0.1.1)
@@ -270,6 +282,8 @@ GEM
 
 PLATFORMS
   arm64-darwin
+  x64-mingw-ucrt
+  x86_64-linux
 
 DEPENDENCIES
   benchmark
@@ -320,6 +334,8 @@ CHECKSUMS
   erubi (1.13.1) sha256=a082103b0885dbc5ecf1172fede897f9ebdb745a4b97a5e8dc63953db1ee4ad9
   faker (3.5.3) sha256=b961482dc0bb15ccb9a98ea7878b925669e9ae8f5e59b607da540b768137d765
   ffi (1.17.3-arm64-darwin) sha256=0c690555d4cee17a7f07c04d59df39b2fba74ec440b19da1f685c6579bb0717f
+  ffi (1.17.3-x64-mingw-ucrt) sha256=5f1d7d067a9a1058ad183dba25b05557cd51c85fc1768c49338eabc1cf242d7c
+  ffi (1.17.3-x86_64-linux-gnu) sha256=3746b01f677aae7b16dc1acb7cb3cc17b3e35bdae7676a3f568153fb0e2c887f
   fileutils (1.8.0) sha256=8c6b1df54e2540bdb2f39258f08af78853aa70bad52b4d394bbc6424593c6e02
   flay (2.13.3) sha256=664cea795a61a8bff71b9a3e4d5fca50f70308c99f6be93b522fc75ff25dd289
   flog (4.8.0) sha256=e04d0fc334175d00d765ddfb7b631ae3df39ed7f80f28aad8f72b996927fa2e4
@@ -340,6 +356,8 @@ CHECKSUMS
   mize (0.6.1) sha256=4031558979ff5426fda24c75a149b4e4c0faf4cacf2fae8938f83866ab94b780
   mutex_m (0.3.0) sha256=cfcb04ac16b69c4813777022fdceda24e9f798e48092a2b817eb4c0a782b0751
   nokogiri (1.19.0-arm64-darwin) sha256=0811dfd936d5f6dd3f6d32ef790568bf29b2b7bead9ba68866847b33c9cf5810
+  nokogiri (1.19.0-x64-mingw-ucrt) sha256=05d7ed2d95731edc9bef2811522dc396df3e476ef0d9c76793a9fca81cab056b
+  nokogiri (1.19.0-x86_64-linux-gnu) sha256=f482b95c713d60031d48c44ce14562f8d2ce31e3a9e8dd0ccb131e9e5a68b58c
   ostruct (0.6.3) sha256=95a2ed4a4bd1d190784e666b47b2d3f078e4a9efda2fccf18f84ddc6538ed912
   parallel (1.27.0) sha256=4ac151e1806b755fb4e2dc2332cbf0e54f2e24ba821ff2d3dcf86bf6dc4ae130
   parser (3.3.10.1) sha256=06f6a725d2cd91e5e7f2b7c32ba143631e1f7c8ae2fb918fc4cebec187e6a688
@@ -354,7 +372,9 @@ CHECKSUMS
   rainbow (3.1.1) sha256=039491aa3a89f42efa1d6dec2fc4e62ede96eb6acd95e52f1ad581182b79bc6a
   rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
   rake-compiler-dock (1.11.0) sha256=eab51f2cd533eb35cea6b624a75281f047123e70a64c58b607471bb49428f8c2
-  ratatui_ruby (1.4.0-arm64-darwin-24) sha256=3b6ebb931b5522874acb0adafbebe398f4803ef379e84c7d02565b1e51d521ab
+  ratatui_ruby (1.4.1-arm64-darwin-24) sha256=184f4eddda783789b2e77a13acf43e862fb714b7e70e4e1929eb166e62dc876e
+  ratatui_ruby (1.4.1-x64-mingw-ucrt) sha256=490421379ebee3eb2805b14d6181310bd3fafe85d484fe4b6cf132f18f9607c3
+  ratatui_ruby (1.4.1-x86_64-linux) sha256=8aaf906e1fe963a485f947943b879353a4555224afc6d9cbf15ab436992f8f9e
   ratatui_ruby-devtools (0.1.1) sha256=a4e86a4035c49fb39bb6f97a05aafefe9479af5b33c2cf987e43d9d778e1ca52
   rb-fsevent (0.11.2) sha256=43900b972e7301d6570f64b850a5aa67833ee7d87b458ee92805d56b7318aefe
   rb-inotify (0.11.1) sha256=a0a700441239b0ff18eb65e3866236cd78613d6b9f78fea1f9ac47a85e47be6e

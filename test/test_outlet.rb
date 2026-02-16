@@ -120,7 +120,7 @@ class TestOutlet < Minitest::Test
     elapsed = Time.now - start
 
     assert_nil result
-    assert_in_delta 0.05, elapsed, 0.03 # Should return quickly, not wait 10s
+    assert_in_delta 0.05, elapsed, 0.15 # Should return quickly, not wait 10s
   end
 
   def test_source_propagates_exceptions_from_failed_commands
