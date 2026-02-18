@@ -337,12 +337,12 @@ class TestCommandAll < Minitest::Test
 
     @@command = Rooibos::Command.all(:dashboard,
       Rooibos::Command.wait(0.01, :timer_result),
-      Rooibos::Command.system("echo mixed", :shell_result),
+      Rooibos::Command.system(%q(ruby -e "puts 'mixed'"), :shell_result),
     )
     view = ClearView
     update = AllUpdate
 
-    with_test_terminal do
+    with_test_terminal(timeout: 10) do
       inject_key("a")
       inject_sync
       inject_key("q")

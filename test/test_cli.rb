@@ -13,7 +13,7 @@ require "fileutils"
 class TestCLI < Minitest::Test
   def rooibos(*)
     exe = File.expand_path("../exe/rooibos", __dir__)
-    Open3.capture3("bundle", "exec", exe, *)
+    Open3.capture3("bundle", "exec", "ruby", exe, *)
   end
 
   def test_version_flag

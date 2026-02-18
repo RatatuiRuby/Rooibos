@@ -14,30 +14,30 @@ class TestCommand < Minitest::Test
   end
 
   def test_command_system_creates_execute_command
-    command = Rooibos::Command.system("echo hello", :got_output)
+    command = Rooibos::Command.system(%q(ruby -e "puts 'hello'"), :got_output)
     assert_kind_of Rooibos::Command::System, command
-    assert_equal "echo hello", command.command
+    assert_equal %q(ruby -e "puts 'hello'"), command.command
     assert_equal :got_output, command.envelope
   end
 
   def test_command_system_defaults_to_non_streaming
-    command = Rooibos::Command.system("echo hello", :got_output)
+    command = Rooibos::Command.system(%q(ruby -e "puts 'hello'"), :got_output)
     refute command.stream?, "stream? should default to false"
   end
 
   def test_command_system_accepts_stream_kwarg
-    command = Rooibos::Command.system("echo hello", :got_output, stream: true)
+    command = Rooibos::Command.system(%q(ruby -e "puts 'hello'"), :got_output, stream: true)
     assert command.stream?, "stream? should be true when passed"
   end
 
   def test_command_system_is_ractor_shareable
-    command = Rooibos::Command.system("ls", :files)
+    command = Rooibos::Command.system(%q(ruby -e ""), :files)
     # The command itself should be shareable (no Proc captures)
     assert Ractor.shareable?(command), "Command::System should be Ractor-shareable"
   end
 
   def test_command_map_creates_mapped_command
-    inner = Rooibos::Command.system("echo hello", :inner_tag)
+    inner = Rooibos::Command.system(%q(ruby -e "puts 'hello'"), :inner_tag)
 
     command = Rooibos::Command.map(inner) { |message| [:parent, message] }
 
@@ -45,7 +45,7 @@ class TestCommand < Minitest::Test
   end
 
   def test_command_map_stores_inner_and_mapper
-    inner = Rooibos::Command.system("echo hello", :inner_tag)
+    inner = Rooibos::Command.system(%q(ruby -e "puts 'hello'"), :inner_tag)
     mapper = -> (message) { [:parent, message] }
 
     command = Rooibos::Command.map(inner, &mapper)

@@ -111,7 +111,7 @@ class TestStreamingCommand < Minitest::Test
     view = ClearView
     update = StreamingUpdate
 
-    with_test_terminal do
+    with_test_terminal(timeout: 10) do
       inject_key("s")
       inject_sync # Wait for command to complete
       inject_key("q")
@@ -123,63 +123,63 @@ class TestStreamingCommand < Minitest::Test
 
   # Test that streaming mode produces a stdout message instead of batch hash.
   def test_streaming_command_produces_stdout_message
-    messages = run_command_and_collect("echo hello", :output, stream: true)
+    messages = run_command_and_collect("ruby -e \"puts 'hello'\"", :output, stream: true)
 
     stdout_msgs = messages.select { |m| m.respond_to?(:stdout?) && m.stdout? }
     refute_empty stdout_msgs, "Expected System::Stream stdout message"
   end
 
   def test_streaming_stdout_message_has_correct_tag
-    messages = run_command_and_collect("echo hello", :my_tag, stream: true)
+    messages = run_command_and_collect("ruby -e \"puts 'hello'\"", :my_tag, stream: true)
 
     stdout_msg = messages.find { |m| m.respond_to?(:stdout?) && m.stdout? }
     assert_equal :my_tag, stdout_msg.envelope, "stdout message tag should match command tag"
   end
 
   def test_streaming_stdout_message_has_line_content
-    messages = run_command_and_collect("echo hello", :output, stream: true)
+    messages = run_command_and_collect("ruby -e \"puts 'hello'\"", :output, stream: true)
 
     stdout_msg = messages.find { |m| m.respond_to?(:stdout?) && m.stdout? }
     assert_equal "hello\n", stdout_msg.content, "stdout message should contain line content"
   end
 
   def test_streaming_command_produces_stderr_message
-    messages = run_command_and_collect("echo error >&2", :output, stream: true)
+    messages = run_command_and_collect(%q(ruby -e "STDERR.puts 'error'"), :output, stream: true)
 
     stderr_msgs = messages.select { |m| m.respond_to?(:stderr?) && m.stderr? }
     refute_empty stderr_msgs, "Expected System::Stream stderr message"
   end
 
   def test_streaming_stderr_message_has_correct_tag
-    messages = run_command_and_collect("echo error >&2", :my_tag, stream: true)
+    messages = run_command_and_collect(%q(ruby -e "STDERR.puts 'error'"), :my_tag, stream: true)
 
     stderr_msg = messages.find { |m| m.respond_to?(:stderr?) && m.stderr? }
     assert_equal :my_tag, stderr_msg.envelope, "stderr message tag should match command tag"
   end
 
   def test_streaming_stderr_message_has_line_content
-    messages = run_command_and_collect("echo error >&2", :output, stream: true)
+    messages = run_command_and_collect(%q(ruby -e "STDERR.puts 'error'"), :output, stream: true)
 
     stderr_msg = messages.find { |m| m.respond_to?(:stderr?) && m.stderr? }
     assert_equal "error\n", stderr_msg.content, "stderr message should contain line content"
   end
 
   def test_streaming_command_sends_complete_message
-    messages = run_command_and_collect("true", :output, stream: true)
+    messages = run_command_and_collect("ruby -e \"\"", :output, stream: true)
 
     complete_msgs = messages.select { |m| m.respond_to?(:complete?) && m.complete? }
     assert_equal 1, complete_msgs.size, "Expected one complete message"
   end
 
   def test_streaming_complete_message_has_correct_tag
-    messages = run_command_and_collect("true", :my_tag, stream: true)
+    messages = run_command_and_collect("ruby -e \"\"", :my_tag, stream: true)
 
     complete_msg = messages.find { |m| m.respond_to?(:complete?) && m.complete? }
     assert_equal :my_tag, complete_msg.envelope, "Tag should match the command's tag"
   end
 
   def test_streaming_complete_message_has_exit_status
-    messages = run_command_and_collect("exit 42", :output, stream: true)
+    messages = run_command_and_collect("ruby -e \"exit 42\"", :output, stream: true)
 
     complete_msg = messages.find { |m| m.respond_to?(:complete?) && m.complete? }
     assert_equal 42, complete_msg.status, "Exit status should be 42"
@@ -187,7 +187,7 @@ class TestStreamingCommand < Minitest::Test
 
   # Regression test: batch mode still works (stream: false default)
   def test_batch_mode_still_returns_single_message
-    messages = run_command_and_collect("echo hello", :output, stream: false)
+    messages = run_command_and_collect("ruby -e \"puts 'hello'\"", :output, stream: false)
 
     assert_equal 1, messages.size, "Batch mode should return single message"
     msg = messages.first
@@ -218,7 +218,7 @@ class TestStreamingCommand < Minitest::Test
       case msg.code
       when "s"
         cmd = Rooibos::Command.system(
-          "echo started && sleep 0.5", # Short sleep so force-kill completes quickly
+          %q(ruby -e "STDOUT.sync = true; puts 'started'; sleep 0.5"), # Short sleep so force-kill completes quickly
           :output,
           stream: true
         )
@@ -249,7 +249,7 @@ class TestStreamingCommand < Minitest::Test
     view = ClearView
     update = ForceKillUpdate
 
-    with_test_terminal do
+    with_test_terminal(timeout: 10) do
       inject_key("s")
       Rooibos::Runtime.run(model:, view:, update:)
     end
@@ -267,7 +267,7 @@ class TestStreamingCommand < Minitest::Test
       when "s"
         # Shell: output immediately, responds to SIGTERM quickly (1ms loop)
         cmd = Rooibos::Command.system(
-          "printf 'started\\n' && trap 'exit 0' TERM && while true; do sleep 0.001; done",
+          %q(ruby -e "STDOUT.sync = true; puts 'started'; trap('TERM') { exit 0 }; loop { sleep 0.001 }"),
           :output,
           stream: true
         )
@@ -293,7 +293,9 @@ class TestStreamingCommand < Minitest::Test
   # TDD: streaming command should use cooperative cancellation (SIGTERM).
   # Cooperative cancellation should be faster than the grace period.
   # This test FAILS until we implement token-based SIGTERM.
+  # On Windows, SIGTERM calls TerminateProcess and cannot be trapped.
   def test_streaming_command_cancels_cooperatively
+    skip "SIGTERM is not catchable on Windows" if Gem.win_platform?
     model = Ractor.make_shareable({ cmd: nil, canceled: false })
 
     view = ClearView
@@ -301,7 +303,7 @@ class TestStreamingCommand < Minitest::Test
 
     start_time = Time.now
 
-    with_test_terminal do
+    with_test_terminal(timeout: 10) do
       inject_key("s")
       Rooibos::Runtime.run(model:, view:, update:)
     end

@@ -24,7 +24,7 @@ class TestCLINewIntegration < Minitest::Test
 
   def rooibos(*)
     exe = File.expand_path("../../exe/rooibos", __dir__)
-    Open3.capture3("bundle", "exec", exe, *)
+    Open3.capture3("bundle", "exec", "ruby", exe, *)
   end
 
   # Helper to skip tests if matching rooibos version is not installed globally.
@@ -155,7 +155,7 @@ class TestCLINewIntegration < Minitest::Test
     Dir.chdir(@tmpdir) do
       # Create app with bundle install
       rooibos_exe = File.expand_path("../../exe/rooibos", __dir__)
-      _, stderr, status = Open3.capture3("bundle", "exec", rooibos_exe, "new", "runnable_app")
+      _, stderr, status = Open3.capture3("bundle", "exec", "ruby", rooibos_exe, "new", "runnable_app")
       unless status.success?
         skip "Could not create app: #{stderr}"
       end
@@ -225,7 +225,7 @@ class TestCLINewIntegration < Minitest::Test
       # The app should have exited cleanly (exit 0)
       assert exit_status&.success?, "App should have exited cleanly, got: #{exit_status}\nOutput:\n#{output_buffer}"
     end
-  rescue PTY::ChildExited
+  rescue *([PTY::ChildExited] if defined?(PTY))
     # App exited before we could interact - that's okay for this test
     pass
   end

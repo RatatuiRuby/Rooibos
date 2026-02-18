@@ -24,7 +24,7 @@ class TestSystemBatchMessage < Minitest::Test
     case msg
     when RatatuiRuby::Event::Key
       case msg.code
-      when "s" then [m, Rooibos::Command.system("echo hello", :build)]
+      when "s" then [m, Rooibos::Command.system(%q(ruby -e "puts 'hello'"), :build)]
       when "q" then [m, Rooibos::Command.exit]
       else [m, nil]
       end

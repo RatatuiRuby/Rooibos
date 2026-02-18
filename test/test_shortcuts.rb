@@ -18,10 +18,10 @@ class TestShortcuts < Minitest::Test
   end
 
   def test_cmd_sh_returns_system_command
-    result = Cmd.sh("echo hello", :got_output)
+    result = Cmd.sh(%q(ruby -e "puts 'hello'"), :got_output)
 
     assert_kind_of Rooibos::Command::System, result
-    assert_equal "echo hello", result.command
+    assert_equal %q(ruby -e "puts 'hello'"), result.command
     assert_equal :got_output, result.envelope
   end
 

@@ -135,17 +135,17 @@ class TestRuntime < Minitest::Test
     # Key 'a' - dispatch command based on model context
     in RatatuiRuby::Event::Key if msg.code == "a"
       if m.is_a?(Hash) && m.key?(:result)
-        [m, Rooibos::Command.system("echo 'loaded'", :data)]
+        [m, Rooibos::Command.system(%q(ruby -e "puts 'loaded'"), :data)]
       elsif m.is_a?(Hash) && m.key?(:noise)
         [m, Rooibos::Command.system("compiler --verbose", :ran_cmd)]
       elsif m.is_a?(Hash) && m.key?(:output)
-        [m, Rooibos::Command.system("echo hello", :got_output)]
+        [m, Rooibos::Command.system(%q(ruby -e "puts 'hello'"), :got_output)]
       elsif m.is_a?(Hash) && m.key?(:error)
-        [m, Rooibos::Command.system("false", :ran_cmd)]
+        [m, Rooibos::Command.system(%q(ruby -e "exit 1"), :ran_cmd)]
       elsif m.is_a?(Hash) && m.key?(:count)
         { count: m[:count] + 1 }.freeze
       else
-        inner_cmd = Rooibos::Command.system("echo hello", :inner_done)
+        inner_cmd = Rooibos::Command.system(%q(ruby -e "puts 'hello'"), :inner_done)
         mapped_cmd = Rooibos::Command.map(inner_cmd) { |msg| [:parent, msg] }
         [m, mapped_cmd]
       end

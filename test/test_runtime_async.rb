@@ -61,7 +61,7 @@ class TestRuntimeAsync < Minitest::Test
     model = Ractor.make_shareable({ events: [] })
 
     # Command that sleeps for 0.01s.
-    @@long_running_cmd = Rooibos::Command.system("sleep 0.01", :cmd_complete)
+    @@long_running_cmd = Rooibos::Command.system(%q(ruby -e "sleep 0.01"), :cmd_complete)
 
     view = ClearView
     update = AsyncUpdate

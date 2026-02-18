@@ -19,7 +19,7 @@ class TestBuiltinCommandProtocol < Minitest::Test
   end
 
   def test_command_system_has_protocol
-    cmd = Rooibos::Command.system("echo test", :result)
+    cmd = Rooibos::Command.system(%q(ruby -e "puts 'test'"), :result)
     validate_rooibos_command!(cmd)
   end
 

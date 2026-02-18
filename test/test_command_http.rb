@@ -228,7 +228,7 @@ class TestCommandHttp < Minitest::Test
   UpdateHttpConnectionError = -> (msg, m) do
     case msg
     in { type: :key, code: "e" }
-      [m, Rooibos::Command.http(:get, "http://127.0.0.1:1/", :fetch)]
+      [m, Rooibos::Command.http(:get, "http://127.0.0.1:1/", :fetch, timeout: 1)]
     in { type: :key, code: "q" }
       TestCommandHttp.class_variable_set(:@@final_model, m)
       [m, Rooibos::Command.exit]
@@ -247,7 +247,7 @@ class TestCommandHttp < Minitest::Test
     view = ClearView
     update = UpdateHttpConnectionError
 
-    with_test_terminal do
+    with_test_terminal(timeout: 10) do
       inject_key("e")
       inject_sync
       inject_key("q")
