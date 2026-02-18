@@ -92,16 +92,16 @@ class TestRuntimeParallel < Minitest::Test
   def test_batch_runs_commands_in_parallel
     model = Ractor.make_shareable({})
 
-    # Two 3.0s waits — sequential = 6.0s, parallel < 5.0s
+    # Two 1.0s waits — sequential = 2.0s, parallel < 1.8s
     @@command = Rooibos::Command.batch([
-      Rooibos::Command.wait(3.0, :first),
-      Rooibos::Command.wait(3.0, :second),
+      Rooibos::Command.wait(1.0, :first),
+      Rooibos::Command.wait(1.0, :second),
     ])
     view = ClearView
     update = TimingUpdate
 
     start = Time.now
-    with_test_terminal(timeout: 10) do
+    with_test_terminal(timeout: 5) do
       inject_key("b")
       inject_sync
       inject_key("q")
@@ -109,9 +109,9 @@ class TestRuntimeParallel < Minitest::Test
     end
     elapsed = Time.now - start
 
-    # Parallel execution: both 3.0s waits overlap, total < 5.0s
-    # Sequential execution: 3.0 + 3.0 = 6.0s minimum
-    assert_operator elapsed, :<, 5.0, "Batch should run commands in parallel, not sequentially"
+    # Parallel execution: both 1.0s waits overlap, total < 1.8s
+    # Sequential execution: 1.0 + 1.0 = 2.0s minimum
+    assert_operator elapsed, :<, 1.8, "Batch should run commands in parallel, not sequentially"
   end
 
   # Cancel update - handles b for batch with model tracking, c for cancel, q for quit

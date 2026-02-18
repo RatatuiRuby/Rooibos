@@ -193,8 +193,9 @@ class TestRuntimeCustomCommand < Minitest::Test
     update = EventUpdate
 
     with_test_terminal do
-      inject_key("s")  # Start brief command
-      inject_key("q")  # Quit
+      inject_key("s") # Start brief command
+      inject_sync # Wait for command to dispatch
+      inject_key("q") # Quit
 
       Rooibos::Runtime.run(model:, view:, update:)
     end

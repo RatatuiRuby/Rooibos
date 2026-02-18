@@ -153,10 +153,14 @@ class TestRuntimeTimer < Minitest::Test
     view = ClearView
     update = AckUpdate
 
-    with_test_terminal do
+    with_test_terminal(timeout: 5) do
       inject_key("w")  # Start 1s wait
       inject_key("c")  # Cancel it before it completes
-      inject_sync # Wait for cancellation to process
+      # Wait.rooibos_cancellation_grace_period is 0, so cancel removes the
+      # future from @pending_futures immediately. inject_sync would have
+      # nothing to wait on. Give the background thread time to wake from
+      # combined.origin.wait and push Message::Canceled to the channel.
+      sleep 1
       inject_key("q") # Quit
       Rooibos::Runtime.run(model:, view:, update:)
     end

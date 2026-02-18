@@ -120,7 +120,7 @@ class TestOutlet < Minitest::Test
     elapsed = Time.now - start
 
     assert_nil result
-    assert_operator elapsed, :<, 5.0, "Should return quickly, not wait 10s"
+    assert_operator elapsed, :<, 2.0, "Should timeout near 0.05s, not wait 10s"
   end
 
   def test_source_propagates_exceptions_from_failed_commands

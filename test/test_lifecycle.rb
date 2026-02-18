@@ -113,11 +113,13 @@ class TestLifecycle < Minitest::Test
 
     # Command that tracks cancellation
     canceled = Concurrent::AtomicBoolean.new(false)
+    started = Concurrent::Event.new
     command_class = Class.new do
       include Rooibos::Command::Custom
       define_method(:rooibos_cancellation_grace_period) { 0.05 }
-      define_method(:initialize) { |flag| @canceled = flag }
+      define_method(:initialize) { |flag, latch| @canceled = flag; @started = latch }
       define_method(:call) do |out, token|
+        @started.set
         loop do
           if token.canceled?
             @canceled.make_true
@@ -128,10 +130,10 @@ class TestLifecycle < Minitest::Test
         end
       end
     end
-    command = command_class.new(canceled)
+    command = command_class.new(canceled, started)
 
     lifecycle.run_async(command, channel)
-    sleep 0.01 # Let command start
+    started.wait # Deterministic: blocks until the thread is actually in the loop
 
     # Cancel it
     lifecycle.cancel(command)
@@ -149,7 +151,9 @@ class TestLifecycle < Minitest::Test
     lifecycle = Rooibos::Command::Lifecycle.new
     channel = Concurrent::Promises::Channel.new
 
+    started = Concurrent::Event.new
     command = -> (out, token) do
+      started.set
       loop do
         break out.put(:done) if token.canceled?
         sleep 0.01
@@ -157,7 +161,7 @@ class TestLifecycle < Minitest::Test
     end
 
     lifecycle.run_async(command, channel)
-    sleep 0.01
+    started.wait
 
     lifecycle.cancel(command)
 
@@ -173,11 +177,13 @@ class TestLifecycle < Minitest::Test
     channel = Concurrent::Promises::Channel.new
 
     canceled_count = Concurrent::AtomicFixnum.new(0)
+    latches = Array.new(3) { Concurrent::Event.new }
     command_class = Class.new do
       include Rooibos::Command::Custom
       define_method(:rooibos_cancellation_grace_period) { 0.05 }
-      define_method(:initialize) { |counter| @counter = counter }
+      define_method(:initialize) { |counter, latch| @counter = counter; @latch = latch }
       define_method(:call) do |out, token|
+        @latch.set
         loop do
           if token.canceled?
             @counter.increment
@@ -190,10 +196,10 @@ class TestLifecycle < Minitest::Test
     end
 
     # Start multiple commands
-    lifecycle.run_async(command_class.new(canceled_count), channel)
-    lifecycle.run_async(command_class.new(canceled_count), channel)
-    lifecycle.run_async(command_class.new(canceled_count), channel)
-    sleep 0.1 # Let commands start
+    lifecycle.run_async(command_class.new(canceled_count, latches[0]), channel)
+    lifecycle.run_async(command_class.new(canceled_count, latches[1]), channel)
+    lifecycle.run_async(command_class.new(canceled_count, latches[2]), channel)
+    latches.each(&:wait) # Deterministic: all three commands are running
 
     # Shutdown should cancel all
     lifecycle.shutdown
