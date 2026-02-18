@@ -244,6 +244,7 @@ class TestStreamingCommand < Minitest::Test
   # Baseline test: streaming command can be force-killed.
   # This confirms the existing cancellation mechanism works.
   def test_streaming_command_can_be_force_killed
+    skip "SIGTERM is not catchable on Windows" if Gem.win_platform?
     model = Ractor.make_shareable({ cmd: nil, canceled: false })
 
     view = ClearView

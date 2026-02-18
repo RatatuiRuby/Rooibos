@@ -126,6 +126,8 @@ class TestRuntimeTimer < Minitest::Test
   end
 
   # AckUpdate for canceled wait acknowledgment test
+  # Exits on Message::Canceled so the test is self-synchronizing:
+  # the runtime can only exit once cancellation is acknowledged.
   AckUpdate = -> (msg, m) do
     case msg
     when RatatuiRuby::Event::Key
@@ -136,11 +138,12 @@ class TestRuntimeTimer < Minitest::Test
         [Ractor.make_shareable({ cmd: }), cmd]
       when "c"
         [m, Rooibos::Command.cancel(m[:cmd])]
-      when "q"
-        [m, Rooibos::Command.exit]
       else
         [m, nil]
       end
+    when Rooibos::Message::Canceled
+      TestRuntimeTimer.class_variable_get(:@@messages) << msg
+      [m, Rooibos::Command.exit]
     else
       TestRuntimeTimer.class_variable_get(:@@messages) << msg
       [m, nil]
@@ -153,15 +156,12 @@ class TestRuntimeTimer < Minitest::Test
     view = ClearView
     update = AckUpdate
 
-    with_test_terminal(timeout: 5) do
+    with_test_terminal do
       inject_key("w")  # Start 1s wait
       inject_key("c")  # Cancel it before it completes
-      # Wait.rooibos_cancellation_grace_period is 0, so cancel removes the
-      # future from @pending_futures immediately. inject_sync would have
-      # nothing to wait on. Give the background thread time to wake from
-      # combined.origin.wait and push Message::Canceled to the channel.
-      sleep 3
-      inject_key("q") # Quit
+      # No inject_sync here: cancel removes the future from @pending_futures
+      # (grace=0), so sync would have nothing to wait on. Instead, AckUpdate
+      # exits when it receives Message::Canceled, making this self-synchronizing.
       Rooibos::Runtime.run(model:, view:, update:)
     end
 
