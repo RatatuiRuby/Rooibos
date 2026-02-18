@@ -120,14 +120,9 @@ class TestLifecycle < Minitest::Test
       define_method(:initialize) { |flag, latch| @canceled = flag; @started = latch }
       define_method(:call) do |out, token|
         @started.set
-        loop do
-          if token.canceled?
-            @canceled.make_true
-            out.put(:canceled)
-            break
-          end
-          sleep 0.01
-        end
+        token.origin.wait
+        @canceled.make_true
+        out.put(:canceled)
       end
     end
     command = command_class.new(canceled, started)
@@ -154,10 +149,8 @@ class TestLifecycle < Minitest::Test
     started = Concurrent::Event.new
     command = -> (out, token) do
       started.set
-      loop do
-        break out.put(:done) if token.canceled?
-        sleep 0.01
-      end
+      token.origin.wait
+      out.put(:done)
     end
 
     lifecycle.run_async(command, channel)
@@ -184,14 +177,9 @@ class TestLifecycle < Minitest::Test
       define_method(:initialize) { |counter, latch| @counter = counter; @latch = latch }
       define_method(:call) do |out, token|
         @latch.set
-        loop do
-          if token.canceled?
-            @counter.increment
-            out.put(:shutdown_received)
-            break
-          end
-          sleep 0.01
-        end
+        token.origin.wait
+        @counter.increment
+        out.put(:shutdown_received)
       end
     end
 
