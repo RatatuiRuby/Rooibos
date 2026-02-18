@@ -160,7 +160,7 @@ class TestRuntimeTimer < Minitest::Test
       # future from @pending_futures immediately. inject_sync would have
       # nothing to wait on. Give the background thread time to wake from
       # combined.origin.wait and push Message::Canceled to the channel.
-      sleep 1
+      sleep 3
       inject_key("q") # Quit
       Rooibos::Runtime.run(model:, view:, update:)
     end

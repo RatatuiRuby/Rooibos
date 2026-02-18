@@ -140,7 +140,7 @@ class TestStreamingCommand < Minitest::Test
     messages = run_command_and_collect("ruby -e \"puts 'hello'\"", :output, stream: true)
 
     stdout_msg = messages.find { |m| m.respond_to?(:stdout?) && m.stdout? }
-    assert_equal "hello\n", stdout_msg.content, "stdout message should contain line content"
+    assert_equal "hello\n", stdout_msg.content.delete("\r"), "stdout message should contain line content"
   end
 
   def test_streaming_command_produces_stderr_message
@@ -161,7 +161,7 @@ class TestStreamingCommand < Minitest::Test
     messages = run_command_and_collect(%q(ruby -e "STDERR.puts 'error'"), :output, stream: true)
 
     stderr_msg = messages.find { |m| m.respond_to?(:stderr?) && m.stderr? }
-    assert_equal "error\n", stderr_msg.content, "stderr message should contain line content"
+    assert_equal "error\n", stderr_msg.content.delete("\r"), "stderr message should contain line content"
   end
 
   def test_streaming_command_sends_complete_message

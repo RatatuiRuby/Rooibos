@@ -312,7 +312,12 @@ module Rooibos
       end
 
       private def stream_execution(out, token)
-        Open3.popen3(command) do |stdin, stdout, stderr, wait_thr|
+        # pgroup: true spawns the child in its own process group.
+        # On Linux, popen3(string) invokes /bin/sh which may fork (not exec),
+        # so killing just the shell PID leaves the child orphaned. Signaling
+        # the process group (-pid) ensures TERM reaches all descendants.
+        pgroup_opts = Gem.win_platform? ? {} : { pgroup: true }
+        Open3.popen3(command, **pgroup_opts) do |stdin, stdout, stderr, wait_thr|
           stdin.close
           pid = wait_thr.pid
 
@@ -323,7 +328,8 @@ module Rooibos
             # Check cancellation before blocking on IO.select
             if token.canceled? && wait_thr.alive?
               begin
-                Process.kill("TERM", pid)
+                # On Unix, signal the process group; on Windows, kill the process directly
+                Process.kill("TERM", Gem.win_platform? ? pid : -pid)
               rescue Errno::ESRCH
                 # Already dead
               end

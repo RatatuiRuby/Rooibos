@@ -52,7 +52,7 @@ class TestCLINewIntegration < Minitest::Test
 
       exe_path = File.join("test_app", "exe", "test_app")
       assert File.exist?(exe_path), "Expected #{exe_path} to exist"
-      assert File.executable?(exe_path), "Expected #{exe_path} to be executable"
+      assert File.executable?(exe_path), "Expected #{exe_path} to be executable" unless Gem.win_platform?
     end
   end
 
