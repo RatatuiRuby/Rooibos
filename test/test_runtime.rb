@@ -576,6 +576,7 @@ class TestRuntime < Minitest::Test
 
     with_test_terminal(timeout: 5) do
       inject_key("a")
+      inject_sync
       Rooibos::Runtime.run(model:, view:, update:)
     end
 

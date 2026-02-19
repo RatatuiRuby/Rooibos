@@ -242,29 +242,48 @@ class TestCommandAll < Minitest::Test
     assert_same @@all_cmd, cancel_msg&.command, "Expected Canceled message with self as command"
   end
 
+  # A command that proves concurrent execution via a shared barrier.
+  # Both commands must start before either can complete. If run
+  # sequentially, the first blocks at barrier.wait forever because
+  # the second hasn't started yet.
+  #
+  # Mutable state lives in class variables (not instance fields) so
+  # the Data.define remains Ractor-shareable.
+  BarrierProbe = Data.define(:tag) do
+    include Rooibos::Command::Custom
+
+    def call(out, _token)
+      TestCommandAll.class_variable_get(:@@barrier).count_down   # "I have started"
+      TestCommandAll.class_variable_get(:@@barrier).wait(5)      # Wait for sibling
+      TestCommandAll.class_variable_get(:@@completed).increment  # Record finish
+      out.put(Rooibos::Message::Timer.new(envelope: tag, elapsed: 0.0))
+    end
+  end
+
   def test_all_runs_commands_in_parallel
     model = Ractor.make_shareable({})
 
-    # Two 1.0s waits — sequential = 2.0s, parallel < 1.8s
+    @@barrier = Concurrent::CountDownLatch.new(2)
+    @@completed = Concurrent::AtomicFixnum.new(0)
+
     @@command = Rooibos::Command.all(:dashboard, [
-      Rooibos::Command.wait(1.0, :first),
-      Rooibos::Command.wait(1.0, :second),
+      BarrierProbe.new(tag: :first),
+      BarrierProbe.new(tag: :second),
     ])
     view = ClearView
     update = TimingUpdate
 
-    start = Time.now
-    with_test_terminal(timeout: 5) do
+    with_test_terminal(timeout: 10) do
       inject_key("a")
       inject_sync
       inject_key("q")
       Rooibos::Runtime.run(model:, view:, update:)
     end
-    elapsed = Time.now - start
 
-    # Parallel execution: both 1.0s waits overlap, total < 1.8s
-    # Sequential execution: 1.0 + 1.0 = 2.0s minimum
-    assert_operator elapsed, :<, 1.8, "Command.all should run commands in parallel, not sequentially"
+    # Both probes completed — only possible if they ran concurrently.
+    # Sequential execution would deadlock at barrier.wait.
+    assert_equal 2, @@completed.value,
+      "Command.all should run commands in parallel, not sequentially"
   end
 
   def test_all_emits_message_all_for_nested_syntax
