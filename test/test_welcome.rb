@@ -61,7 +61,9 @@ class TestWelcome < Minitest::Test
         Ruby
         code
         application
+        lib/rooibos/welcome.rb
         tests
+        test/test_welcome.rb
         bundle
         exec
         rake

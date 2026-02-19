@@ -30,9 +30,9 @@ module Rooibos
         WELCOME_TEXT = {
           "Welcome to Rooibos! You will find the Ruby code " \
             "for this application in " => Styles::TEXT,
-          "lib/saturday.rb" => Styles::FILENAME,
+          "lib/rooibos/welcome.rb" => Styles::FILENAME,
           ". The tests that verify it are at " => Styles::TEXT,
-          "test/test_saturday.rb" => Styles::FILENAME,
+          "test/test_welcome.rb" => Styles::FILENAME,
           ". You can run the tests with " => Styles::TEXT,
           "bundle exec rake test" => Styles::COMMAND,
           ". Visit " => Styles::TEXT,
