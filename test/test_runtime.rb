@@ -574,14 +574,9 @@ class TestRuntime < Minitest::Test
 
     update = RecordingUpdate
 
-    require "open3"
-    mock_status = Object.new
-    mock_status.define_singleton_method(:exitstatus) { 0 }
-    Open3.stub(:capture3, ["hello\n", "", mock_status]) do
-      with_test_terminal do
-        inject_key("a")
-        Rooibos::Runtime.run(model:, view:, update:)
-      end
+    with_test_terminal(timeout: 5) do
+      inject_key("a")
+      Rooibos::Runtime.run(model:, view:, update:)
     end
 
     assert_kind_of Rooibos::Message::System::Batch, @@received_msg[1], "Should receive System::Batch"
