@@ -89,6 +89,8 @@ module Rooibos
           command.call(outlet, cancellation)
         rescue => e
           channel.push Message::Error.new(command:, exception: e)
+        ensure
+          outlet.wait # Don't resolve until children from standing complete
         end
 
         entry = Entry.new(future:, origin:)

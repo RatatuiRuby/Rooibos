@@ -76,6 +76,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Gem Size**: Reduced gem size from 812KB to 116KB by excluding doc/, examples/, and other development files.
 
+- **Batch cancellation reliably delivers children's `Message::Canceled`**: When a `Command.batch` was cancelled, the batch itself responded instantly but children's cancellation messages could arrive after the runtime had already moved on. Now the lifecycle waits for children spawned via `Outlet#standing` to complete before resolving the batch's future, so all `Message::Canceled` messages arrive before the next Update cycle.
+
 - **`Command::Cancel` no longer includes `Message::Predicates`**: Commands should only include `Command::Custom`, not message mixins. `Cancel` is a sentinel command intercepted by the runtime before dispatch — it is never sent to Update as a message. Removed the buggy (for non-messages) behavior introduced by `include Message::Predicates`.
 
 - **Message::Predicates `deconstruct_keys`**: Now calls `super` to preserve Data.define fields. Previously, including `Predicates` in a `Data.define` class would shadow all fields, returning only `{ type: ... }`. Now correctly returns `{ type: :my_message, envelope:, ...all_fields }`.

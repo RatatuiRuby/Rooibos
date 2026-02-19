@@ -194,4 +194,54 @@ class TestLifecycle < Minitest::Test
 
     assert_equal 3, canceled_count.value, "All three commands should have been canceled"
   end
+
+  # A cooperative command that takes measurable time after cancellation.
+  # This makes the race deterministic: run_async's future resolves
+  # (Batch#call returns) before children push their messages.
+  SlowCancelChild = Data.define(:tag) do
+    include Rooibos::Command::Custom
+
+    def call(out, token)
+      token.origin.wait        # Block until cancelled
+      sleep 0.05               # Simulate slow cleanup
+      out.put(Rooibos::Message::Canceled.new(command: self))
+    end
+
+    def rooibos_cancellation_grace_period = 0
+  end
+
+  def test_run_async_future_waits_for_children_spawned_by_standing
+    lifecycle = Rooibos::Command::Lifecycle.new
+    channel = Concurrent::Promises::Channel.new
+
+    child1 = SlowCancelChild.new(tag: :first)
+    child2 = SlowCancelChild.new(tag: :second)
+    batch = Rooibos::Command.batch(child1, child2)
+
+    entry = lifecycle.run_async(batch, channel)
+
+    # Let batch start and children begin blocking
+    sleep 0.05
+
+    # Cancel — signals children, batch exits immediately
+    lifecycle.cancel(batch)
+
+    # Wait for the future to resolve
+    entry.future.wait(1.0)
+
+    # Drain channel — all child messages should be present
+    messages = []
+    while (msg = channel.try_pop(:EMPTY)) != :EMPTY
+      messages << msg
+    end
+
+    canceled_commands = messages
+      .select { |m| m.is_a?(Rooibos::Message::Canceled) }
+      .map(&:command)
+
+    assert_includes canceled_commands, child1,
+      "First child should have pushed Canceled before future resolved"
+    assert_includes canceled_commands, child2,
+      "Second child should have pushed Canceled before future resolved"
+  end
 end
