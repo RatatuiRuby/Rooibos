@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.7.0] - 2026-02-18
+
+### Added
+
 - **Curated RuboCop config shipped with gem**: Rooibos now includes a curated RuboCop configuration at `lib/rooibos/rubocop.yml`. Use `inherit_gem: { rooibos: lib/rooibos/rubocop.yml }` in your `.rubocop.yml` to adopt it.
 
 - **`Message::Predicates` new predicates**: Added `milestone?` and `custom?` predicate methods. Use `message.milestone?` to check for milestone messages (e.g., completion signals) and `message.custom?` to check for custom user-defined message types.
