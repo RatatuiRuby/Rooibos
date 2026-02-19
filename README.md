@@ -162,7 +162,7 @@ For a full tutorial, see [the Quickstart](./doc/getting_started/quickstart.md). 
 
 ## Features
 
-_Because this gem is in alpha, it lacks documentation. Please check the source files._
+_Because this gem is in beta, it lacks documentation. Please check the source files._
 
 
 ## Documentation

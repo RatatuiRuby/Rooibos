@@ -194,10 +194,11 @@ run off the main thread and send results back as messages.
     end
   }
 
-<b>And more!</b> \Rooibos includes <tt>all</tt>, <tt>batch</tt>, <tt>cancel</tt>,
-<tt>custom</tt>, <tt>exit</tt>, <tt>http</tt>, <tt>map</tt>, <tt>open</tt>,
-<tt>system</tt>, <tt>tick</tt>, and <tt>wait</tt> commands.  You can also define
-your own custom commands for complex orchestration. 
+<b>And more!</b> \Rooibos includes <tt>all</tt>, <tt>batch</tt>, <tt>bubble</tt>,
+<tt>cancel</tt>, <tt>custom</tt>, <tt>deliver</tt>, <tt>exit</tt>,
+<tt>http</tt>, <tt>map</tt>, <tt>open</tt>, <tt>system</tt>, <tt>tick</tt>,
+and <tt>wait</tt> commands.  You can also define your own custom commands
+for complex orchestration. 
 
 Every command produces a message, and Update handles it the same way.
 
@@ -279,13 +280,12 @@ The Router DSL eliminates boilerplate:
     route :stats, to: StatsPanel
     route :network, to: NetworkPanel
 
-    keymap do |map|
-      map.key :ctrl_c, -> { Rooibos::Command.exit }
-      map.only when: -> (model) { !model.modal_open } do
-        map.key :q, -> { Rooibos::Command.exit }
-        map.key :s, -> { StatsPanel.fetch_command }
-        map.key :p, -> { NetworkPanel.ping_command }
-      end
+    receive_events :ctrl_c, -> { Rooibos::Command.exit }
+
+    only when: -> (_message, model) { !model.modal_open } do
+      receive_events :q, -> { Rooibos::Command.exit }
+      forward_events :s, to: :stats, as: :fetch
+      forward_events :p, to: :network, as: :ping
     end
 
     Update = from_router
@@ -293,8 +293,8 @@ The Router DSL eliminates boilerplate:
     # ... Model, Init, View below
   end
 
-Declare routes and keymaps. The router generates Update for you. Use guards to
-ignore keys when needed.
+Declare routes and event handlers. The router generates Update for you. Use
+guards to ignore messages when needed.
 
 ==== CLI
 
@@ -358,11 +358,11 @@ that fits your brain.
   {Troubleshooting}[https://www.rooibos.run/docs/trunk/doc/troubleshooting/index_md.html]
 
 [Community]
-  {Forum}[https://forum.setdef.com/c/ratatui-ruby/6],
-  {Announcements}[https://forum.setdef.com/tags/c/ratatui-ruby/6/announcement],
-  {Bug Tracker}[https://forum.setdef.com/tags/c/ratatui-ruby/6/bug],
-  {Contribution Guide}[https://man.sr.ht/~kerrick/ratatui_ruby/contributing.md],
-  {Code of Conduct}[https://man.sr.ht/~kerrick/ratatui_ruby/code_of_conduct.md]
+  {Forum}[https://forum.setdef.com/c/rooibos],
+  {Announcements}[https://forum.setdef.com/tags/c/rooibos/announcement],
+  {Bug Tracker}[https://forum.setdef.com/tags/c/rooibos/bug],
+  {Contribution Guide}[https://github.com/setdef/Rooibos/blob/trunk/CONTRIBUTING.md],
+  {Code of Conduct}[https://github.com/setdef/Rooibos/blob/trunk/CODE_OF_CONDUCT.md]
 
 
 ---
