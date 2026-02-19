@@ -139,7 +139,7 @@ module Rooibos
       end
 
       # Net::HTTP is blocking; no cooperative cancellation possible.
-      # Grace period = 0 means runtime can force-kill immediately.
+      # Grace period = 0 means runtime will orphan the blocked thread immediately.
       def rooibos_cancellation_grace_period = 0
 
       def self.parse_dwim_args(args, method_kw, url_kw, envelope_kw, body_kw, method_keywords) # :nodoc:

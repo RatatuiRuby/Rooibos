@@ -57,7 +57,7 @@ The `CancellationToken` signals cancellation requests. Commands check `token.can
 - `0.5` seconds — Quick HTTP abort, minimal cleanup
 - `2.0` seconds — Default, suitable for most commands
 - `5.0` seconds — WebSocket close handshake with remote server
-- `Float::INFINITY` — Never force-kill (database transactions)
+- `Float::INFINITY` — Wait indefinitely for cooperative exit (database transactions)
 
 ### 3. Command Identity via Object Reference
 

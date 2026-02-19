@@ -266,10 +266,6 @@ class TestRuntimeCustomCommand < Minitest::Test
     assert_includes @@events, :infinite_stopped, "Command should have stopped cooperatively"
   end
 
-  def test_shutdown_kills_stubborn_commands_quickly
-    skip "Timing test - timing doesn't distinguish kill from orphan"
-  end
-
   # Error update - captures @@received_error for error-handling tests
   ErrorUpdate = -> (msg, m) do
     case msg

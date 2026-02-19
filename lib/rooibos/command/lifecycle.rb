@@ -33,7 +33,7 @@ module Rooibos
       # Runs a command synchronously, returning its result.
       #
       # Spawns a thread, races the result against cancellation and timeout.
-      # On cancellation, waits the grace period then kills the thread if needed.
+      # On cancellation, waits the grace period then orphans the thread if needed.
       #
       # [command] Callable with <tt>call(out, token)</tt>.
       # [token]   Parent's cancellation token.

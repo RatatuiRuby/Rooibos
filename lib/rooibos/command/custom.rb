@@ -69,7 +69,8 @@ module Rooibos
       #
       # When the runtime cancels your command (app exit, navigation, explicit cancel),
       # it calls <tt>token.cancel!</tt> and waits this long for your command to stop.
-      # If your command does not exit within this window, it is force-killed.
+      # If your command does not exit within this window, it is orphaned until
+      # process exit. There is no safe way to force-kill a Ruby thread.
       #
       # *This is NOT a lifetime limit.* Your command runs indefinitely until canceled.
       # A WebSocket open for 15 minutes is fine. This timeout only applies to the
@@ -80,7 +81,7 @@ module Rooibos
       # - <tt>0.5</tt> — Quick HTTP abort, no cleanup needed
       # - <tt>2.0</tt> — Default, suitable for most commands
       # - <tt>5.0</tt> — WebSocket close handshake with remote server
-      # - <tt>Float::INFINITY</tt> — Never force-kill (database transactions)
+      # - <tt>Float::INFINITY</tt> — Wait indefinitely for cooperative exit (database transactions)
       #
       # === Example
       #

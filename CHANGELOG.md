@@ -288,7 +288,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Command.cancel Factory**: Request cancellation of a running command. Returns a `Command::Cancel` sentinel that the runtime routes to the appropriate command's CancellationToken.
 
-- **Runtime Cancellation Dispatch**: The runtime now handles `Command::Cancel` by signaling the target command's `CancellationToken`, enabling cooperative cancellation of long-running commands. Respects `rooibos_cancellation_grace_period`: waits for the grace period, then force-kills unresponsive threads. Use `Float::INFINITY` to never force-kill.
+- **Runtime Cancellation Dispatch**: The runtime now handles `Command::Cancel` by signaling the target command's `CancellationToken`, enabling cooperative cancellation of long-running commands. Respects `rooibos_cancellation_grace_period`: waits for the grace period, then orphans unresponsive threads. Use `Float::INFINITY` to wait indefinitely for cooperative exit.
 
 - **Graceful Shutdown**: On exit, runtime signals all active commands then respects each command's grace period. Commands with `Float::INFINITY` grace are waited on indefinitely (user has SIGKILL). Final queue messages are processed before returning.
 
