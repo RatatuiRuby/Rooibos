@@ -8,6 +8,20 @@
 module Rooibos
   # Built-in welcome screen used by scaffolded applications.
   module Welcome
+    # Detect the gem name from the file that required this welcome screen.
+    # A scaffolded app's main lib file (e.g. lib/hello_rooibos.rb) lives
+    # directly under lib/ with no subdirectory — that distinguishes it from
+    # gem internals (lib/rooibos/welcome.rb) and test files (test/*.rb).
+    # Evaluated once at require-time; nil when loaded outside a lib/ context.
+    SOURCE_GEM = begin
+      rooibos_lib = File.expand_path("..", String(__dir__)) # this gem's lib/ dir
+      caller_locations
+        &.filter_map(&:absolute_path)
+        &.find { |p| p.match?(%r{/lib/[^/]+\.rb\z}) && !p.start_with?(rooibos_lib) }
+        &.then { |p| File.basename(p, ".rb") }
+    end
+    private_constant :SOURCE_GEM
+
     module UI # :nodoc:
       module Styles # :nodoc:
         TEXT = RatatuiRuby::Style::Style.new
@@ -27,12 +41,15 @@ module Rooibos
       end
 
       module Widgets # :nodoc:
+        LIB_FILE  = SOURCE_GEM ? "lib/#{SOURCE_GEM}.rb"       : "lib/your_app.rb"
+        TEST_FILE = SOURCE_GEM ? "test/test_#{SOURCE_GEM}.rb" : "test/test_your_app.rb"
+
         WELCOME_TEXT = {
           "Welcome to Rooibos! You will find the Ruby code " \
             "for this application in " => Styles::TEXT,
-          "lib/saturday.rb" => Styles::FILENAME,
+          LIB_FILE => Styles::FILENAME,
           ". The tests that verify it are at " => Styles::TEXT,
-          "test/test_saturday.rb" => Styles::FILENAME,
+          TEST_FILE => Styles::FILENAME,
           ". You can run the tests with " => Styles::TEXT,
           "bundle exec rake test" => Styles::COMMAND,
           ". Visit " => Styles::TEXT,

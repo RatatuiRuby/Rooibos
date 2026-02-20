@@ -6,6 +6,7 @@
 module Rooibos
   # Built-in welcome screen used by scaffolded applications.
   module Welcome
+    SOURCE_GEM: String?
     WEBSITE_URL: String
 
     # Internal UI module for styles and widgets.
@@ -26,6 +27,8 @@ module Rooibos
       end
 
       module Widgets
+        LIB_FILE: String
+        TEST_FILE: String
         WELCOME_TEXT: Hash[String, RatatuiRuby::Style::Style]
         PARAGRAPH: RatatuiRuby::Widgets::Paragraph
         def self.website_button: (?focused: bool, ?hovered: bool) -> RatatuiRuby::Text::Span

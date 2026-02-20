@@ -116,5 +116,78 @@ if defined?(PTY)
       # Expected - the app crashed
       pass
     end
+
+    def test_welcome_screen_shows_app_file_paths
+      require_global_rooibos!
+
+      Dir.chdir(@tmpdir) do
+        rooibos_exe = File.expand_path("../../exe/rooibos", __dir__)
+        _, stderr, status = Open3.capture3("bundle", "exec", rooibos_exe, "new", "hello_rooibos")
+        unless status.success?
+          skip "Could not create app: #{stderr}"
+        end
+
+        app_dir = File.join(@tmpdir, "hello_rooibos")
+
+        output_buffer = +""
+        Bundler.with_unbundled_env do
+          pty_out, pty_in, pid = PTY.spawn("rooibos", "run", chdir: app_dir)
+          pty_out.winsize = [24, 80]
+
+          reader = Thread.new do
+            loop do
+              output_buffer << pty_out.read_nonblock(4096)
+            rescue IO::WaitReadable
+              pty_out.wait_readable(0.1)
+            rescue EOFError, Errno::EIO
+              break
+            end
+          end
+
+          sleep 1.5
+
+          begin
+            pty_in.sync = true
+            pty_in.write("\x03")
+            pty_in.flush
+          rescue Errno::EIO
+            nil
+          end
+
+          begin
+            Timeout.timeout(5) { Process.wait(pid) }
+          rescue Timeout::Error
+            Process.kill("KILL", pid)
+            Process.wait(pid)
+          ensure
+            begin
+              reader.kill
+            rescue
+              nil
+            end
+            begin
+              pty_out.close
+            rescue
+              nil
+            end
+            begin
+              pty_in.close
+            rescue
+              nil
+            end
+          end
+        end
+
+        # The welcome screen must show the actual app's file paths, not the
+        # generic fallback "your_app". When lib/hello_rooibos.rb requires
+        # rooibos/welcome, the welcome screen detects the gem name and uses it.
+        assert_includes output_buffer, "lib/hello_rooibos.rb",
+          "Welcome screen should show the app's actual lib file path"
+        assert_includes output_buffer, "test/test_hello_rooibos.rb",
+          "Welcome screen should show the app's actual test file path"
+      end
+    rescue *([PTY::ChildExited] if defined?(PTY))
+      pass
+    end
   end
 end

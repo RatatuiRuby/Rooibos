@@ -61,7 +61,9 @@ class TestWelcome < Minitest::Test
         Ruby
         code
         application
+        lib/your_app.rb
         tests
+        test/test_your_app.rb
         bundle
         exec
         rake
