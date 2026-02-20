@@ -8,5 +8,5 @@
 module Rooibos
   # The version of this gem.
   # See https://semver.org/spec/v2.0.0.html
-  VERSION = "0.7.0"
+  VERSION = "0.7.1"
 end

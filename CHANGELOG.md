@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Removed
+
+## [0.7.1] - 2026-02-20
+
+### Added
+
+### Changed
+
+### Fixed
+
 - **Welcome screen shows app-specific file paths**: The built-in welcome screen now detects the gem name of the app that required it and displays the correct `lib/<app>.rb` and `test/test_<app>.rb` paths. Previously it hardcoded stale prototype paths that did not exist in any scaffolded app.
 
 ### Removed
