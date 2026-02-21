@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Removed
+
+## [0.7.2] - 2026-02-20
+
+### Added
+
+### Changed
+
+### Fixed
+
 - **Nested `only when:` guards are Ractor-shareable**: `only when: OuterGuard do ... otherwise route_to: :child, when: InnerGuard ... end` raised `Ractor::IsolationError` at startup because `Guard.apply_scope` combined guards with a lambda that captured block variables from `inject`.
 
 ### Removed
