@@ -8,6 +8,7 @@
 require "test_helper"
 
 class TestRouterGuardBlocks < Minitest::Test
+  include Rooibos::TestHelper
   def test_only_block_runs_handlers_when_guard_passes
     j_called = false
     k_called = false
@@ -217,5 +218,83 @@ class TestRouterGuardBlocks < Minitest::Test
     focused = model_class.new(child: TrackingChild::Init.call, focused: true)
     new_model2, _cmd = update.call(RatatuiRuby::Event::Key.new(code: "x"), focused)
     assert_equal 1, new_model2.child.messages.size
+  end
+
+  # --- Ractor shareability ---
+  #
+  # The runtime validates that the Update is Ractor-shareable.
+  # These tests use with_test_terminal to exercise that validation.
+
+  module CountingLeaf
+    LeafModel = Data.define(:count)
+    Init = -> { LeafModel.new(count: 0) }
+    Update = -> (_msg, model) { model.with(count: model.count + 1) }
+  end
+
+  # Single-level: `only when:` + `otherwise route_to:` with no inner guard.
+  module GuardedOuter
+    include Rooibos::Router
+
+    OuterModel = Data.define(:nested, :active)
+    Init = -> { OuterModel.new(nested: CountingLeaf::Init.call, active: true) }
+    View = -> (_model, tui) { tui.clear }
+
+    route :nested, to: CountingLeaf
+
+    ACTIVE_GUARD = -> (_, model) { model.active }
+
+    receive_events :q, -> (_, model) { [model, Rooibos::Command.exit] }
+
+    only when: ACTIVE_GUARD do
+      otherwise route_to: :nested
+    end
+
+    Update = from_router
+  end
+
+  def test_guarded_otherwise_is_ractor_shareable
+    result = with_test_terminal do
+      inject_key("a") # Not handled by outer → otherwise → nested
+      inject_key("q")
+      Rooibos::Runtime.run(GuardedOuter)
+    end
+
+    assert_equal 1, result.nested.count,
+      "nested fragment should receive the forwarded message when guard passes"
+  end
+
+  # Nested: `only when:` + `otherwise route_to: ... when:` — the exact
+  # pattern from the Sidekiq TUI where an outer guard gates a mode and
+  # inner guards dispatch to different nested fragments.
+  module NestedGuardOuter
+    include Rooibos::Router
+
+    OuterModel = Data.define(:nested, :mode)
+    Init = -> { OuterModel.new(nested: CountingLeaf::Init.call, mode: :filtering) }
+    View = -> (_model, tui) { tui.clear }
+
+    route :nested, to: CountingLeaf
+
+    receive_events :q, -> (_, model) { [model, Rooibos::Command.exit] }
+
+    OUTER_GUARD = -> (_, model) { model.mode == :filtering }
+    INNER_GUARD = -> (_, model) { true }
+
+    only when: OUTER_GUARD do
+      otherwise route_to: :nested, when: INNER_GUARD
+    end
+
+    Update = from_router
+  end
+
+  def test_nested_guard_otherwise_is_ractor_shareable
+    result = with_test_terminal do
+      inject_key("a")
+      inject_key("q")
+      Rooibos::Runtime.run(NestedGuardOuter)
+    end
+
+    assert_equal 1, result.nested.count,
+      "nested fragment should receive the forwarded message through nested guards"
   end
 end

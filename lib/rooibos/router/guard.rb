@@ -32,10 +32,16 @@ module Rooibos
         new(callable: apply_scope(normalized))
       end
 
+      # Combines two guards into a single callable without creating a closure.
+      class CombinedGuard < Data.define(:inner, :outer)
+        def arity = 2
+        def call(msg, model) = inner.call(msg, model) && outer.call(msg, model)
+      end
+
       private_class_method def self.apply_scope(callable)
         @scope.inject(callable) do |inner, outer|
           if inner
-            -> (msg, model) { outer.call(msg, model) && inner.call(msg, model) }
+            CombinedGuard.new(inner:, outer:)
           else
             outer
           end

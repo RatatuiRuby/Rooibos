@@ -16,6 +16,14 @@ module Rooibos
 
       # Evaluates the guard. Returns true if no callable.
       def call: (message, _DataModel) -> boolish
+
+      class CombinedGuard < Data
+        attr_reader inner: guard
+        attr_reader outer: guard
+
+        def arity: () -> Integer
+        def call: (message, _DataModel) -> boolish
+      end
     end
   end
 end
