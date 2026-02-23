@@ -154,13 +154,13 @@ GEM
     rainbow (3.1.1)
     rake (13.3.1)
     rake-compiler-dock (1.11.0)
-    ratatui_ruby (1.4.1-arm64-darwin-24)
+    ratatui_ruby (1.4.2-arm64-darwin-24)
       rb_sys (~> 0.9)
       rexml (~> 3.4)
-    ratatui_ruby (1.4.1-x64-mingw-ucrt)
+    ratatui_ruby (1.4.2-x64-mingw-ucrt)
       rb_sys (~> 0.9)
       rexml (~> 3.4)
-    ratatui_ruby (1.4.1-x86_64-linux)
+    ratatui_ruby (1.4.2-x86_64-linux)
       rb_sys (~> 0.9)
       rexml (~> 3.4)
     ratatui_ruby-devtools (0.2.0)
@@ -372,9 +372,9 @@ CHECKSUMS
   rainbow (3.1.1) sha256=039491aa3a89f42efa1d6dec2fc4e62ede96eb6acd95e52f1ad581182b79bc6a
   rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
   rake-compiler-dock (1.11.0) sha256=eab51f2cd533eb35cea6b624a75281f047123e70a64c58b607471bb49428f8c2
-  ratatui_ruby (1.4.1-arm64-darwin-24) sha256=184f4eddda783789b2e77a13acf43e862fb714b7e70e4e1929eb166e62dc876e
-  ratatui_ruby (1.4.1-x64-mingw-ucrt) sha256=490421379ebee3eb2805b14d6181310bd3fafe85d484fe4b6cf132f18f9607c3
-  ratatui_ruby (1.4.1-x86_64-linux) sha256=8aaf906e1fe963a485f947943b879353a4555224afc6d9cbf15ab436992f8f9e
+  ratatui_ruby (1.4.2-arm64-darwin-24) sha256=763c5e84ce15f0e2a6176d38e863aad50e76bfd9eeb0f9a9033254c69a7e6d56
+  ratatui_ruby (1.4.2-x64-mingw-ucrt) sha256=705f1ffbb24deedc4bf33d465dea04f07ef329d5839c2324f6018aeeeaa795c3
+  ratatui_ruby (1.4.2-x86_64-linux) sha256=dccd5fbc309a973119cfd16a3245746df763a1d20d0d29bcef757d47fce9d810
   ratatui_ruby-devtools (0.2.0) sha256=b7fb1e25f0a8afb2abb21f5d7aa871adffa0f43ec1fa0cc066149581ce9039c4
   rb-fsevent (0.11.2) sha256=43900b972e7301d6570f64b850a5aa67833ee7d87b458ee92805d56b7318aefe
   rb-inotify (0.11.1) sha256=a0a700441239b0ff18eb65e3866236cd78613d6b9f78fea1f9ac47a85e47be6e
