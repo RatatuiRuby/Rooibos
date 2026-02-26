@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Removed
+
+## [0.7.3] - 2026-02-26
+
+### Added
+
+### Changed
+
+### Fixed
+
 - `forward_instances_of` now works inside `route_to` blocks
 
 ### Removed
