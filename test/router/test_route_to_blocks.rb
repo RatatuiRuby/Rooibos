@@ -201,4 +201,88 @@ class TestRouterRouteToBlocks < Minitest::Test
     assert_equal 1, new_model.counter.count,
       "route_to with captured Route should resolve correctly"
   end
+
+  class DataFetchedMessage < Data.define(:rows)
+    include Rooibos::Message::Predicates
+  end
+
+  module TrackingChild
+    Model = Data.define(:received_count)
+    Init = -> { Model.new(received_count: 0) }
+    Update = -> (msg, model) {
+      [model.with(received_count: model.received_count + 1), nil]
+    }
+  end
+
+  def test_route_to_block_with_forward_instances_of
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterRouteToBlocks::TrackingChild
+
+      route_to :child do
+        forward_instances_of TestRouterRouteToBlocks::DataFetchedMessage
+      end
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(
+      DataFetchedMessage.new(rows: [1, 2, 3]),
+      model
+    )
+
+    assert_equal 1, new_model.child.received_count,
+      "forward_instances_of inside route_to block must pick up the scoped target"
+  end
+
+  def test_route_to_block_with_forward_custom_predicate
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterRouteToBlocks::TrackingChild
+
+      route_to :child do
+        forward -> (msg, _) { msg.is_a?(TestRouterRouteToBlocks::DataFetchedMessage) }
+      end
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(
+      DataFetchedMessage.new(rows: [1, 2, 3]),
+      model
+    )
+
+    assert_equal 1, new_model.child.received_count,
+      "forward with custom predicate inside route_to block must pick up the scoped target"
+  end
+
+  def test_route_to_block_with_forward_all
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: TestRouterRouteToBlocks::TrackingChild
+
+      route_to :child do
+        forward_all
+      end
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:child)
+    model = model_class.new(child: TrackingChild::Init.call)
+
+    new_model, _cmd = update.call(
+      DataFetchedMessage.new(rows: [1, 2, 3]),
+      model
+    )
+
+    assert_equal 1, new_model.child.received_count,
+      "forward_all inside route_to block must pick up the scoped target"
+  end
 end

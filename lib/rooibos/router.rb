@@ -165,22 +165,6 @@ module Rooibos
         routes.add(Route.new(prefix: prefix&.to_s&.to_sym, fragment: to, read:, write:))
       end
 
-      # Forwards all instances of a class to routes.
-      #
-      # Matches messages by class. Ideal for custom message types or
-      # RatatuiRuby event classes like <tt>Event::Resize</tt>.
-      #
-      # Use <tt>broadcast: true</tt> to send to all declared routes, or
-      # <tt>broadcast_to:</tt> with an array of specific route targets.
-      #
-      # === Example
-      #
-      #   forward_instances_of RatatuiRuby::Event::Resize, to: :main_layout
-      #   forward_instances_of ThemeChanged, broadcast: true
-      def forward_instances_of(klass, ...)
-        forwards.add_instances_of(klass, ...)
-      end
-
       # Defines a named action referenceable by symbol.
       #
       # Actions are reusable handlers. Reference them by name in
@@ -320,6 +304,22 @@ module Rooibos
       #   forward_events [:up, :k], to: :list, as: :move_up
       def forward_events(keys, to: @_scoped_target, **)
         forwards.add_events(keys, to:, **)
+      end
+
+      # Forwards all instances of a class to routes.
+      #
+      # Matches messages by class. Ideal for custom message types or
+      # RatatuiRuby event classes like <tt>Event::Resize</tt>.
+      #
+      # Use <tt>broadcast: true</tt> to send to all declared routes, or
+      # <tt>broadcast_to:</tt> with an array of specific route targets.
+      #
+      # === Example
+      #
+      #   forward_instances_of RatatuiRuby::Event::Resize, to: :main_layout
+      #   forward_instances_of ThemeChanged, broadcast: true
+      def forward_instances_of(klass, to: @_scoped_target, **)
+        forwards.add_instances_of(klass, to:, **)
       end
 
       # Routes matching routed messages to a declared route.
