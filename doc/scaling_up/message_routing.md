@@ -292,6 +292,12 @@ forward_instances_of RatatuiRuby::Event::Resize, broadcast: true
 forward_instances_of ThemeChanged, broadcast_to: [:sidebar, :main_panel]
 ```
 
+Combine `broadcast: true` or `broadcast_to:` with `as:` to wrap messages in a semantic envelope. Nested fragments receive `Message::Routed` with the given envelope, not the raw class:
+
+```ruby
+forward_instances_of Rooibos::Message::Timer, broadcast: true, as: :refresh
+```
+
 ### Intercept / Receive Family
 
 **`intercept*`** and **`receive*`** are aliases. Both handle a message exclusively and stop further processing. The message never reaches later handlers.

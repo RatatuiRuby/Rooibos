@@ -258,6 +258,109 @@ class TestRouterForwardFlat < Minitest::Test
     refute @@footer_received, "broadcast_to: should NOT send to footer"
   end
 
+  def test_forward_instances_of_broadcast_true_with_as_wraps_in_routed
+    @@sidebar_envelope = nil
+    @@main_envelope = nil
+
+    sidebar = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :sidebar) }
+      const_set :Update, -> (msg, model) {
+        @@sidebar_envelope = msg.envelope if msg.routed?
+        [model, nil]
+      }
+    end
+
+    main = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :main) }
+      const_set :Update, -> (msg, model) {
+        @@main_envelope = msg.envelope if msg.routed?
+        [model, nil]
+      }
+    end
+
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :sidebar, to: sidebar
+      route :main, to: main
+
+      forward_instances_of TestRouterForwardFlat::ResizeEvent, broadcast: true, as: :layout_changed
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:sidebar, :main)
+    model = model_class.new(sidebar: sidebar::Init.call, main: main::Init.call)
+
+    update.call(ResizeEvent.new(width: 800, height: 600), model)
+
+    assert_equal :layout_changed, @@sidebar_envelope,
+      "broadcast: true with as: should wrap in Routed with :layout_changed envelope for sidebar"
+    assert_equal :layout_changed, @@main_envelope,
+      "broadcast: true with as: should wrap in Routed with :layout_changed envelope for main"
+  end
+
+  def test_forward_instances_of_broadcast_to_with_as_wraps_in_routed
+    @@sidebar_envelope = nil
+    @@main_envelope = nil
+    @@footer_received_routed = false
+
+    sidebar = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :sidebar) }
+      const_set :Update, -> (msg, model) {
+        @@sidebar_envelope = msg.envelope if msg.routed?
+        [model, nil]
+      }
+    end
+
+    main = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :main) }
+      const_set :Update, -> (msg, model) {
+        @@main_envelope = msg.envelope if msg.routed?
+        [model, nil]
+      }
+    end
+
+    footer = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :footer) }
+      const_set :Update, -> (msg, model) {
+        @@footer_received_routed = true if msg.routed?
+        [model, nil]
+      }
+    end
+
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :sidebar, to: sidebar
+      route :main, to: main
+      route :footer, to: footer
+
+      forward_instances_of TestRouterForwardFlat::ThemeChanged, broadcast_to: [:sidebar, :main], as: :retheme
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:sidebar, :main, :footer)
+    model = model_class.new(
+      sidebar: sidebar::Init.call,
+      main: main::Init.call,
+      footer: footer::Init.call
+    )
+
+    update.call(ThemeChanged.new(theme: :dark), model)
+
+    assert_equal :retheme, @@sidebar_envelope,
+      "broadcast_to: with as: should wrap in Routed with :retheme for sidebar"
+    assert_equal :retheme, @@main_envelope,
+      "broadcast_to: with as: should wrap in Routed with :retheme for main"
+    refute @@footer_received_routed,
+      "broadcast_to: should NOT send to footer"
+  end
+
   def test_forward_all_routes_all_messages
     test_class = Class.new do
       include Rooibos::Router
