@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `forward_routed` with `as:` now correctly transforms the envelope as documented in the `forward_routed` RDoc and the "Envelope Transformation with `as:`" section of `doc/scaling_up/message_routing.md`. Previously, the implementation double-wrapped already-routed messages instead of replacing the envelope. The original event is now preserved as both docs specify.
+
 ### Removed
 
 ## [0.7.3] - 2026-02-26

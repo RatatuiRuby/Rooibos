@@ -28,7 +28,8 @@ module Rooibos
 
       private def envelop(message)
         if envelope
-          Message::Routed.new(envelope:, event: message)
+          event = message.is_a?(Message::Routed) ? message.event : message
+          Message::Routed.new(envelope:, event:)
         else
           message
         end

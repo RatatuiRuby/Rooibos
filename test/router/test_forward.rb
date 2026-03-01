@@ -474,7 +474,7 @@ class TestRouterForward < Minitest::Test
     assert_same enter_event, received.event, "original event must be preserved inside Routed"
   end
 
-  def test_forward_routed_with_as_preserves_nested_event_chain
+  def test_forward_routed_with_as_transforms_envelope_preserving_original_event
     test_class = Class.new do
       include Rooibos::Router
 
@@ -494,7 +494,7 @@ class TestRouterForward < Minitest::Test
     received = new_model.child.received_messages.first
     assert received.routed?, "message must be routed"
     assert_equal :outer, received.envelope
-    assert_same inner_routed, received.event, "nested event chain must be preserved"
+    assert_same original_event, received.event, "original event must be preserved (not double-wrapped)"
   end
 
   def test_forward_events_with_empty_array_matches_nothing
