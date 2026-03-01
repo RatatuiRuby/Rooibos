@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`broadcast:` and `broadcast_to:` on all forward variants**: `forward_routed`, `forward_events`, and `forward` (custom predicate) now accept `broadcast: true` and `broadcast_to:` keywords, matching the existing support in `forward_instances_of`. Previously only `forward_instances_of` supported broadcasting; the other variants raised `ArgumentError`.
+
 ### Changed
 
 ### Fixed

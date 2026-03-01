@@ -86,6 +86,47 @@ class TestRouterForwardFlat < Minitest::Test
     assert_equal 2, new_model2.child.received_messages.size
   end
 
+  def test_forward_events_broadcast_to_sends_to_named_routes
+    @@left_received = false
+    @@right_received = false
+
+    left = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :left) }
+      const_set :Update, -> (msg, model) {
+        @@left_received = true
+        [model, nil]
+      }
+    end
+
+    right = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :right) }
+      const_set :Update, -> (msg, model) {
+        @@right_received = true
+        [model, nil]
+      }
+    end
+
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :left, to: left
+      route :right, to: right
+
+      forward_events :enter, broadcast_to: [:left, :right], as: :submit
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:left, :right)
+    model = model_class.new(left: left::Init.call, right: right::Init.call)
+
+    update.call(RatatuiRuby::Event::Key.new(code: "enter"), model)
+
+    assert @@left_received, "broadcast_to: should send to left"
+    assert @@right_received, "broadcast_to: should send to right"
+  end
+
   def test_forward_routed_routes_by_envelope
     test_class = Class.new do
       include Rooibos::Router
@@ -130,6 +171,51 @@ class TestRouterForwardFlat < Minitest::Test
     new_model, _cmd = update.call(routed_msg, model)
 
     assert_equal 1, new_model.counter.count, "as: should transform :counter_1 to :increment"
+  end
+
+  def test_forward_routed_broadcast_true_sends_to_all
+    @@left_received = false
+    @@right_received = false
+
+    left = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :left) }
+      const_set :Update, -> (msg, model) {
+        @@left_received = true if msg.routed? && msg.envelope == :clock
+        [model, nil]
+      }
+    end
+
+    right = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :right) }
+      const_set :Update, -> (msg, model) {
+        @@right_received = true if msg.routed? && msg.envelope == :clock
+        [model, nil]
+      }
+    end
+
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :left, to: left
+      route :right, to: right
+
+      forward_routed :clock, broadcast: true
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:left, :right)
+    model = model_class.new(left: left::Init.call, right: right::Init.call)
+
+    routed_msg = Rooibos::Message::Routed.new(
+      envelope: :clock,
+      event: :tick
+    )
+    update.call(routed_msg, model)
+
+    assert @@left_received, "broadcast: true should send :clock to left"
+    assert @@right_received, "broadcast: true should send :clock to right"
   end
 
   class ResizeEvent < Data.define(:width, :height)
@@ -424,6 +510,48 @@ class TestRouterForwardFlat < Minitest::Test
       new_model
     )
     assert_equal 1, new_model2.child.received_messages.size
+  end
+
+  def test_forward_with_predicate_broadcast_to_sends_to_named_routes
+    @@left_received = false
+    @@right_received = false
+
+    left = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :left) }
+      const_set :Update, -> (msg, model) {
+        @@left_received = true
+        [model, nil]
+      }
+    end
+
+    right = Module.new do
+      const_set :Model, Data.define(:name)
+      const_set :Init, -> { self::Model.new(name: :right) }
+      const_set :Update, -> (msg, model) {
+        @@right_received = true
+        [model, nil]
+      }
+    end
+
+    test_class = Class.new do
+      include Rooibos::Router
+
+      route :left, to: left
+      route :right, to: right
+
+      forward -> (msg, _) { msg.theme_changed? }, broadcast_to: [:left, :right]
+    end
+
+    update = test_class.from_router
+    model_class = Data.define(:left, :right)
+    model = model_class.new(left: left::Init.call, right: right::Init.call)
+
+    msg = TestRouterForwardFlat::ThemeChanged.new(theme: :dark)
+    update.call(msg, model)
+
+    assert @@left_received, "broadcast_to: should send to left"
+    assert @@right_received, "broadcast_to: should send to right"
   end
 
   def test_route_to_block_scopes_destination

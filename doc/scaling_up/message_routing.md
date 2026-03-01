@@ -285,11 +285,13 @@ Use `as:` to decouple layers. Each layer speaks its inner fragment's API without
 
 #### Broadcasting
 
-Broadcast messages to multiple or all routes. Use `broadcast: true` to send to all declared routes, or `broadcast_to:` with an array of specific route names:
+All forward variants support `broadcast: true` to send to all declared routes, or `broadcast_to:` with an array of specific route names:
 
 ```ruby
 forward_instances_of RatatuiRuby::Event::Resize, broadcast: true
-forward_instances_of ThemeChanged, broadcast_to: [:sidebar, :main_panel]
+forward_routed :clock, broadcast: true
+forward_events :enter, broadcast_to: [:form_a, :form_b]
+forward ->(msg, _) { msg.important? }, broadcast_to: [:sidebar, :main_panel]
 ```
 
 Combine `broadcast: true` or `broadcast_to:` with `as:` to wrap messages in a semantic envelope. Nested fragments receive `Message::Routed` with the given envelope, not the raw class:

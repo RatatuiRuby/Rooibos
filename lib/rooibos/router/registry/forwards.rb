@@ -23,22 +23,22 @@ module Rooibos
         envelope: as
       ))
 
-      def add_events(keys, to:, as: nil, guard: nil, when: nil, unless: nil) = add(Forward.new(
+      def add_events(keys, to: nil, as: nil, broadcast: false, broadcast_to: nil, guard: nil, when: nil, unless: nil) = add(Forward.new(
         predicate: Predicate::Events.new(keys:),
-        targets: to,
+        targets: resolve_targets(to:, broadcast:, broadcast_to:),
         envelope: as,
         guard: Guard.from(guard:, when: binding.local_variable_get(:when), unless: binding.local_variable_get(:unless))
       ))
 
-      def add_routed(envelopes, to:, as: nil) = add(Forward.new(
+      def add_routed(envelopes, to: nil, as: nil, broadcast: false, broadcast_to: nil) = add(Forward.new(
         predicate: Predicate::RoutedEnvelopes.new(envelopes:),
-        targets: to,
+        targets: resolve_targets(to:, broadcast:, broadcast_to:),
         envelope: as
       ))
 
-      def add_custom(predicate, to:, as: nil, **guard_opts) = add(Forward.new(
+      def add_custom(predicate, to: nil, as: nil, broadcast: false, broadcast_to: nil, **guard_opts) = add(Forward.new(
         predicate:,
-        targets: to,
+        targets: resolve_targets(to:, broadcast:, broadcast_to:),
         envelope: as,
         guard: Guard.from(**guard_opts)
       ))

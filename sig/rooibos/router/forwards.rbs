@@ -17,13 +17,13 @@ module Rooibos
       def add_instances_of: (Class klass, ?to: route_target?, ?as: Symbol?, ?broadcast: bool, ?broadcast_to: Array[route_target]?) -> void
 
       # Adds a forward rule matching key events.
-      def add_events: (Symbol | Array[Symbol] keys, ?to: route_target?, ?as: Symbol?, ?guard: guard?, ?when: guard?, ?unless: guard?) -> void
+      def add_events: (Symbol | Array[Symbol] keys, ?to: route_target?, ?as: Symbol?, ?broadcast: bool, ?broadcast_to: Array[route_target]?, ?guard: guard?, ?when: guard?, ?unless: guard?) -> void
 
       # Adds a forward rule matching routed messages by envelope.
-      def add_routed: (Symbol | Array[Symbol] envelopes, ?to: route_target?, ?as: Symbol?) -> void
+      def add_routed: (Symbol | Array[Symbol] envelopes, ?to: route_target?, ?as: Symbol?, ?broadcast: bool, ?broadcast_to: Array[route_target]?) -> void
 
       # Adds a forward rule matching a custom predicate.
-      def add_custom: (guard predicate, ?to: route_target?, ?as: Symbol?) -> void
+      def add_custom: (guard predicate, ?to: route_target?, ?as: Symbol?, ?broadcast: bool, ?broadcast_to: Array[route_target]?) -> void
 
       private
 

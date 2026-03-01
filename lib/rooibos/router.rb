@@ -298,6 +298,9 @@ module Rooibos
       # with a semantic envelope. This decouples keybindings from nested
       # fragment internals.
       #
+      # Use <tt>broadcast: true</tt> to send to all declared routes, or
+      # <tt>broadcast_to:</tt> with an array of specific route targets.
+      #
       # === Example
       #
       #   forward_events :enter, to: :active_form, as: :submit
@@ -331,6 +334,9 @@ module Rooibos
       # Use <tt>as:</tt> to transform the envelope before forwarding.
       # Each layer speaks its inner fragment's API without knowing what
       # lies deeper.
+      #
+      # Use <tt>broadcast: true</tt> to send to all declared routes, or
+      # <tt>broadcast_to:</tt> with an array of specific route targets.
       #
       # === Example
       #
