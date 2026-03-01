@@ -9,6 +9,7 @@ After reading this guide, you will know:
 
 - How to compose child fragments using the Router DSL
 - How to route parent messages to the correct child
+- How to pass pre-rendered widgets into a child's View (widget slots)
 - How to use the Router DSL to simplify complex routing
 - When fractal architecture is worth the complexity
 
@@ -140,6 +141,59 @@ The Router:
 4. Merges child models back into the parent
 
 See [Message Routing](./message_routing.md) for details.
+
+---
+
+## Widget Slots
+
+Sometimes an outer fragment needs to inject its own widgets *between* parts of an inner fragment's view. A panel layout renders the file list and preview side by side, but the outer fragment wants a path bar above them.
+
+In this case, the outer fragment pre-renders a widget and passes it as an argument to the inner fragment's View:
+
+```ruby
+module FileBrowser
+  View = -> (model, tui) {
+    # FileBrowser renders the path bar
+    path_bar = PathBar::View[model.path_bar, tui]
+
+    # FileBrowser passes it to PanelLayout as a slot
+    panels = PanelLayout::View[model.panels, tui, path_bar]
+
+    tui.layout(
+      direction: :vertical,
+      constraints: [tui.constraint_fill(1), tui.constraint_length(1)],
+      children: [panels, StatusBar::View[model.status_bar, tui]]
+    )
+  }
+end
+```
+
+The inner fragment receives the pre-rendered widget and places it within its own layout:
+
+```ruby
+module PanelLayout
+  View = -> (model, tui, header_slot) {
+    files = FileList::View[model.files, tui]
+    preview = PreviewPane::View[model.preview, tui]
+    panes = tui.layout(
+      direction: :horizontal,
+      constraints: [tui.constraint_percentage(40), tui.constraint_fill(1)],
+      children: [files, preview]
+    )
+    tui.layout(
+      direction: :vertical,
+      constraints: [tui.constraint_length(1), tui.constraint_fill(1)],
+      children: [header_slot, panes]
+    )
+  }
+end
+```
+
+PanelLayout doesn't know what `header_slot` is. It could be a path bar, a breadcrumb trail, or an empty widget. The outer fragment decides; the inner fragment just places it.
+
+If you know Ember, this is `{{yield}}`. If you know React, it's the `children` prop. If you know Rails, it's `content_for`/`yield :section` in layouts. In BubbleTea, the outer model's `View()` always controls composition — there's no slot mechanism, so this pattern gives Rooibos more flexibility. The outer fragment owns the data and rendering; the inner fragment owns the layout position.
+
+> **Tip**: Use widget slots when an inner fragment controls the layout but a sibling fragment's view belongs inside it. Keep the slot count small (one or two at most).
 
 ---
 
