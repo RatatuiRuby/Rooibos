@@ -47,7 +47,8 @@ module Rooibos
         bubbles.each do |bubble|
           model, cmd = dispatch_outward(bubble.message, result.model)
           result = Transition.new(model:, command: result.command)
-          result = result.with_added_command(cmd) unless cmd.nil? || cmd.equal?(Flow::Outward::INTERCEPTED)
+          result = result.with_added_command(bubble) if cmd.nil?
+          result = result.with_added_command(cmd) unless cmd.equal?(Flow::Outward::INTERCEPTED)
         end
         result
       end

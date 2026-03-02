@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `forward_routed` with `as:` now correctly transforms the envelope as documented in the `forward_routed` RDoc and the "Envelope Transformation with `as:`" section of `doc/scaling_up/message_routing.md`. Previously, the implementation double-wrapped already-routed messages instead of replacing the envelope. The original event is now preserved as both docs specify.
 
-- `Command.bubble` from a nested fragment now triggers `observe` and `intercept` handlers at the outer level when the outer fragment's inward flow also produces a command from an `observe` handler for the same message. Previously, bubbles were silently lost inside the `Command::Separate` wrapper that the Router uses to combine observe and forward results.
+- `Command.bubble` from a nested fragment now correctly propagates through intermediate fragments that have no `observe` or `intercept` for that bubble. Previously, bubbles were silently dropped when the immediate outer fragment had no outward handler, even if a further-out fragment did.
 
 ### Removed
 

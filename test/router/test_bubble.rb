@@ -815,4 +815,64 @@ class TestRouterBubble < Minitest::Test
     # THIS IS THE BUG: the bubble from the child is lost inside Command::Separate
     assert @@observe_called, "parent's bubble observe should have fired - bubble must not be lost in Separate"
   end
+
+  module BatchBubblingInnerFragment
+    Model = Data.define(:tab)
+    Init = -> { Model.new(tab: :home) }
+    Update = -> (msg, model) {
+      if msg.respond_to?(:routed?) && msg.envelope == :next_tab
+        [
+          model.with(tab: :busy),
+          Rooibos::Command.batch(
+            Rooibos::Command.bubble(BubbleTestMilestone.new(envelope: :tab_changed, count: 1)),
+            Rooibos::Command.deliver(OtherBubbleMessage.new(envelope: :fetch, value: 42))
+          ),
+        ]
+      else
+        model
+      end
+    }
+  end
+
+  def build_transparent_middle
+    middle_class = Class.new do
+      include Rooibos::Router
+
+      route :inner, to: BatchBubblingInnerFragment
+
+      forward_events :right, to: :inner, as: :next_tab
+    end
+
+    middle_init = -> { Data.define(:inner).new(inner: BatchBubblingInnerFragment::Init.call) }
+    middle_class.const_set(:Init, middle_init)
+    middle_class.const_set(:Update, middle_class.from_router)
+    middle_class
+  end
+
+  def test_bubble_in_batch_propagates_through_intermediate_fragment_with_no_outward_handlers
+    middle_class = build_transparent_middle
+
+    outer_class = Class.new do
+      include Rooibos::Router
+
+      route :middle, to: middle_class
+
+      observe MilestonePredicate, ObserveHandler
+      forward_events :right, to: :middle
+    end
+
+    outer_model = Data.define(:middle, :milestones).new(
+      middle: middle_class::Init.call,
+      milestones: 0
+    )
+    update = outer_class.from_router
+
+    @@observe_called = false
+
+    outer_model, _cmd = update.call(:right, outer_model)
+
+    assert_equal :busy, outer_model.middle.inner.tab, "inner fragment should have received the forwarded event"
+    assert @@observe_called, "outer fragment's bubble observe should have fired - bubble must propagate through intermediate fragment"
+    assert_equal 1, outer_model.milestones, "outer milestones should be incremented by observe handler"
+  end
 end
