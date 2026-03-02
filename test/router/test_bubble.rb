@@ -875,4 +875,44 @@ class TestRouterBubble < Minitest::Test
     assert @@observe_called, "outer fragment's bubble observe should have fired - bubble must propagate through intermediate fragment"
     assert_equal 1, outer_model.milestones, "outer milestones should be incremented by observe handler"
   end
+
+  module BubbleReceiverFragment
+    Model = Data.define(:received_envelope)
+    Init = -> { Model.new(received_envelope: nil) }
+    Update = -> (msg, model) {
+      if msg.bubble_test_milestone?
+        model.with(received_envelope: msg.envelope)
+      else
+        model
+      end
+    }
+  end
+
+  def test_forward_instances_of_fires_for_bubbled_message
+    outer_class = Class.new do
+      include Rooibos::Router
+
+      route :source, to: BubbleTestChild
+      route :receiver, to: BubbleReceiverFragment
+
+      observe MilestonePredicate, ObserveHandler
+      forward_instances_of BubbleTestMilestone, to: :receiver
+      otherwise route_to: :source
+    end
+
+    outer_model = Data.define(:source, :receiver, :milestones).new(
+      source: BubbleTestChild::Init.call,
+      receiver: BubbleReceiverFragment::Init.call,
+      milestones: 0
+    )
+    update = outer_class.from_router
+
+    @@observe_called = false
+
+    5.times { outer_model, _cmd = update.call(:increment, outer_model) }
+
+    assert @@observe_called, "observe should have fired for the bubble"
+    assert_equal 1, outer_model.milestones, "observe handler should have updated milestones"
+    assert_equal :child, outer_model.receiver.received_envelope, "forward should have delivered the bubble to the receiver fragment"
+  end
 end

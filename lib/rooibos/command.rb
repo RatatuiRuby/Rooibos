@@ -86,6 +86,16 @@ module Rooibos
       def call(_out, _token)
         raise "Separate command should never be dispatched directly"
       end
+
+      def extract_bubbles # :nodoc:
+        bubbles, rest = commands.partition { |c| c.is_a?(Bubble) }
+        remaining = case rest.size
+        when 0 then nil
+        when 1 then rest.first
+        else Separate.new(commands: rest)
+        end
+        [bubbles, remaining]
+      end
     end
     private_constant :Separate
 

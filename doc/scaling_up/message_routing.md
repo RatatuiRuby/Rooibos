@@ -500,6 +500,8 @@ This is declarative message drilling. The Router automates the forwarding you'd 
 
 The router runs handlers in three phases, regardless of declaration order. First, every matching `observe` handler runs in the order you declared them. Model changes carry forward from one observer to the next. Each observer's commands dispatch independently. The runtime does not group them into a `Message::Batch`. Second, the router tries `intercept*` and `receive*` handlers in declaration order. The first match handles the message; no later intercept or receive runs. Third, if nothing intercepted or received the message, the router tries `forward*` handlers in declaration order, then falls through to `otherwise`.
 
+This order applies to messages from anywhere. Messages sent inward via `forward`, outward via `bubble`, received directly from the runtime, or sent manually by calling an Update function run through the same processing order.
+
 ---
 
 ## Generating Update
@@ -587,7 +589,7 @@ end
 
 Two things happen:
 
-1. **The bubble** propagates outward. Each outer fragment in the hierarchy gets a chance to `observe` or `intercept` it, from the immediate outer fragment all the way to Root.
+1. **The bubble** propagates outward. Each outer fragment in the hierarchy gets a chance to `observe`, `intercept`, `receive`, or `forward` it, from the immediate outer fragment all the way to Root.
 2. **The HTTP result** arrives at Root as a message. Use `forward` to route it inward to the fragment that needs it, or handle it directly at Root.
 
 An outer fragment (perhaps several levels up) can observe the bubble:

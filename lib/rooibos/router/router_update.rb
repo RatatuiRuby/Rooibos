@@ -11,6 +11,7 @@ module Rooibos
     # :stopdoc:
     # Encapsulates dispatch logic - given frozen rule sets, processes messages.
     class RouterUpdate < Data.define(:inward, :outward)
+      Separate = Command.const_get(:Separate)
       def call(message, model)
         case message
         when Message::Bubbled then dispatch_outward(message.message, model)
@@ -30,16 +31,14 @@ module Rooibos
         when Command::Bubble # Sentinel; not a real Command to be handled by the runtime
           bubble_model, bubble_cmd = dispatch_outward(transition.command.message, transition.model)
           transition.with_model(bubble_model).with_command(bubble_cmd)
-        when Command::Batch
-          extract_bubbles_from_batch(transition)
-        when Command.const_get(:Separate)
-          extract_bubbles_from_separate(transition)
+        when Command::Batch, Separate
+          extract_bubbles_from_compound(transition)
         else
           transition
         end
       end
 
-      private def extract_bubbles_from_batch(transition)
+      private def extract_bubbles_from_compound(transition)
         bubbles, remaining = transition.command.extract_bubbles
         return transition if bubbles.empty?
 
@@ -49,16 +48,6 @@ module Rooibos
           result = Transition.new(model:, command: result.command)
           result = result.with_added_command(bubble) if cmd.nil?
           result = result.with_added_command(cmd) unless cmd.equal?(Flow::Outward::INTERCEPTED)
-        end
-        result
-      end
-
-      private def extract_bubbles_from_separate(transition)
-        result = Transition.new(model: transition.model, command: nil)
-        transition.command.commands.each do |sub_cmd|
-          sub_transition = extract_bubbles(Transition.new(model: result.model, command: sub_cmd))
-          result = Transition.new(model: sub_transition.model, command: result.command)
-          result = result.with_separate_command(sub_transition.command) unless sub_transition.command.nil? || sub_transition.command.equal?(Flow::Outward::INTERCEPTED)
         end
         result
       end

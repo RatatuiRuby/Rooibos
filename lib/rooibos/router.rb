@@ -123,7 +123,7 @@ module Rooibos
       def from_router
         RouterUpdate.new(
           inward: Flow::Inward.new(observes:, receives:, forwards:, otherwises:, routes:),
-          outward: Flow::Outward.new(observes:, receives:, routes:)
+          outward: Flow::Outward.new(observes:, receives:, forwards:, routes:)
         )
       end
 

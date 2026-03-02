@@ -12,8 +12,8 @@ module Rooibos
     module Flow
       # Outward flow: messages traveling toward the root.
       #
-      # Observe → intercept.
-      class Outward < Data.define(:observes, :receives, :routes)
+      # Observe → intercept → forward.
+      class Outward < Data.define(:observes, :receives, :forwards, :routes)
         include Dispatch
 
         # Sentinel: intercept consumed the bubble. Non-nil so
@@ -25,6 +25,7 @@ module Rooibos
           transition = run_all(observes, message, model)
           config = Configuration.new(message:, model: transition.model)
           intercept_first_matching(receives, config, transition) ||
+            apply_first_matching(forwards, config, transition) ||
             transition
         end
 
