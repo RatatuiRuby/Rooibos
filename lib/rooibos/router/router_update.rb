@@ -20,15 +20,23 @@ module Rooibos
 
       private def dispatch_inward(message, model)
         transition = inward.call(message, model)
+        transition = extract_bubbles(transition)
+        transition = transition.with(command: nil) if transition.command.equal?(Flow::Outward::INTERCEPTED)
+        transition.to_a
+      end
+
+      private def extract_bubbles(transition)
         case transition.command
         when Command::Bubble # Sentinel; not a real Command to be handled by the runtime
           bubble_model, bubble_cmd = dispatch_outward(transition.command.message, transition.model)
-          transition = transition.with_model(bubble_model).with_command(bubble_cmd)
+          transition.with_model(bubble_model).with_command(bubble_cmd)
         when Command::Batch
-          transition = extract_bubbles_from_batch(transition)
+          extract_bubbles_from_batch(transition)
+        when Command.const_get(:Separate)
+          extract_bubbles_from_separate(transition)
+        else
+          transition
         end
-        transition = transition.with(command: nil) if transition.command.equal?(Flow::Outward::INTERCEPTED)
-        transition.to_a
       end
 
       private def extract_bubbles_from_batch(transition)
@@ -40,6 +48,16 @@ module Rooibos
           model, cmd = dispatch_outward(bubble.message, result.model)
           result = Transition.new(model:, command: result.command)
           result = result.with_added_command(cmd) unless cmd.nil? || cmd.equal?(Flow::Outward::INTERCEPTED)
+        end
+        result
+      end
+
+      private def extract_bubbles_from_separate(transition)
+        result = Transition.new(model: transition.model, command: nil)
+        transition.command.commands.each do |sub_cmd|
+          sub_transition = extract_bubbles(Transition.new(model: result.model, command: sub_cmd))
+          result = Transition.new(model: sub_transition.model, command: result.command)
+          result = result.with_separate_command(sub_transition.command) unless sub_transition.command.nil? || sub_transition.command.equal?(Flow::Outward::INTERCEPTED)
         end
         result
       end

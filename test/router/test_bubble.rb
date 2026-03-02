@@ -759,4 +759,60 @@ class TestRouterBubble < Minitest::Test
     assert inner_batch, "Inner batch should be preserved in output"
     assert inner_batch.commands.any? { |c| c.is_a?(Rooibos::Command::Bubble) }
   end
+
+  # A child that bubbles immediately when it receives any routed :notify message.
+  module BubbleOnNotifyChild
+    Model = Data.define(:notified)
+    Init = -> { Model.new(notified: false) }
+    Update = -> (msg, model) {
+      if msg.respond_to?(:routed?) && msg.envelope == :notify
+        [
+          model.with(notified: true),
+          Rooibos::Command.bubble(BubbleTestMilestone.new(envelope: :notified, count: 1)),
+]
+      else
+        model
+      end
+    }
+  end
+
+  @@observe_inward_called = false
+  ObserveInwardSideEffect = Class.new(Data.define) { include Rooibos::Command::Custom; def call(_, _); end }
+  ObserveInwardHandler = -> (msg, model) {
+    TestRouterBubble.class_variable_set(:@@observe_inward_called, true)
+    [model.with(saw_inward: true), ObserveInwardSideEffect.new]
+  }
+
+  def test_bubble_from_child_reached_via_forward_with_sibling_observe
+    parent_class = Class.new do
+      include Rooibos::Router
+
+      route :child, to: BubbleOnNotifyChild
+
+      # Parent observes the inward event for its own purposes
+      observe(-> (msg, _) { msg == :ping }, ObserveInwardHandler)
+      # Parent also forwards the same event to the child
+      forward_events :ping, to: :child, as: :notify
+      # Parent observes bubbles from children
+      observe MilestonePredicate, ObserveHandler
+    end
+
+    parent_model = Data.define(:child, :saw_inward, :milestones).new(
+      child: BubbleOnNotifyChild::Init.call,
+      saw_inward: false,
+      milestones: 0
+    )
+    update = parent_class.from_router
+
+    @@observe_called = false
+    @@observe_inward_called = false
+
+    parent_model, _cmd = update.call(:ping, parent_model)
+
+    assert @@observe_inward_called, "parent's observe handler should have run on :ping"
+    assert parent_model.child.notified, "child should have received forwarded :notify"
+
+    # THIS IS THE BUG: the bubble from the child is lost inside Command::Separate
+    assert @@observe_called, "parent's bubble observe should have fired - bubble must not be lost in Separate"
+  end
 end
