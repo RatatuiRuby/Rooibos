@@ -89,6 +89,28 @@ module Rooibos
     def deconstruct_keys: (Array[Symbol]? keys) -> Hash[Symbol, untyped]
   end
 
+  # Response from a clock command.
+  class Clock < Data
+    include Predicates
+    attr_reader envelope: Symbol
+    attr_reader time: Time
+
+    def self.new: (envelope: Symbol, time: Time) -> instance
+
+    def clock?: () -> bool
+  end
+
+  # Response from a random command.
+  class Random < Data
+    include Predicates
+    attr_reader envelope: Symbol
+    attr_reader value: (Integer | Float | String)
+
+    def self.new: (envelope: Symbol, value: (Integer | Float | String)) -> instance
+
+    def random?: () -> bool
+  end
+
   # Response from an HTTP command.
   class HttpResponse
     include Predicates

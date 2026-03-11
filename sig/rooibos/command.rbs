@@ -134,18 +134,71 @@ module Rooibos
   # Alias for wait, semantically used for recurring timers.
   def self.tick: (Float seconds, Symbol tag) -> Wait
 
+  # Methods expected from classes that include Timed.
+  interface _TimedBase
+    def seconds: () -> Float
+    def timed_response: (Time start_time) -> (Message::Timer | Message::Clock)
+  end
+
+  # Shared behavior for commands that wait, then respond.
+  module Timed : _TimedBase
+    # Cooperative cancellation needs no grace period.
+    def rooibos_cancellation_grace_period: () -> Integer
+
+    # Waits then sends the result of timed_response, or Message::Canceled.
+    def call: (Outlet out, Concurrent::Cancellation token) -> void
+  end
+
   # One-shot timer command that waits, then sends a message.
   class Wait < Data
     include Custom
+    include Timed
 
     attr_reader seconds: Float
     attr_reader envelope: Symbol
 
     def self.new: (seconds: Float, envelope: Symbol) -> instance
 
-    # Execute the timer with cooperative cancellation.
+    private
+
+    # Builds the timer response with elapsed time.
+    def timed_response: (Time start_time) -> Message::Timer
+  end
+
+  # One-shot clock command that waits, then sends a message with wall-clock time.
+  class Clock < Data
+    include Custom
+    include Timed
+
+    attr_reader seconds: Float
+    attr_reader envelope: Symbol
+
+    def self.new: (seconds: Float, envelope: Symbol) -> instance
+
+    private
+
+    # Builds the clock response with wall-clock time.
+    def timed_response: (Time start_time) -> Message::Clock
+  end
+
+  # Creates a wall-clock time command.
+  def self.clock: (Float seconds, Symbol envelope) -> Clock
+
+  # A command that generates a random value.
+  class Random < Data
+    include Custom
+
+    attr_reader args: Array[(Symbol | Integer | Float | Range[Integer] | Range[Float])]
+    attr_reader envelope: Symbol
+
+    def self.new: (args: Array[(Symbol | Integer | Float | Range[Integer] | Range[Float])], envelope: Symbol) -> instance
+
+    # Execute the random command.
     def call: (Outlet out, Concurrent::Cancellation token) -> void
   end
+
+  # Creates a random value command.
+  def self.random: (*(Symbol | Integer | Float | Range[Integer] | Range[Float])) -> Random
 
   # Private wrapper for Command.custom.
   class Wrapped < Data

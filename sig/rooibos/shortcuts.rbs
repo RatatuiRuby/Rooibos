@@ -16,6 +16,8 @@ module Rooibos
   # Short aliases for Message types.
   module Msg
     Timer: singleton(Message::Timer)
+    Clock: singleton(Message::Clock)
+    Rand: singleton(Message::Random)
     Http: singleton(Message::HttpResponse)
 
     module Sh

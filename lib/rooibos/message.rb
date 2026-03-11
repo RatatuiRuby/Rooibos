@@ -125,6 +125,8 @@ module Rooibos
 end
 
 require_relative "message/timer"
+require_relative "message/clock"
+require_relative "message/random"
 require_relative "message/open"
 require_relative "message/http_response"
 require_relative "message/system/batch"

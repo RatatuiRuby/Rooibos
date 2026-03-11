@@ -49,34 +49,11 @@ module Rooibos
     #   end
     class Wait < Data.define(:seconds, :envelope)
       include Custom
+      include Timed
 
-      # Cooperative cancellation needs no grace period.
-      # The command responds instantly to cancellation via
-      # <tt>Concurrent::Cancellation.timeout</tt>.
-      def rooibos_cancellation_grace_period
-        0
-      end
-
-      # Executes the timer.
-      #
-      # Waits for <tt>seconds</tt>, then sends <tt>TimerResponse</tt>.
-      # If canceled, sends <tt>Message::Canceled</tt> instead.
-      #
-      # [out] Outlet for sending messages.
-      # [token] Cancellation token from the runtime.
-      def call(out, token)
-        start_time = Time.now
-        timer_cancellation, _origin = Concurrent::Cancellation.timeout(seconds)
-        combined = token.join(timer_cancellation)
-        combined.origin.wait
-
-        if token.canceled?
-          out.put(Message::Canceled.new(command: self))
-        else
-          elapsed = Time.now - start_time
-          response = Message::Timer.new(envelope:, elapsed:)
-          out.put(Ractor.make_shareable(response))
-        end
+      private def timed_response(start_time)
+        elapsed = Time.now - start_time
+        Message::Timer.new(envelope:, elapsed:)
       end
     end
   end

@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`Command.clock(seconds, envelope)`**: Wall-clock time command. Waits for `seconds`, then sends `Message::Clock` carrying the current `Time`. Use for periodic time displays, "last updated N seconds ago" features, or scheduling. Responds to cancellation cooperatively.
+
+- **`Message::Clock`**: Response from `Command.clock`. Contains `envelope:` (routing symbol) and `time:` (wall-clock `Time`). Includes `clock?` predicate and pattern matching via `{ type: :clock, envelope:, time: }`.
+
+- **`Command.random(*args, envelope)`**: Random value command. Delegates to Ruby's `Random` class through the runtime, keeping randomness out of Update. Without a leading symbol, calls `Random.rand`; with a leading symbol (e.g., `:bytes`), calls that method on `Random`. Returns `Message::Random`.
+
+- **`Message::Random`**: Response from `Command.random`. Contains `envelope:` (routing symbol) and `value:` (the random result). Includes `random?` predicate and pattern matching via `{ type: :random, envelope:, value: }`.
+
+- **`Msg::Clock` and `Msg::Rand` shortcuts**: Added to `Rooibos::Shortcuts::Msg` for convenient pattern matching.
+
 - **`broadcast:` and `broadcast_to:` on all forward variants**: `forward_routed`, `forward_events`, and `forward` (custom predicate) now accept `broadcast: true` and `broadcast_to:` keywords, matching the existing support in `forward_instances_of`. Previously only `forward_instances_of` supported broadcasting; the other variants raised `ArgumentError`.
 
 ### Changed

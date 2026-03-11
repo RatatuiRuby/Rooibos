@@ -9,7 +9,10 @@ require "concurrent-edge"
 require_relative "command/custom"
 require_relative "command/outlet"
 require_relative "command/lifecycle"
+require_relative "command/timed"
 require_relative "command/wait"
+require_relative "command/clock"
+require_relative "command/random"
 require_relative "command/batch"
 require_relative "command/all"
 require_relative "command/http"
@@ -593,6 +596,32 @@ module Rooibos
     # [interval] Duration between ticks (Float or Integer).
     # [tag] Symbol to tag the result message.
     singleton_class.alias_method :tick, :wait
+
+    # Creates a wall-clock time command.
+    #
+    # Waits for +seconds+ then sends +Message::Clock+ with the current time.
+    # Use for displaying time, throttling refreshes, or scheduling.
+    #
+    # [seconds] Duration to wait (Float or Integer).
+    # [envelope] Symbol to tag the result message.
+    def self.clock(seconds, envelope)
+      Clock.new(seconds:, envelope:)
+    end
+
+    # Creates a random value command.
+    #
+    # Delegates to Ruby's <tt>Random</tt> class through the runtime.
+    # The last argument is always the envelope. Everything before it
+    # maps to <tt>Random</tt>.
+    #
+    # Without a leading symbol, calls <tt>Random#rand</tt>.
+    # With a leading symbol, calls that method on <tt>Random</tt>.
+    #
+    # [*args] Arguments to pass to <tt>Random</tt>, followed by the envelope.
+    def self.random(*args)
+      envelope = args.pop
+      Random.new(args: args.freeze, envelope:)
+    end
 
     # Creates a parallel batch command.
     #

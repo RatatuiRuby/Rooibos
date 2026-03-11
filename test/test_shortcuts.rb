@@ -180,4 +180,38 @@ class TestShortcuts < Minitest::Test
     assert_equal :matched, result
     assert_same batch_cmd, command
   end
+
+  def test_msg_provides_clock_constant
+    assert_equal Rooibos::Message::Clock, Msg::Clock
+  end
+
+  def test_msg_clock_works_in_pattern_matching
+    clock_msg = Rooibos::Message::Clock.new(envelope: :refresh, time: Time.now)
+
+    result = case clock_msg
+             in Msg::Clock[envelope: :refresh]
+               :matched
+             else
+               :no_match
+    end
+
+    assert_equal :matched, result
+  end
+
+  def test_msg_provides_rand_constant
+    assert_equal Rooibos::Message::Random, Msg::Rand
+  end
+
+  def test_msg_rand_works_in_pattern_matching
+    rand_msg = Rooibos::Message::Random.new(envelope: :die, value: 4)
+
+    result = case rand_msg
+             in Msg::Rand[envelope: :die, value:]
+               value
+             else
+               :no_match
+    end
+
+    assert_equal 4, result
+  end
 end

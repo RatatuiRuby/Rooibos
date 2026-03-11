@@ -68,6 +68,14 @@ module Rooibos
       # Alias for +Message::Timer+.
       Timer = Message::Timer
 
+      # Clock message type.
+      # Alias for +Message::Clock+.
+      Clock = Message::Clock
+
+      # Random value message type.
+      # Alias for +Message::Random+.
+      Rand = Message::Random
+
       # HTTP response message type.
       # Alias for +Message::HttpResponse+.
       Http = Message::HttpResponse
