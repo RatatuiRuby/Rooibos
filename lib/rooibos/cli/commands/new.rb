@@ -381,7 +381,7 @@ module Rooibos
               rooibos: lib/rooibos/rubocop.yml
 
             AllCops:
-              TargetRubyVersion: 3.2
+              TargetRubyVersion: 3.3
 
             Style/StringLiterals:
               EnforcedStyle: double_quotes

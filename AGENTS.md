@@ -52,7 +52,7 @@ Description: Rooibos - part of the RatatuiRuby TUI framework ecosystem
 
 ### Ruby Standards
 
-- Use `Data.define` for all value objects (Ruby 3.2+). (Prefer `class Foo < Data.define()` over `Foo = Data.define() do`).
+- Use `Data.define` for all value objects (Ruby 3.3+). (Prefer `class Foo < Data.define()` over `Foo = Data.define() do`).
 - Define types in `.rbs` files. Don't use `untyped` just because it's easy; be comprehensive and accurate. Do not include `initialize` in `.rbs` files; use `self.new` for constructors instead.
 - Every public Ruby class/method must be documented for humans in RDoc (preferred)--**not** YARD--or markdown files (fallback), and must have `*.rbs` types defined.
 - Every significant architectural and design decision must be documented for contributors in markdown files. Mermaid is allowed.

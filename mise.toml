@@ -2,6 +2,6 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 [tools]
-ruby = "4.0.1"
+ruby = "4.0.2"
 python = "3.12"
 "pipx:pre-commit" = "latest"

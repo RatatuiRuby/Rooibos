@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Ruby 3.2 support has been removed, as it is now [EOL](https://www.ruby-lang.org/en/downloads/branches/#ruby-32)
+
 ## [0.7.3] - 2026-02-26
 
 ### Added
