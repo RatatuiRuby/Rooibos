@@ -120,16 +120,18 @@ module Rooibos
     # [view] Callable receiving <tt>(model, tui)</tt>, returns a widget. *Required if fragment not provided.*
     # [update] Callable receiving <tt>(message, model)</tt>, returns <tt>[new_model, command]</tt> or just <tt>new_model</tt>. *Required if fragment not provided.*
     # [command] Optional callable to run at startup. Returns a message for update.
+    # [update_every_frame] When +true+, <tt>Event::None</tt> (idle frame) events are passed to Update instead of being dropped. Use for animations, physics, or any per-frame state change. Default +false+.
     #
     # == Raises
     #
     # [Rooibos::Error::Invariant] If both fragment and any of (model, view, update, command) are provided.
-    def self.run(root_fragment = nil, fps: 60, model: nil, view: nil, update: nil, command: nil)
+    def self.run(root_fragment = nil, fps: 60, model: nil, view: nil, update: nil, command: nil, update_every_frame: false)
       @fragment = fragment_from_kwargs(root_fragment, model:, view:, update:, command:)
       @view = @fragment::View
       @update = @fragment::Update
       @init_callable = init_callable
       @timeout = 1.0 / fps
+      @update_every_frame = update_every_frame
 
       start_runtime
     end
@@ -310,7 +312,7 @@ module Rooibos
 
       private def handle_ratatui_event
         message = @tui.poll_event(timeout: @timeout)
-        return false if message.none?
+        return false if message.none? && !@update_every_frame
 
         # Handle sync events: wait for pending async work before continuing
         if message.sync?

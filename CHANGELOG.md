@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`update_every_frame:` parameter for `Runtime.run`**: When set to `true`, `Event::None` (idle frame) events are passed to Update instead of being silently dropped. Enables smooth animations, physics simulations, and other per-frame state changes. Default `false` preserves existing behavior.
+
 - **`Command.clock(seconds, envelope)`**: Wall-clock time command. Waits for `seconds`, then sends `Message::Clock` carrying the current `Time`. Use for periodic time displays, "last updated N seconds ago" features, or scheduling. Responds to cancellation cooperatively.
 
 - **`Message::Clock`**: Response from `Command.clock`. Contains `envelope:` (routing symbol) and `time:` (wall-clock `Time`). Includes `clock?` predicate and pattern matching via `{ type: :clock, envelope:, time: }`.

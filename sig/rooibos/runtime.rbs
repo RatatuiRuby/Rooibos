@@ -30,7 +30,8 @@ module Rooibos
   # Starts the MVU event loop (positional fragment).
   def self.run: [Model] (
     ?Module? root_fragment,
-    ?fps: Integer
+    ?fps: Integer,
+    ?update_every_frame: bool
   ) -> Model
 
   # Starts the MVU event loop (explicit parameters).
@@ -40,7 +41,8 @@ module Rooibos
     model: Model,
     view: ^(Model, RatatuiRuby::TUI) -> renderable,
     update: ^(RatatuiRuby::Event, Model) -> update_result?,
-    ?command: Command::execution?
+    ?command: Command::execution?,
+    ?update_every_frame: bool
   ) -> Model
 
   # Starts the MVU event loop (explicit parameters without fps).
@@ -49,7 +51,8 @@ module Rooibos
     model: Model,
     view: ^(Model, RatatuiRuby::TUI) -> renderable,
     update: ^(RatatuiRuby::Event, Model) -> update_result?,
-    ?command: Command::execution?
+    ?command: Command::execution?,
+    ?update_every_frame: bool
   ) -> Model
 
   # Normalizes Init callable return value to [model, command] tuple.
