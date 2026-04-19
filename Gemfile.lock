@@ -110,7 +110,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (2.18.1)
+    json (2.19.4)
     language_server-protocol (3.17.0.5)
     launchy (3.1.1)
       addressable (~> 2.8)
@@ -155,6 +155,15 @@ GEM
     rake (13.3.1)
     rake-compiler-dock (1.11.0)
     ratatui_ruby (1.5.0)
+      rb_sys (~> 0.9)
+      rexml (~> 3.4)
+    ratatui_ruby (1.5.0-arm64-darwin-24)
+      rb_sys (~> 0.9)
+      rexml (~> 3.4)
+    ratatui_ruby (1.5.0-x64-mingw-ucrt)
+      rb_sys (~> 0.9)
+      rexml (~> 3.4)
+    ratatui_ruby (1.5.0-x86_64-linux)
       rb_sys (~> 0.9)
       rexml (~> 3.4)
     ratatui_ruby-devtools (0.2.0)
@@ -339,7 +348,7 @@ CHECKSUMS
   inch (0.8.0) sha256=1b3a0f819814c3d2fe8407a7139798e428f3290d08b5c2729aed047bd64ad7e9
   io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
   irb (1.16.0) sha256=2abe56c9ac947cdcb2f150572904ba798c1e93c890c256f8429981a7675b0806
-  json (2.18.1) sha256=fe112755501b8d0466b5ada6cf50c8c3f41e897fa128ac5d263ec09eedc9f986
+  json (2.19.4) sha256=670a7d333fb3b18ca5b29cb255eb7bef099e40d88c02c80bd42a3f30fe5239ac
   language_server-protocol (3.17.0.5) sha256=fd1e39a51a28bf3eec959379985a72e296e9f9acfce46f6a79d31ca8760803cc
   launchy (3.1.1) sha256=72b847b5cc961589dde2c395af0108c86ff0119f42d4648d25b5440ebb10059e
   lint_roller (1.1.0) sha256=2c0c845b632a7d172cb849cc90c1bce937a28c5c8ccccb50dfd46a485003cc87
@@ -368,6 +377,9 @@ CHECKSUMS
   rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
   rake-compiler-dock (1.11.0) sha256=eab51f2cd533eb35cea6b624a75281f047123e70a64c58b607471bb49428f8c2
   ratatui_ruby (1.5.0) sha256=85b164c432968d883557cd19333fb318953671052af990df71cd594cd8e59ece
+  ratatui_ruby (1.5.0-arm64-darwin-24) sha256=35a8c4aa01ff3fe177aaba80ba620c9185ee02ef0adc53960516d8be2523aed2
+  ratatui_ruby (1.5.0-x64-mingw-ucrt) sha256=4d552ffa56d8a5eb711bde2f9667514be597baf17db04915a4c1a1cac0914218
+  ratatui_ruby (1.5.0-x86_64-linux) sha256=8a0f48d1eaf5e686aa9d0de20622bbf5b8e1901860de1676ee1e6cc93aafb10b
   ratatui_ruby-devtools (0.2.0) sha256=b7fb1e25f0a8afb2abb21f5d7aa871adffa0f43ec1fa0cc066149581ce9039c4
   rb-fsevent (0.11.2) sha256=43900b972e7301d6570f64b850a5aa67833ee7d87b458ee92805d56b7318aefe
   rb-inotify (0.11.1) sha256=a0a700441239b0ff18eb65e3866236cd78613d6b9f78fea1f9ac47a85e47be6e
