@@ -4,4 +4,4 @@
 [tools]
 ruby = "4.0.1"
 python = "3.12"
-pre-commit = "latest"
+"pipx:pre-commit" = "latest"

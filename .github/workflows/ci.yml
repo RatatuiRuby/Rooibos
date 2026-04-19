@@ -19,7 +19,7 @@ jobs:
     env:
       CI: "true"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Override Ruby version in mise.toml
         shell: bash
@@ -38,7 +38,7 @@ jobs:
           Add-Content -Path .mise.local.toml -Value "[settings]`ndisable_tools = [`"ruby`"]"
 
       - name: Install toolchain via mise
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v4
 
       - name: Setup (Unix)
         if: runner.os != 'Windows'
